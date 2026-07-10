@@ -1,0 +1,293 @@
+// ============================================================
+// ReadAloud AI — UNIFIED AI GATEWAY (Cloudflare Worker)
+// Replaces worker.js / worker-free.js with one production gateway.
+//
+// Endpoints:
+//   POST /chat  — ask the companion (routes by user's plan)
+//   GET  /me    — profile: plan, provider, model, tokens_balance (for progress bar)
+//
+// Routing:
+//   free plan  -> FREE_PROVIDER env: 'openai' (gpt-4o-mini) or 'bedrock' (Amazon Nova Micro)
+//   paid plan  -> user's chosen provider+model (whitelisted below), metered against wallet
+//   wallet empty -> automatically behaves as free tier
+//
+// Env vars (Settings > Variables and Secrets):
+//   SUPABASE_URL, SUPABASE_ANON_KEY
+//   SUPABASE_SERVICE_KEY   (Secret — Supabase: Settings > API Keys > service_role / secret key)
+//   OPENAI_API_KEY         (Secret)
+//   ANTHROPIC_API_KEY      (Secret)
+//   ALLOWED_ORIGIN         e.g. https://0krk0.github.io
+//   FREE_PROVIDER          'openai' (default) or 'bedrock'
+//   RATE_PER_MIN (8), RATE_PER_DAY_FREE (30), RATE_PER_DAY_PAID (200)
+//   -- only if FREE_PROVIDER=bedrock:
+//   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (Secrets), AWS_REGION (e.g. us-east-1),
+//   BEDROCK_MODEL (default amazon.nova-micro-v1:0)
+// Optional KV binding "RATE".
+// ============================================================
+
+const MODELS = {
+  anthropic: {
+    'claude-haiku-4-5':  { id: 'claude-haiku-4-5-20251001', search: true },
+    'claude-sonnet-5':   { id: 'claude-sonnet-5',           search: true }
+  },
+  openai: {
+    'gpt-4o-mini': { id: 'gpt-4o-mini' },
+    'gpt-4o':      { id: 'gpt-4o' }
+  }
+};
+const memRate = new Map();
+
+function corsHeaders(request, env) {
+  const allowed = (env.ALLOWED_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
+  const origin = request.headers.get('origin') || '';
+  const allow = allowed.length === 0 ? '*' : (allowed.includes(origin) ? origin : allowed[0]);
+  return {
+    'Access-Control-Allow-Origin': allow,
+    'Access-Control-Allow-Headers': 'authorization, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Vary': 'Origin'
+  };
+}
+function json(obj, status, cors) {
+  return new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json', ...cors } });
+}
+
+/* ---------- Supabase helpers (service role) ---------- */
+async function sbGet(env, path) {
+  const r = await fetch(env.SUPABASE_URL + '/rest/v1/' + path, {
+    headers: { apikey: env.SUPABASE_SERVICE_KEY, authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY }
+  });
+  if (!r.ok) return null;
+  return r.json();
+}
+async function sbRpc(env, fn, args) {
+  const r = await fetch(env.SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+    method: 'POST',
+    headers: { apikey: env.SUPABASE_SERVICE_KEY, authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY, 'content-type': 'application/json' },
+    body: JSON.stringify(args)
+  });
+  if (!r.ok) return null;
+  return r.json();
+}
+async function sbInsert(env, table, row) {
+  await fetch(env.SUPABASE_URL + '/rest/v1/' + table, {
+    method: 'POST',
+    headers: { apikey: env.SUPABASE_SERVICE_KEY, authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY, 'content-type': 'application/json', prefer: 'return=minimal' },
+    body: JSON.stringify(row)
+  }).catch(() => {});
+}
+
+/* ---------- Rate limiting ---------- */
+async function checkRate(env, uid, isPaid) {
+  const perMin = parseInt(env.RATE_PER_MIN || '8');
+  const perDay = parseInt(isPaid ? (env.RATE_PER_DAY_PAID || '200') : (env.RATE_PER_DAY_FREE || '30'));
+  const day = new Date().toISOString().slice(0, 10);
+  const minute = Math.floor(Date.now() / 60000);
+  let rec;
+  if (env.RATE) { try { rec = await env.RATE.get('u:' + uid, 'json'); } catch { rec = null; } }
+  else rec = memRate.get(uid);
+  if (!rec || rec.day !== day) rec = { day, dayCount: 0, minute, minCount: 0 };
+  if (rec.minute !== minute) { rec.minute = minute; rec.minCount = 0; }
+  if (rec.dayCount >= perDay) return { ok: false, why: isPaid ? 'Daily limit reached — see you tomorrow!' : 'Daily free limit reached. Upgrade for more, or come back tomorrow!' };
+  if (rec.minCount >= perMin) return { ok: false, why: 'Slow down a little — too many questions in one minute.' };
+  rec.dayCount++; rec.minCount++;
+  if (env.RATE) { try { await env.RATE.put('u:' + uid, JSON.stringify(rec), { expirationTtl: 172800 }); } catch {} }
+  else { memRate.set(uid, rec); if (memRate.size > 5000) memRate.clear(); }
+  return { ok: true };
+}
+
+/* ---------- System prompt ---------- */
+function systemPrompt(replyLang, canSearch) {
+  return 'You are a warm, friendly and knowledgeable reading companion inside ReadAloud AI, an app that reads ' +
+    'PDFs and documents aloud to people. The user is listening to a document and talking to you by voice or text. ' +
+    'The full document text is provided in the message — for questions ABOUT the document, answer directly from it. ' +
+    'NEVER say you will "keep reading", "scroll down" or "look further" — you already have the text. ' +
+    'If something is not in the document, say so plainly. ' +
+    'For questions RELATED to the document but beyond its text, use your own knowledge' +
+    (canSearch ? ', and use the web_search tool when current or official information would help' :
+      '; make clear it is general knowledge that may be outdated, and never claim to have searched online') +
+    '. For legal or official matters remind the user to confirm with the official source. ' +
+    'Keep replies SHORT: 2-3 spoken sentences, around 50-60 words, in plain simple words. ' +
+    'Give the key answer first. Only answer at length when the user explicitly asks for a thorough explanation. ' +
+    'IMPORTANT: reply ONLY in ' + replyLang + ' unless the user explicitly asks to switch languages. ' +
+    'Replies are spoken aloud: no markdown, no lists, no headings, no URLs.';
+}
+
+/* ---------- Providers ---------- */
+async function callAnthropic(env, modelId, sys, history, userMsg, search) {
+  const messages = history.concat([{ role: 'user', content: userMsg }]);
+  const body = { model: modelId, max_tokens: 400, system: sys, messages };
+  if (search) body.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 1 }];
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error('anthropic ' + r.status);
+  const d = await r.json();
+  return {
+    answer: (d.content || []).map(c => c.text || '').join('').trim(),
+    tin: (d.usage && d.usage.input_tokens) || 0,
+    tout: (d.usage && d.usage.output_tokens) || 0
+  };
+}
+async function callOpenAI(env, modelId, sys, history, userMsg) {
+  const messages = [{ role: 'system', content: sys }].concat(history, [{ role: 'user', content: userMsg }]);
+  const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { authorization: 'Bearer ' + env.OPENAI_API_KEY, 'content-type': 'application/json' },
+    body: JSON.stringify({ model: modelId, max_tokens: 400, messages })
+  });
+  if (!r.ok) throw new Error('openai ' + r.status);
+  const d = await r.json();
+  return {
+    answer: ((d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || '').trim(),
+    tin: (d.usage && d.usage.prompt_tokens) || 0,
+    tout: (d.usage && d.usage.completion_tokens) || 0
+  };
+}
+
+/* ---- AWS SigV4 (for Bedrock / Amazon Nova) ---- */
+async function hmac(key, msg) {
+  const k = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg)));
+}
+async function sha256hex(msg) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function callBedrock(env, sys, history, userMsg) {
+  const region = env.AWS_REGION || 'us-east-1';
+  const modelId = env.BEDROCK_MODEL || 'amazon.nova-micro-v1:0';
+  const host = `bedrock-runtime.${region}.amazonaws.com`;
+  const encodedId = encodeURIComponent(modelId);
+  const path = '/model/' + encodedId + '/converse';                       // actual URL (single-encoded)
+  const canonicalPath = '/model/' + encodeURIComponent(encodedId) + '/converse'; // SigV4 wants double-encoded
+  const msgs = history.map(m => ({ role: m.role, content: [{ text: m.content }] }))
+    .concat([{ role: 'user', content: [{ text: userMsg }] }]);
+  const body = JSON.stringify({ system: [{ text: sys }], messages: msgs, inferenceConfig: { maxTokens: 400 } });
+
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');       // YYYYMMDDTHHMMSSZ
+  const date = amzDate.slice(0, 8);
+  const scope = `${date}/${region}/bedrock/aws4_request`;
+  const payloadHash = await sha256hex(body);
+  const canonical = ['POST', canonicalPath, '', `content-type:application/json`, `host:${host}`, `x-amz-date:${amzDate}`, '', 'content-type;host;x-amz-date', payloadHash].join('\n');
+  const toSign = ['AWS4-HMAC-SHA256', amzDate, scope, await sha256hex(canonical)].join('\n');
+  let key = new TextEncoder().encode('AWS4' + env.AWS_SECRET_ACCESS_KEY);
+  for (const part of [date, region, 'bedrock', 'aws4_request']) key = await hmac(key, part);
+  const sig = [...await hmac(key, toSign)].map(b => b.toString(16).padStart(2, '0')).join('');
+
+  const r = await fetch(`https://${host}${path}`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-amz-date': amzDate,
+      'authorization': `AWS4-HMAC-SHA256 Credential=${env.AWS_ACCESS_KEY_ID}/${scope}, SignedHeaders=content-type;host;x-amz-date, Signature=${sig}`
+    },
+    body
+  });
+  if (!r.ok) throw new Error('bedrock ' + r.status + ' ' + (await r.text()).slice(0, 120));
+  const d = await r.json();
+  const parts = (d.output && d.output.message && d.output.message.content) || [];
+  return {
+    answer: parts.map(c => c.text || '').join('').trim(),
+    tin: (d.usage && d.usage.inputTokens) || 0,
+    tout: (d.usage && d.usage.outputTokens) || 0
+  };
+}
+
+/* ---------- Main ---------- */
+export default {
+  async fetch(request, env) {
+    const cors = corsHeaders(request, env);
+    if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
+
+    const allowed = (env.ALLOWED_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
+    const origin = request.headers.get('origin') || '';
+    if (allowed.length && !allowed.includes(origin)) return json({ error: 'Origin not allowed' }, 403, cors);
+
+    /* auth */
+    const token = (request.headers.get('authorization') || '').replace('Bearer ', '');
+    if (!token || token.length > 4096) return json({ error: 'Not logged in' }, 401, cors);
+    const userRes = await fetch(env.SUPABASE_URL + '/auth/v1/user', {
+      headers: { authorization: 'Bearer ' + token, apikey: env.SUPABASE_ANON_KEY }
+    });
+    if (!userRes.ok) return json({ error: 'Session expired — please login again' }, 401, cors);
+    const user = await userRes.json();
+    const uid = user.id;
+
+    /* profile */
+    let prof = null;
+    const rows = await sbGet(env, `profiles?id=eq.${uid}&select=plan,provider,model,tokens_balance,tokens_used`);
+    if (Array.isArray(rows) && rows[0]) prof = rows[0];
+    if (!prof) prof = { plan: 'free', provider: 'free', model: null, tokens_balance: 0, tokens_used: 0 };
+    const isPaid = prof.plan !== 'free' && prof.tokens_balance > 0
+      && MODELS[prof.provider] && MODELS[prof.provider][prof.model];
+
+    const url = new URL(request.url);
+    if (request.method === 'GET' && url.pathname.endsWith('/me')) {
+      return json({ plan: prof.plan, provider: prof.provider, model: prof.model,
+        tokens_balance: prof.tokens_balance, tokens_used: prof.tokens_used, effective: isPaid ? 'paid' : 'free' }, 200, cors);
+    }
+    if (request.method !== 'POST') return json({ error: 'POST only' }, 405, cors);
+
+    /* rate limit */
+    const rate = await checkRate(env, uid, isPaid);
+    if (!rate.ok) return json({ error: rate.why }, 429, cors);
+
+    /* input */
+    let body;
+    try { body = await request.json(); } catch { return json({ error: 'Bad request' }, 400, cors); }
+    const { question, context, docName, history, lang } = body || {};
+    const replyLang = (typeof lang === 'string' && lang.trim() && lang.length < 40) ? lang.trim() : 'English';
+    if (typeof question !== 'string' || !question.trim() || question.length > 4000) return json({ error: 'Invalid question' }, 400, cors);
+
+    const hist = [];
+    for (const m of (Array.isArray(history) ? history : []).slice(-6)) {
+      if ((m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string') {
+        hist.push({ role: m.role, content: m.content.slice(0, 2000) });
+      }
+    }
+    const userMsg = (typeof context === 'string' && context.trim())
+      ? `Document: "${String(docName || 'PDF').slice(0, 200)}"\nDocument text (this is ALL you have — there is no more to "read ahead"):\n"""${context.slice(0, 9000)}"""\n\nUser says: ${question}`
+      : question;
+
+    /* route */
+    let result, provider, model;
+    try {
+      if (isPaid) {
+        provider = prof.provider;
+        const m = MODELS[provider][prof.model];
+        model = m.id;
+        const sys = systemPrompt(replyLang, provider === 'anthropic' && m.search);
+        result = provider === 'anthropic'
+          ? await callAnthropic(env, m.id, sys, hist, userMsg, m.search)
+          : await callOpenAI(env, m.id, sys, hist, userMsg);
+      } else {
+        const sys = systemPrompt(replyLang, false);
+        if ((env.FREE_PROVIDER || 'openai') === 'bedrock') {
+          provider = 'bedrock'; model = env.BEDROCK_MODEL || 'amazon.nova-micro-v1:0';
+          result = await callBedrock(env, sys, hist, userMsg);
+        } else {
+          provider = 'openai'; model = 'gpt-4o-mini';
+          result = await callOpenAI(env, model, sys, hist, userMsg);
+        }
+      }
+    } catch (e) {
+      console.log('AI error', String(e).slice(0, 200), uid);
+      return json({ error: 'AI service is busy — please try again in a moment.' }, 502, cors);
+    }
+
+    /* meter */
+    const total = (result.tin || 0) + (result.tout || 0);
+    let balance = prof.tokens_balance;
+    if (isPaid && total > 0) {
+      const nb = await sbRpc(env, 'deduct_tokens', { uid, amount: total });
+      if (typeof nb === 'number') balance = nb;
+    }
+    sbInsert(env, 'usage_log', { user_id: uid, provider, model, tokens_in: result.tin, tokens_out: result.tout });
+
+    return json({ answer: result.answer, tokens_used: total, tokens_left: isPaid ? balance : null, plan: isPaid ? 'paid' : 'free' }, 200, cors);
+  }
+};
