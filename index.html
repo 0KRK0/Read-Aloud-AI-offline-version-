@@ -1584,7 +1584,7 @@ function makeZip(files, mime){
   return new Blob([...chunks, ...central, new Uint8Array(eocd.buffer)], {type: mime});
 }
 function buildDocx(pagesArr){   /* [{title, text}] */
-  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/[ --]/g,'');
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); // --]/g,'');
   let body = '';
   pagesArr.forEach((pg, i)=>{
     if(i > 0) body += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
@@ -1630,8 +1630,7 @@ $('wordBtn').addEventListener('click', ()=>{
 /* override of buildDocx — final clean version is defined below */
 function buildDocxOld2(pagesArr){   /* [{title, text}] */
   const esc = s => String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/[ --]/g,'');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); // --]/g,'');
   let body = '';
   pagesArr.forEach((pg, i)=>{
     if(i > 0) body += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
