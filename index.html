@@ -1325,7 +1325,7 @@ $('revKeep').addEventListener('click', ()=>{
   setTimeout(()=>{
     let out;
     try{
-      out = warpPerspective(r.src, r.corners, 1800);
+      out = warpPerspective(r.src, r.corners, 2200);   /* higher res → sharper text for OCR */
       applyScanFilter(out, r.filter);
     }catch(e){ out = r.src; }
     const shot = { data: out.toDataURL('image/jpeg', .9), w: out.width, h: out.height };
@@ -1362,7 +1362,7 @@ $('camInput').addEventListener('change', async e=>{
   const shots = [];
   for(const f of files){
     try{
-      const c = await fileToCanvas(f, 2000);
+      const c = await fileToCanvas(f, 2600);
       const shot = await new Promise(res=> enterReview(c, s=>{ exitReview(false); res(s); }, ()=>{ exitReview(false); res(null); }));
       if(shot) shots.push(shot);
     }catch(err){ console.warn('scan review', err); }
@@ -1467,7 +1467,7 @@ function updateCamUI(){
 function captureFrame(){
   const v = $('camVideo');
   if(!v.videoWidth) return;
-  const MAX = 2000;
+  const MAX = 2600;   /* more pixels → better OCR (Word export quality) */
   const sc = Math.min(1, MAX / Math.max(v.videoWidth, v.videoHeight));
   const c = document.createElement('canvas');
   c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
