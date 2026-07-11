@@ -1970,17 +1970,35 @@ function buildContext(question){
   return parts.join('\n\n').slice(0, 8500);
 }
 
+/* Fresh access token; forceRefresh asks Supabase for a new one (stale-token fix, e.g. Brave) */
+async function authToken(forceRefresh){
+  if(!sb) return null;
+  try{
+    if(forceRefresh){
+      const {data} = await sb.auth.refreshSession();
+      if(data && data.session) return data.session.access_token;
+    }
+    const {data:{session:s}} = await sb.auth.getSession();
+    return s ? s.access_token : null;
+  }catch(e){ return null; }
+}
 async function askAI(question, context){
-  const {data:{session:s}} = await sb.auth.getSession();
-  if(!s) throw new Error('Not logged in');
-  const res = await fetch(CONFIG.API_URL, {
+  let token = await authToken();
+  if(!token) throw new Error('Not logged in');
+  const call = t => fetch(CONFIG.API_URL, {
     method:'POST',
-    headers:{'content-type':'application/json', 'authorization':'Bearer '+s.access_token},
+    headers:{'content-type':'application/json', 'authorization':'Bearer '+t},
     body: JSON.stringify({question, context, docName, history: chatHistory.slice(-6), lang: companionLang()})
   });
+  let res = await call(token);
+  if(res.status === 401){                     /* stale token — refresh once and retry */
+    token = await authToken(true);
+    if(token) res = await call(token);
+  }
   if(!res.ok){
     let msg = 'server '+res.status;
     try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
+    if(res.status === 401) msg = 'Your login session has expired — tap 🔑 in the top bar and login again.';
     throw new Error(msg);
   }
   const d = await res.json();
@@ -2204,15 +2222,21 @@ async function startServerSTT(){
     if(blob.size < 1500) return;              /* too short to contain speech */
     sayProgress('👂 Understanding…');
     try{
-      const {data:{session:s}} = await sb.auth.getSession();
-      const r = await fetch(CONFIG.API_URL + '/stt', {
+      const call = t => fetch(CONFIG.API_URL + '/stt', {
         method:'POST',
-        headers:{ authorization:'Bearer '+s.access_token, 'content-type': blob.type },
+        headers:{ authorization:'Bearer '+t, 'content-type': blob.type },
         body: blob
       });
-      const j = await r.json().catch(()=>null);
+      let token = await authToken();
+      let r = token ? await call(token) : null;
+      if(!r || r.status === 401){             /* stale token — refresh once and retry */
+        token = await authToken(true);
+        if(token) r = await call(token);
+      }
+      const j = r ? await r.json().catch(()=>null) : null;
       removeProgress();
-      if(r.ok && j && j.text){ $('chatInput').value = j.text; sendChat(); }
+      if(r && r.ok && j && j.text){ $('chatInput').value = j.text; sendChat(); }
+      else if(r && r.status === 401) say('Your login session has expired — tap 🔑 in the top bar and login again, then the mic will work.','sys');
       else say((j && j.error) || 'I could not hear that clearly — please try again.','sys');
     }catch(e){ removeProgress(); say('Voice transcription failed ('+e.message+').','sys'); }
   };
@@ -2232,8 +2256,9 @@ function fmtTokens(n){ return n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1000 ? Ma
 async function fetchMe(){
   if(!session || !configured) return;
   try{
-    const {data:{session:s}} = await sb.auth.getSession();
-    const r = await fetch(CONFIG.API_URL + '/me', {headers:{authorization:'Bearer '+s.access_token}});
+    const token = await authToken();
+    if(!token) return;
+    const r = await fetch(CONFIG.API_URL + '/me', {headers:{authorization:'Bearer '+token}});
     if(r.ok){ me = await r.json(); renderWallet(); }
   }catch(e){}
 }
