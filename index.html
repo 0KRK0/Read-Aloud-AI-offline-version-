@@ -273,9 +273,31 @@
     #playbar.expanded #pbExtra{display:flex}
   }
   /* ---------- Camera scan ---------- */
-  #scanBtn{margin-top:14px; background:transparent; border:1.5px solid var(--accent,#6c8cff); color:var(--accent,#6c8cff);
-    border-radius:10px; padding:10px 20px; font-size:14.5px; cursor:pointer; font-weight:600}
-  #scanBtn:hover{background:rgba(108,140,255,.12)}
+  .orScan{margin-top:12px; color:var(--muted,#9aa1b5); font-size:13px}
+  /* ---------- Engine tiers + Token Saver ---------- */
+  #tierBox{margin:14px 0 4px; padding:12px; background:var(--panel2,#141828); border-radius:12px}
+  .tierHead{font-size:13px; font-weight:700; margin-bottom:8px}
+  .tierHead small{color:var(--muted,#9aa1b5); font-weight:400}
+  .tierRow{display:flex; gap:8px}
+  .tierBtn{flex:1; background:var(--panel,#181c2f); border:1.5px solid var(--line,#262b45); border-radius:10px;
+    padding:9px 6px; cursor:pointer; color:var(--text,#e8eaf2); text-align:center; transition:border-color .15s}
+  .tierBtn small{display:block; font-size:10.5px; color:var(--muted,#9aa1b5); margin-top:2px}
+  .tierBtn.on{border-color:var(--accent,#6c8cff); box-shadow:0 0 0 2px rgba(108,140,255,.18)}
+  .tierBtn[data-tier="ultra"].on{border-color:#ff9d5c; box-shadow:0 0 0 2px rgba(255,157,92,.2)}
+  .saverRow{display:flex; align-items:center; gap:8px; margin-top:12px; font-size:12.5px; color:var(--muted,#9aa1b5); cursor:pointer}
+  .saverRow b{color:var(--text,#e8eaf2)}
+  .saverRow input{accent-color:var(--accent,#6c8cff); width:16px; height:16px}
+  #customRow{display:flex; align-items:center; gap:6px; margin-top:8px}
+  #customRow select,#customRow input{background:var(--panel,#181c2f); border:1px solid var(--line,#262b45);
+    color:var(--text,#e8eaf2); border-radius:8px; padding:7px 8px; font-size:13px}
+  #customRow input{width:84px}
+  #customRow .rupee{color:var(--muted,#9aa1b5)}
+  #customBuy{background:linear-gradient(90deg, var(--accent,#6c8cff), var(--accent2,#9a6cff)); color:#fff;
+    border:none; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:700; cursor:pointer}
+  #customBuy:hover{filter:brightness(1.1)}
+  #scanBtn{background:none; border:none; padding:0; color:var(--muted,#9aa1b5); font-size:13px; cursor:pointer;
+    text-decoration:underline; text-underline-offset:3px; text-decoration-color:rgba(108,140,255,.5); transition:color .15s}
+  #scanBtn:hover{color:var(--accent,#6c8cff)}
   #camModal{position:fixed; inset:0; z-index:400; display:none; flex-direction:column; background:#000}
   #camStage{flex:1; min-height:0; position:relative; display:flex; align-items:center; justify-content:center}
   #camVideo{width:100%; height:100%; object-fit:contain; background:#000}
@@ -371,7 +393,7 @@
       <div class="big">📄</div>
       <h2>Open a document</h2>
       <p>Click here or drag &amp; drop a file.<br>PDF · Word (DOCX) · Text · Images (photos of pages)<br>Your file stays on your device — it is never uploaded.</p>
-      <button id="scanBtn" onclick="event.stopPropagation()">📷 Scan with camera</button>
+      <p class="orScan">or <button id="scanBtn" onclick="event.stopPropagation()">📷 scan a paper with your camera</button></p>
       <p style="margin-top:10px"><a class="legalLink" href="privacy.html" target="_blank" onclick="event.stopPropagation()">Privacy Policy &amp; Terms</a></p>
       <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp" multiple hidden>
       <input type="file" id="camInput" accept="image/*" capture="environment" multiple hidden>
@@ -448,25 +470,45 @@
     <div class="sub" id="planStatus">You are on the Free plan.</div>
     <div class="planCard" data-plan="sub_openai_49">
       <span class="ic">⚡</span>
-      <span><b>OpenAI Plan</b><small>GPT-4o mini · 2,000,000 tokens · fast answers</small></span>
+      <span><b>Swift Plan</b><small>Quick, clever answers for everyday reading</small></span>
       <span class="price">₹49</span>
     </div>
     <div class="planCard" data-plan="sub_claude_99">
       <span class="ic">🧠</span>
-      <span><b>Claude Plan</b><small>Claude Haiku + live web search · 1,200,000 tokens · best explanations</small></span>
+      <span><b>Sage Plan</b><small>Deepest explanations + live web search</small></span>
       <span class="price">₹99</span>
     </div>
+    <div class="planCard" id="customCard" style="cursor:default">
+      <span class="ic">💠</span>
+      <span style="flex:1"><b>Custom amount</b><small>Top up once with any amount — no need to buy again and again</small>
+        <div id="customRow">
+          <select id="customProv"><option value="openai">Swift</option><option value="anthropic">Sage</option></select>
+          <span class="rupee">₹</span><input id="customAmt" type="number" min="49" max="5000" placeholder="199" inputmode="numeric">
+          <button id="customBuy">Buy</button>
+        </div>
+      </span>
+      <span class="price" id="customTok" style="font-size:12px; font-weight:500; color:var(--muted)">min ₹49</span>
+    </div>
     <div class="planCard" id="convertCard" style="display:none">
-      <span class="ic">⬆️</span>
-      <span><b>Upgrade to Claude — free</b><small id="convertDesc">Converts your remaining OpenAI tokens by value</small></span>
+      <span class="ic">🔁</span>
+      <span><b>Switch plan — free</b><small id="convertDesc">Your remaining balance converts by money value</small></span>
       <span class="price">₹0</span>
     </div>
     <div class="planCard" data-plan="doc" id="docPlanCard" style="display:none">
       <span class="ic">📄</span>
-      <span><b>Just this document</b><small id="docPlanDesc">One-time unlock with Claude</small></span>
+      <span><b>Just this document</b><small id="docPlanDesc">One-time unlock on Swift</small></span>
       <span class="price" id="docPlanPrice">₹—</span>
     </div>
-    <div class="planNote">Tokens are used per question — the bar in the companion panel shows what's left. Top up your plan anytime. Switch between Claude and OpenAI for free — your remaining tokens convert by money value in either direction, so nothing you paid for is ever lost. When tokens run out you return to the Free plan. Payments are one-time, no auto-renewal, no refunds — see <a href="privacy.html" target="_blank" style="color:var(--accent)">Privacy &amp; Terms</a>.</div>
+    <div id="tierBox" style="display:none">
+      <div class="tierHead">Engine power <small>— applies to every question you ask</small></div>
+      <div class="tierRow">
+        <button class="tierBtn" data-tier="core"><b>Core</b><small>default · best value</small></button>
+        <button class="tierBtn" data-tier="plus"><b>Plus</b><small>smarter · ×burn</small></button>
+        <button class="tierBtn" data-tier="ultra"><b>Ultra</b><small>top model · ⚠ burns fast</small></button>
+      </div>
+      <label class="saverRow"><input type="checkbox" id="saverToggle"> <b>🪄 Token Saver</b> — compresses what we send to the engine, same answers for fewer tokens</label>
+    </div>
+    <div class="planNote">Tokens are used per question — the bar in the companion panel shows the % left. Top up anytime. Switch between Swift and Sage for free — your balance converts by money value, nothing you paid for is lost. Higher engine power gives smarter answers but uses your balance faster. When it runs out you return to the Free plan (Spark engine). Payments are one-time, no auto-renewal, no refunds — see <a href="privacy.html" target="_blank" style="color:var(--accent)">Privacy &amp; Terms</a>.</div>
     <button id="plansClose">Close</button>
   </div>
 </div>
@@ -2564,7 +2606,8 @@ async function askAI(question, context){
   const call = t => fetch(CONFIG.API_URL, {
     method:'POST',
     headers:{'content-type':'application/json', 'authorization':'Bearer '+t},
-    body: JSON.stringify({question, context, docName, history: chatHistory.slice(-6), lang: companionLang()})
+    body: JSON.stringify({question, context, docName, history: chatHistory.slice(-6), lang: companionLang(),
+      tier: aiTier, optimize: aiSaver})
   });
   let res = await call(token);
   if(res.status === 401){                     /* stale token — refresh once and retry */
@@ -2838,23 +2881,48 @@ async function fetchMe(){
     if(r.ok){ me = await r.json(); renderWallet(); }
   }catch(e){}
 }
-const PLAN_SIZES = { sub_openai_49: 2000000, sub_claude_99: 1200000 };
+const PLAN_SIZES = { sub_openai_49: 500000, sub_claude_99: 120000 };
+const PLAN_INR = { sub_openai_49: 49, sub_claude_99: 99 };
+const RATE_INR = { openai: 49/500000, anthropic: 99/120000 };
+/* live plan config from the payments worker — env-configured prices, no redeploy drift */
+(async ()=>{
+  try{
+    if(!configured || CONFIG.PAY_URL.startsWith('PASTE')) return;
+    const r = await fetch(CONFIG.PAY_URL + '/config');
+    if(!r.ok) return;
+    const c = await r.json();
+    if(!c || !c.plans) return;
+    for(const k of ['sub_openai_49','sub_claude_99']){
+      const p = c.plans[k];
+      if(!p || !p.inr || !p.tokens) continue;
+      PLAN_SIZES[k] = p.tokens;
+      PLAN_INR[k] = p.inr;
+      RATE_INR[k === 'sub_claude_99' ? 'anthropic' : 'openai'] = p.inr / p.tokens;
+    }
+  }catch(e){ /* fall back to the built-in defaults */ }
+})();
+/* user-facing engine names — provider ids never appear in the UI */
+const ENGINE = { openai: 'Swift', anthropic: 'Sage', free: 'Spark', bedrock: 'Spark' };
+const TIER_LABEL = { core: 'Core', plus: 'Plus', ultra: 'Ultra' };
+let aiTier = localStorage.getItem('ra_tier') || 'core';
+let aiSaver = localStorage.getItem('ra_saver') === '1';
 function renderWallet(){
   if(!me){ $('wallet').style.display='none'; return; }
   if(me.effective === 'paid'){
     $('wallet').style.display='block';
     const max = Math.max(me.tokens_balance + (me.tokens_used || 0), 1);
     const pct = Math.max(0, Math.min(100, Math.round(me.tokens_balance / max * 100)));
-    const label = (me.provider==='anthropic'?'Claude':'OpenAI') + ' plan · ' + pct + '% left';
+    const tierTag = me.plan === 'doc' ? 'this document' : TIER_LABEL[aiTier] || 'Core';
+    const label = (ENGINE[me.provider] || 'Swift') + ' · ' + tierTag + ' · ' + pct + '% left';
     $('walletLabel').textContent = label;
     $('walletLabel').title = fmtTokens(me.tokens_balance) + ' of ' + fmtTokens(max) + ' tokens';
     $('walletFill').style.width = pct + '%';
     $('planStatus').textContent = 'Current: ' + label + '.';
   }else{
     $('wallet').style.display='block';
-    $('walletLabel').textContent = 'Free plan';
+    $('walletLabel').textContent = 'Free plan · Spark engine';
     $('walletFill').style.width = '100%';
-    $('planStatus').textContent = 'You are on the Free plan.';
+    $('planStatus').textContent = 'You are on the Free plan (Spark engine).';
   }
 }
 function updateBalance(left){
@@ -2868,19 +2936,17 @@ function openPlans(){
   document.querySelectorAll('.planCard[data-plan^="sub_"]').forEach(c=>{
     const prov = c.dataset.plan==='sub_claude_99' ? 'anthropic' : 'openai';
     const price = c.querySelector('.price');
-    const base = c.dataset.plan==='sub_claude_99' ? '₹99' : '₹49';
+    const base = '₹' + (PLAN_INR[c.dataset.plan] || (c.dataset.plan==='sub_claude_99' ? 99 : 49));
     if(!curProv) price.textContent = base;
     else if(prov === curProv) price.innerHTML = base + '<br><small style="font-weight:400">top up</small>';
     else price.innerHTML = base + '<br><small style="font-weight:400">switch + buy</small>';
   });
-  /* free switch card: any active paid balance, both directions */
-  if(curProv && me.tokens_balance > 0){
-    const toClaude = curProv === 'openai';
-    const rateFrom = toClaude ? 49/2000000 : 99/1200000;
-    const rateTo   = toClaude ? 99/1200000 : 49/2000000;
-    const conv = Math.floor(me.tokens_balance * rateFrom / rateTo);
-    $('convertCard').querySelector('b').textContent = toClaude ? 'Switch to Claude — free' : 'Switch to OpenAI — free';
-    $('convertDesc').textContent = `${fmtTokens(me.tokens_balance)} ${toClaude?'OpenAI':'Claude'} tokens → ~${fmtTokens(conv)} ${toClaude?'Claude':'OpenAI'} tokens. Same money value.`;
+  /* free switch card: active SUBSCRIPTION balance, both directions (doc packs are Swift-locked) */
+  if(curProv && me.tokens_balance > 0 && me.plan !== 'doc'){
+    const toSage = curProv === 'openai';
+    const conv = Math.floor(me.tokens_balance * RATE_INR[curProv] / RATE_INR[toSage ? 'anthropic' : 'openai']);
+    $('convertCard').querySelector('b').textContent = toSage ? 'Switch to Sage — free' : 'Switch to Swift — free';
+    $('convertDesc').textContent = `${fmtTokens(me.tokens_balance)} ${toSage?'Swift':'Sage'} tokens → ~${fmtTokens(conv)} ${toSage?'Sage':'Swift'} tokens. Same money value.`;
     $('convertCard').style.display = 'flex';
   }else{
     $('convertCard').style.display = 'none';
@@ -2889,15 +2955,49 @@ function openPlans(){
   const onFree = !me || me.effective !== 'paid';
   if(onFree && lines.length && numPages){
     $('docPlanCard').style.display='flex';
-    $('docPlanDesc').textContent = `One-time unlock for "${docName}" (${numPages} pages) with Claude`;
+    $('docPlanDesc').textContent = `One-time unlock for ${docLabel || 'this document'} (${numPages} pages) on Swift`;
     const tokens = numPages*800*4 + 50000;
-    $('docPlanPrice').textContent = '₹' + Math.max(19, Math.ceil((tokens/1e6)*90*2.5));
+    $('docPlanPrice').textContent = '₹' + Math.max(19, Math.ceil((tokens/1e6)*30*2.5));
   }else{
     $('docPlanCard').style.display='none';
+  }
+  /* custom top-up: active subscribers keep their engine; others pick */
+  if(curProv && me.plan !== 'doc'){
+    $('customProv').value = curProv;
+    $('customProv').disabled = true;
+  }else{
+    $('customProv').disabled = false;
+  }
+  customPreview();
+  /* engine power + Token Saver: subscribers only (doc packs run Core, no options) */
+  const isSub = me && me.effective === 'paid' && me.plan !== 'doc';
+  $('tierBox').style.display = isSub ? 'block' : 'none';
+  if(isSub){
+    document.querySelectorAll('.tierBtn').forEach(b=> b.classList.toggle('on', b.dataset.tier === aiTier));
+    $('saverToggle').checked = aiSaver;
   }
   renderWallet();
   $('plans').style.display='flex';
 }
+document.querySelectorAll('.tierBtn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const t = b.dataset.tier;
+    if(t === 'ultra' && aiTier !== 'ultra'){
+      if(!confirm('⚠ Ultra uses the most powerful engine — it gives the best answers but uses your balance much faster (up to 25× per question). Continue?')) return;
+    }
+    aiTier = t;
+    localStorage.setItem('ra_tier', t);
+    document.querySelectorAll('.tierBtn').forEach(x=> x.classList.toggle('on', x === b));
+    renderWallet();
+    say(`Engine power set to ${TIER_LABEL[t]}.` + (t==='ultra' ? ' ⚠ This burns tokens much faster.' : ''), 'sys');
+  });
+});
+$('saverToggle').addEventListener('change', e=>{
+  aiSaver = e.target.checked;
+  localStorage.setItem('ra_saver', aiSaver ? '1' : '0');
+  say(aiSaver ? '🪄 Token Saver is ON — I will compress what I send to the engine to stretch your balance.'
+              : 'Token Saver is off.', 'sys');
+});
 $('upgradeBtn').addEventListener('click', openPlans);
 $('plansClose').addEventListener('click', ()=> $('plans').style.display='none');
 $('plans').addEventListener('click', e=>{ if(e.target===$('plans')) $('plans').style.display='none'; });
@@ -2923,12 +3023,29 @@ async function doFreeUpgrade(){
     });
     const v = await r.json();
     removeProgress();
-    if(v.ok){ say(`🔁 Done! You are now on ${v.provider==='anthropic'?'Claude':'OpenAI'} with ${fmtTokens(v.tokens_balance)} tokens.`); await fetchMe(); }
+    if(v.ok){ say(`🔁 Done! You are now on the ${ENGINE[v.provider]||'Swift'} plan with ${fmtTokens(v.tokens_balance)} tokens.`); await fetchMe(); }
     else say('Switch failed: ' + (v.error||'unknown'));
   }catch(e){ removeProgress(); say('Switch error: '+e.message); }
 }
 
-async function buy(planKey){
+/* custom top-up: live token preview + provider lock for active subscribers */
+function customPreview(){
+  const amt = parseInt($('customAmt').value) || 0;
+  const prov = $('customProv').value;
+  $('customTok').textContent = (amt >= 49 && amt <= 5000)
+    ? '≈ ' + fmtTokens(Math.floor(amt / RATE_INR[prov])) + ' tokens'
+    : 'min ₹49';
+}
+$('customAmt').addEventListener('input', customPreview);
+$('customProv').addEventListener('change', customPreview);
+$('customBuy').addEventListener('click', ()=>{
+  const amt = parseInt($('customAmt').value) || 0;
+  if(amt < 49){ $('customTok').textContent = 'min ₹49'; $('customAmt').focus(); return; }
+  if(amt > 5000){ $('customTok').textContent = 'max ₹5000'; $('customAmt').focus(); return; }
+  buy('topup', { inr: amt, provider: $('customProv').value });
+});
+
+async function buy(planKey, extra){
   if(CONFIG.PAY_URL.startsWith('PASTE')){ say('Payments are not set up yet.','sys'); return; }
   $('plans').style.display='none';
   sayProgress('Preparing payment…');
@@ -2938,7 +3055,7 @@ async function buy(planKey){
     const or = await fetch(CONFIG.PAY_URL + '/order', {
       method:'POST',
       headers:{'content-type':'application/json', authorization:'Bearer '+s.access_token},
-      body: JSON.stringify({plan: planKey, pages: numPages || 1})
+      body: JSON.stringify(Object.assign({plan: planKey, pages: numPages || 1}, extra || {}))
     });
     if(!or.ok){ const j = await or.json().catch(()=>({})); throw new Error(j.error||'order failed'); }
     const order = await or.json();

@@ -25,15 +25,32 @@
 // Optional KV binding "RATE".
 // ============================================================
 
+/* ---------- Engines & tiers ----------
+   User-facing names: Swift (openai family) · Sage (anthropic family) · Spark (free).
+   Tiers per plan: core (×1 wallet burn) · plus · ultra. The multiplier keeps the
+   margin identical whichever tier the user picks — pricier model, faster burn.
+   Model ids are env-overridable so you can upgrade models without redeploying code. */
+function tierTable(env) {
+  /* burn multipliers are env-tunable: TIER_MULT_OPENAI="1,12,25" TIER_MULT_ANTHROPIC="1,3,15" */
+  const mo = String(env.TIER_MULT_OPENAI || '1,12,25').split(',').map(Number);
+  const ma = String(env.TIER_MULT_ANTHROPIC || '1,3,15').split(',').map(Number);
+  return {
+    openai: {
+      core:  { id: env.OPENAI_CORE  || 'gpt-4o-mini', x: mo[0] || 1  },
+      plus:  { id: env.OPENAI_PLUS  || 'gpt-4o',      x: mo[1] || 12 },
+      ultra: { id: env.OPENAI_ULTRA || 'gpt-4o',      x: mo[2] || 25 }
+    },
+    anthropic: {
+      core:  { id: env.ANTHROPIC_CORE  || 'claude-haiku-4-5-20251001', x: ma[0] || 1,  search: true },
+      plus:  { id: env.ANTHROPIC_PLUS  || 'claude-sonnet-5',           x: ma[1] || 3,  search: true },
+      ultra: { id: env.ANTHROPIC_ULTRA || 'claude-opus-4-8',           x: ma[2] || 15, search: true }
+    }
+  };
+}
+/* kept for backwards compat with stored profiles (model column) */
 const MODELS = {
-  anthropic: {
-    'claude-haiku-4-5':  { id: 'claude-haiku-4-5-20251001', search: true },
-    'claude-sonnet-5':   { id: 'claude-sonnet-5',           search: true }
-  },
-  openai: {
-    'gpt-4o-mini': { id: 'gpt-4o-mini' },
-    'gpt-4o':      { id: 'gpt-4o' }
-  }
+  anthropic: { 'claude-haiku-4-5': { id: 'claude-haiku-4-5-20251001', search: true }, 'claude-sonnet-5': { id: 'claude-sonnet-5', search: true } },
+  openai:    { 'gpt-4o-mini': { id: 'gpt-4o-mini' }, 'gpt-4o': { id: 'gpt-4o' } }
 };
 const memRate = new Map();
 
@@ -223,7 +240,7 @@ export default {
     if (Array.isArray(rows) && rows[0]) prof = rows[0];
     if (!prof) prof = { plan: 'free', provider: 'free', model: null, tokens_balance: 0, tokens_used: 0 };
     const isPaid = prof.plan !== 'free' && prof.tokens_balance > 0
-      && MODELS[prof.provider] && MODELS[prof.provider][prof.model];
+      && (prof.provider === 'openai' || prof.provider === 'anthropic');
 
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname.endsWith('/me')) {
@@ -279,16 +296,38 @@ export default {
       : question;
 
     /* route */
-    let result, provider, model;
+    /* tier: chosen per request, VALIDATED server-side; document packs are locked to core */
+    const tiers = tierTable(env);
+    let tier = (typeof body.tier === 'string' && ['core','plus','ultra'].includes(body.tier)) ? body.tier : 'core';
+    if (prof.plan === 'doc') tier = 'core';
+
+    /* 🪄 Token Saver: compress the context with the FREE engine before the paid call */
+    let msgToSend = userMsg;
+    if (isPaid && body.optimize === true && typeof context === 'string' && context.length > 2500) {
+      try {
+        const optSys = 'You compress document excerpts. Return ONLY the sentences from the text that are needed to answer the question, plus the question itself on the last line. No commentary. Keep original wording.';
+        const optIn = `Question: ${question}\n\nText:\n"""${context.slice(0, 9000)}"""`;
+        const opt = (env.FREE_PROVIDER || 'openai') === 'bedrock'
+          ? await callBedrock(env, optSys, [], optIn)
+          : await callOpenAI(env, 'gpt-4o-mini', optSys, [], optIn);
+        if (opt && opt.answer && opt.answer.length > 40 && opt.answer.length < userMsg.length) {
+          msgToSend = `Document: "${String(docName || 'PDF').slice(0, 200)}"\nRelevant document excerpts (compressed):\n"""${opt.answer}"""\n\nUser says: ${question}`;
+        }
+      } catch (e) { /* optimizer is best-effort — fall back to the full context */ }
+    }
+
+    let result, provider, model, burn = 1;
+    const t0 = Date.now();
     try {
       if (isPaid) {
         provider = prof.provider;
-        const m = MODELS[provider][prof.model];
-        model = m.id;
+        const fam = tiers[provider] || tiers.openai;
+        const m = fam[tier] || fam.core;
+        model = m.id; burn = m.x;
         const sys = systemPrompt(replyLang, provider === 'anthropic' && m.search);
         result = provider === 'anthropic'
-          ? await callAnthropic(env, m.id, sys, hist, userMsg, m.search)
-          : await callOpenAI(env, m.id, sys, hist, userMsg);
+          ? await callAnthropic(env, m.id, sys, hist, msgToSend, m.search)
+          : await callOpenAI(env, m.id, sys, hist, msgToSend);
       } else {
         const sys = systemPrompt(replyLang, false);
         if ((env.FREE_PROVIDER || 'openai') === 'bedrock') {
@@ -300,19 +339,26 @@ export default {
         }
       }
     } catch (e) {
-      console.log('AI error', String(e).slice(0, 200), uid);
-      return json({ error: 'AI service is busy — please try again in a moment.' }, 502, cors);
+      /* observability: provider failures with latency */
+      console.log(JSON.stringify({ ev: 'chat_fail', provider, model, tier, ms: Date.now() - t0, err: String(e).slice(0, 160) }));
+      return json({ error: 'The engine is busy — please try again in a moment.' }, 502, cors);
     }
 
-    /* meter */
-    const total = (result.tin || 0) + (result.tout || 0);
+    /* meter — wallet is denominated in core tokens; higher tiers burn ×multiplier */
+    const raw = (result.tin || 0) + (result.tout || 0);
+    const total = Math.ceil(raw * burn);
     let balance = prof.tokens_balance;
     if (isPaid && total > 0) {
       const nb = await sbRpc(env, 'deduct_tokens', { uid, amount: total });
       if (typeof nb === 'number') balance = nb;
     }
     sbInsert(env, 'usage_log', { user_id: uid, provider, model, tokens_in: result.tin, tokens_out: result.tout });
+    /* observability: one structured line per answered question (Cloudflare Workers Logs) */
+    console.log(JSON.stringify({ ev: 'chat_ok', provider, model, tier: isPaid ? tier : 'free',
+      tin: result.tin || 0, tout: result.tout || 0, burn, deducted: isPaid ? total : 0,
+      optimized: !!(isPaid && body.optimize), ms: Date.now() - t0 }));
 
-    return json({ answer: result.answer, tokens_used: total, tokens_left: isPaid ? balance : null, plan: isPaid ? 'paid' : 'free' }, 200, cors);
+    return json({ answer: result.answer, tokens_used: total, tokens_left: isPaid ? balance : null,
+      plan: isPaid ? 'paid' : 'free', tier: isPaid ? tier : null }, 200, cors);
   }
 };

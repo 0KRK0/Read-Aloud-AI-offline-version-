@@ -42,12 +42,21 @@ Nova Micro ≈ $0.035/M input — free tier cost per question drops ~75%.
 Every /chat answer includes `tokens_used`, `tokens_left` (paid users), `plan`.
 GET /me returns the full wallet — the app's progress bar reads this.
 
-## 6. Paid plans & models (whitelist in worker-gateway.js)
-- anthropic: claude-haiku-4-5 (web search ON), claude-sonnet-5 (premium)
-- openai: gpt-4o-mini, gpt-4o
-Users on 'sub'/'doc' plans with tokens_balance > 0 get their chosen model;
-at zero balance they automatically fall back to the free tier. No refunds —
-state it in your Terms.
+## 6. Plans, engines & tiers (pricing v2)
+User-facing names (real providers NEVER shown): Spark = free engine,
+Swift = ₹49 plan (OpenAI family), Sage = ₹99 plan (Claude family, web search).
+Wallets calibrated for 75–80% GROSS at full consumption (July 2026 prices):
+Swift 500k core tokens (≈₹9 AI cost → ~79%), Sage 120k (≈₹16 AI + ~₹5 search
+fees → ~76%). Breakage raises real margins. RECALIBRATE whenever model prices
+or env model ids change — the numbers live in CATALOG/RATE (worker-payments)
+and PLAN_SIZES/RATE_INR (index.html). Tiers per subscription, chosen in the ⭐ Plans panel:
+- Core ×1 burn (default) · Plus ×12 openai / ×3 anthropic · Ultra ×25 / ×15 (warned)
+Model ids are env-overridable on the gateway worker:
+OPENAI_CORE/PLUS/ULTRA, ANTHROPIC_CORE/PLUS/ULTRA (e.g. set OPENAI_ULTRA to a
+newer model when it ships — no code change).
+🪄 Token Saver (per-user toggle): compresses context via the free engine before
+the paid call. Doc packs: Swift Core only, no switching. Security: tier & model
+validated server-side; provider comes from the profile, never the client.
 
 ## 7. Payments — BUILT (worker-payments.js)
 Deployed as a second worker (e.g. `readaloudai-pay`). Endpoints: /order, /verify,

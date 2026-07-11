@@ -23,19 +23,33 @@
 //   ALLOWED_ORIGIN           e.g. http://localhost:8977 or your site (comma-separated ok)
 // ============================================================
 
-const CATALOG = {
-  sub_openai_49: { label: 'OpenAI plan — GPT-4o mini', inr: 49,  tokens: 2000000, plan: 'sub', provider: 'openai',    model: 'gpt-4o-mini' },
-  sub_claude_99: { label: 'Claude plan — Haiku + web search', inr: 99, tokens: 1200000, plan: 'sub', provider: 'anthropic', model: 'claude-haiku-4-5' }
-};
-// retail INR per token: openai ₹49/2M, anthropic ₹99/1.2M — used for value-based conversion
-const RATE = { openai: 49 / 2000000, anthropic: 99 / 1200000, free: 0 };
+/* Economics: a plan gives ~40% of its price in raw model cost (₹49 → ≈₹20 of Core
+   tokens, ₹99 → ≈₹40) — the rest covers speech-to-text, infra and margin.
+   Wallets are denominated in CORE tokens; higher tiers burn ×multiplier (gateway). */
+/* Plan configuration — env-overridable so prices/wallets change WITHOUT redeploying:
+   PLAN_SWIFT_INR / PLAN_SWIFT_TOKENS / PLAN_SAGE_INR / PLAN_SAGE_TOKENS
+   Defaults calibrated for 75–80% gross at FULL consumption (KRK's target):
+   Swift 500k @ ~₹18.3/M blended mini-rate = ₹9.2 AI cost → ~79% after Razorpay.
+   Sage 120k @ ~₹134/M blended haiku-rate = ₹16.1 + ~₹5 web-search fees → ~76%.
+   Unused balances (breakage) push real margins higher. */
+function planConfig(env) {
+  const swiftInr = parseInt(env.PLAN_SWIFT_INR) || 49,  swiftTok = parseInt(env.PLAN_SWIFT_TOKENS) || 500000;
+  const sageInr  = parseInt(env.PLAN_SAGE_INR)  || 99,  sageTok  = parseInt(env.PLAN_SAGE_TOKENS)  || 120000;
+  return {
+    cat: {
+      sub_openai_49: { label: 'Swift plan', inr: swiftInr, tokens: swiftTok, plan: 'sub', provider: 'openai',    model: 'gpt-4o-mini' },
+      sub_claude_99: { label: 'Sage plan — with live web search', inr: sageInr, tokens: sageTok, plan: 'sub', provider: 'anthropic', model: 'claude-haiku-4-5' }
+    },
+    rate: { openai: swiftInr / swiftTok, anthropic: sageInr / sageTok, free: 0 }
+  };
+}
 
-// Pay-per-document: pages × 800 tokens × ~4 (context is re-sent per question) with min price
+// Pay-per-document (Swift Core only): pages × 800 tokens × ~4 re-sends, min price
 function docQuote(pages) {
   const p = Math.max(1, Math.min(2000, parseInt(pages) || 1));
   const tokens = p * 800 * 4 + 50000;
-  const inr = Math.max(19, Math.ceil((tokens / 1e6) * 90 * 2.5)); // Claude-Haiku-rate ≈ ₹90/M, ×2.5 margin
-  return { label: `Unlock this document (${p} pages)`, inr, tokens, plan: 'doc', provider: 'anthropic', model: 'claude-haiku-4-5' };
+  const inr = Math.max(19, Math.ceil((tokens / 1e6) * 30 * 2.5)); // Core rate ≈ ₹30/M raw, ×2.5 margin
+  return { label: `Unlock this document (${p} pages)`, inr, tokens, plan: 'doc', provider: 'openai', model: 'gpt-4o-mini' };
 }
 
 function corsHeaders(request, env) {
@@ -92,6 +106,7 @@ async function creditOrder(env, order, paymentId) {
   if (!ins.ok) return { code: 'duplicate', notes };
 
   // credit the wallet — with value-based conversion when switching providers
+  const RATE = planConfig(env).rate;
   let delta = tokens;
   const profR = await fetch(env.SUPABASE_URL + `/rest/v1/profiles?id=eq.${uid}&select=provider,tokens_balance`, {
     headers: { apikey: env.SUPABASE_SERVICE_KEY, authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY }
@@ -150,6 +165,19 @@ export default {
 
     const cors = corsHeaders(request, env);
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
+
+    const CFG = planConfig(env), RATE = CFG.rate;
+
+    /* public plan config — the app reads prices/wallet sizes from here (no auth) */
+    if (request.method === 'GET' && url.pathname.endsWith('/config')) {
+      const c = CFG.cat;
+      return json({
+        plans: {
+          sub_openai_49: { inr: c.sub_openai_49.inr, tokens: c.sub_openai_49.tokens },
+          sub_claude_99: { inr: c.sub_claude_99.inr, tokens: c.sub_claude_99.tokens }
+        }
+      }, 200, cors);
+    }
     if (request.method !== 'POST') return json({ error: 'POST only' }, 405, cors);
 
     const allowed = (env.ALLOWED_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -178,11 +206,14 @@ export default {
       return rows && rows[0];
     }
 
-    /* ---------- free switch: convert balance between providers (both directions) ---------- */
+    /* ---------- free switch: convert balance between plans (both directions) ---------- */
     if (url.pathname.endsWith('/switch')) {
       const cur = await getProfile();
       if (!cur || cur.tokens_balance <= 0 || !RATE[cur.provider]) {
         return json({ error: 'Free switching needs an active paid balance.' }, 400, cors);
+      }
+      if (cur.plan === 'doc') {
+        return json({ error: 'Document packs run on the Swift engine only — subscribe to a plan to switch engines.' }, 400, cors);
       }
       const target = cur.provider === 'openai' ? 'anthropic' : 'openai';
       const model = target === 'anthropic' ? 'claude-haiku-4-5' : 'gpt-4o-mini';
@@ -197,7 +228,26 @@ export default {
 
     /* ---------- create order ---------- */
     if (url.pathname.endsWith('/order')) {
-      const item = body.plan === 'doc' ? docQuote(body.pages) : CATALOG[body.plan];
+      let item;
+      if (body.plan === 'doc') {
+        item = docQuote(body.pages);
+      } else if (body.plan === 'topup') {
+        /* custom amount — tokens computed SERVER-side at the plan's value rate */
+        const inr = parseInt(body.inr);
+        let provider = body.provider === 'anthropic' ? 'anthropic' : 'openai';
+        if (!Number.isInteger(inr) || inr < 49 || inr > 5000) return json({ error: 'Amount must be between ₹49 and ₹5000.' }, 400, cors);
+        const cur = await getProfile();
+        if (cur && cur.plan === 'sub' && cur.tokens_balance > 0) provider = cur.provider;   /* subscribers top up their own engine */
+        item = {
+          label: `Custom top-up ₹${inr} — ${provider === 'anthropic' ? 'Sage' : 'Swift'}`,
+          inr,
+          tokens: Math.floor(inr / RATE[provider]),
+          plan: 'sub', provider,
+          model: provider === 'anthropic' ? 'claude-haiku-4-5' : 'gpt-4o-mini'
+        };
+      } else {
+        item = CFG.cat[body.plan];
+      }
       if (!item) return json({ error: 'Unknown plan' }, 400, cors);
       /* pay-per-document is for users without an active subscription */
       if (body.plan === 'doc') {
