@@ -288,7 +288,10 @@
   #camBar button:disabled{opacity:.35; cursor:default}
   #camCount{color:#cfd4e6; font-size:13.5px; min-width:64px; text-align:center}
   #camFlash{position:fixed; inset:0; z-index:401; background:#fff; opacity:0; pointer-events:none; transition:opacity .18s}
-  #pdfBtn{background:transparent; border:1px solid var(--accent,#6c8cff); color:var(--accent,#6c8cff); border-radius:8px; padding:5px 10px; font-size:12.5px; cursor:pointer}
+  #pdfBtn,#addPageBtn{background:transparent; border:1px solid var(--accent,#6c8cff); color:var(--accent,#6c8cff); border-radius:8px; padding:5px 10px; font-size:12.5px; cursor:pointer; white-space:nowrap}
+  /* while recognising: playbar is visibly locked */
+  #playbar.busy button, #playbar.busy select{opacity:.4; pointer-events:none}
+  #playbar.busy{cursor:progress}
   /* ---------- Cookie / consent banner ---------- */
   #consent{position:fixed; left:0; right:0; bottom:0; z-index:300; display:none;
     background:var(--panel, #181c2f); border-top:1px solid #2a3050; padding:12px 16px;
@@ -393,6 +396,7 @@
         </div>
         <div class="ctl">🗣 <select id="voiceSel"></select></div>
         <button id="pdfBtn" style="display:none" title="Save your scan as a PDF file">⬇ PDF</button>
+        <button id="addPageBtn" style="display:none" title="Scan another page and add it">📷 ➕ Page</button>
         <span id="progressText"></span>
       </div>
     </div>
@@ -514,6 +518,17 @@ let companionOn = true;
 let awaitingStart = false;
 let chatHistory = [];
 let ocrBusy = false, waitingForMore = false;
+let docBusy = false;      /* true while recognising — controls are locked */
+let docLabel = '';        /* human-friendly way to refer to the open document */
+function setDocBusy(on){ docBusy = on; const pb = $('playbar'); if(pb) pb.classList.toggle('busy', on); }
+/* "IMG_20260711_094512.jpg" is not something a human says out loud */
+function friendlyName(name, kind){
+  const base = String(name||'').replace(/\.[a-z0-9]{2,5}$/i,'');
+  const messy = /\d{4,}/.test(base) || /^(IMG|DSC|PXL|WA|Screenshot|WhatsApp|Scan)[-_ ]?/i.test(base) || base.length > 40 || !/[a-z]{3}/i.test(base);
+  if(kind === 'scan')  return 'your scan';
+  if(kind === 'photo') return messy ? 'your photo' : `your photo "${base}"`;
+  return messy ? 'your document' : `"${base}"`;
+}
 let fitScale = 1;
 function dpr(){ return Math.min(window.devicePixelRatio || 1, 2); }
 
@@ -612,7 +627,7 @@ $('appleBtn').addEventListener('click', async ()=>{
   }
 });
 $('loginHdrBtn').addEventListener('click', ()=>{ $('login').style.display = 'flex'; });
-$('scanHdrBtn').addEventListener('click', ()=>{ if(isMobileDevice) $('camInput').click(); else openCamera(); });
+$('scanHdrBtn').addEventListener('click', ()=>{ scanAppend = false; if(isMobileDevice) $('camInput').click(); else openCamera(); });
 $('logoutBtn').addEventListener('click', async ()=>{ if(sb) await sb.auth.signOut(); location.reload(); });
 
 function companionAvailable(){ return !!session && navigator.onLine && companionOn && configured; }
@@ -855,9 +870,12 @@ function openImage(file){ return openImagePages(file.name, [file]); }
 
 /* One or many photos of pages (upload or camera scan) — shown as real pages,
    OCR page by page, reading starts after page 1 like a scanned PDF. */
-async function openImagePages(name, sources){
+async function openImagePages(name, sources, isAppend){
   if(location.protocol === 'file:'){ say('Reading photos needs the app to run from the launcher or website.'); return; }
-  say(`Opening "${name}" — one moment…`,'sys');
+  docLabel = friendlyName(name, /^camera scan/i.test(name) ? 'scan' : 'photo');
+  say(isAppend
+    ? '📸 Got the new page! Adding it…'
+    : `Hey! ${docLabel === 'your scan' ? 'Your scan is in' : 'Your upload is done'} 🎉 — give me a moment to recognise the text, then we can read together. The buttons will wake up as soon as I'm ready.`,'sys');
   try{
     /* load all pictures first (they may be Files or captured data URLs) */
     const imgs = [];
@@ -878,7 +896,7 @@ async function openImagePages(name, sources){
     $('dropZone').style.display = 'none';
     viewer.style.display = 'block';
     $('playbar').style.display = 'flex';
-    $('pdfBtn').style.display = 'none';
+    $('pdfBtn').style.display = 'none'; $('addPageBtn').style.display = 'none';
 
     imgs.forEach((img, ix)=> pages.push({num:ix+1, w:img.naturalWidth, h:img.naturalHeight, rendered:true, isImage:true, spans:[], img, lineStart:0, lineEnd:0}));
     computeFitScale();
@@ -899,52 +917,71 @@ async function openImagePages(name, sources){
     });
     buildPageOptions();
     updateProgress();
-    $('pdfBtn').style.display = 'inline-block';   /* photo documents can be saved as PDF */
+    $('pdfBtn').style.display = 'inline-block';       /* photo documents can be saved as PDF */
+    $('addPageBtn').style.display = 'inline-block';   /* …and extended with more camera pages */
+    scanSession = sources;                            /* remember, so ➕ Page can append */
+    if(!isAppend) setDocBusy(true);                   /* lock controls until page 1 is readable */
 
-    /* OCR page by page — greet/start after page 1, keep converting behind */
+    /* OCR page by page — greet/start after page 1, keep converting behind.
+       Pages already recognised in this scan session are cached on the source. */
     sayProgress('🔍 Recognising text…');
-    const worker = await Tesseract.createWorker('eng', 1, {
-      workerPath: new URL('lib/ocr/worker.min.js', location.href).href,
-      corePath:   new URL('lib/ocr', location.href).href,
-      langPath:   new URL('lib/lang', location.href).href
-    });
+    let worker = null;
     ocrBusy = true;
-    let greeted = false;
-    for(const pg of pages){
+    let greeted = !!isAppend;   /* appending: don't greet again or restart reading */
+    for(let ix = 0; ix < pages.length; ix++){
+      const pg = pages[ix], src = sources[ix];
       if(pages.length > 1) sayProgress(`🔍 Recognising page ${pg.num} of ${pages.length}…`);
       try{
-        const res = await worker.recognize(pg.img, {}, {blocks:true, text:true});
-        const data = res.data || {};
         pg.lineStart = lines.length;
-        const pushLine = (text, bbox)=>{
-          const t = (text||'').replace(/\s+/g,' ').trim();
-          if(t.length < 2 || !bbox) return;
-          lines.push({ text: t, page: pg.num, x: bbox.x0, xEnd: bbox.x1, y: pg.h - bbox.y1, h: bbox.y1 - bbox.y0, items: [] });
-        };
-        if(Array.isArray(data.blocks) && data.blocks.length){
-          data.blocks.forEach(b=> (b.paragraphs||[]).forEach(par=> (par.lines||[]).forEach(l=> pushLine(l.text, l.bbox))));
-        }else if(data.text){
-          (data.text||'').split('\n').forEach(t=> pushLine(t, {x0:10, x1:pg.w-10, y0:0, y1:24}));
+        if(src && src.__ocrLines){
+          /* cached from a previous pass — reuse instantly */
+          src.__ocrLines.forEach(l=> lines.push({ text:l.text, page:pg.num, x:l.x, xEnd:l.xEnd, y:l.y, h:l.h, items:[] }));
+        }else{
+          if(!worker) worker = await Tesseract.createWorker('eng', 1, {
+            workerPath: new URL('lib/ocr/worker.min.js', location.href).href,
+            corePath:   new URL('lib/ocr', location.href).href,
+            langPath:   new URL('lib/lang', location.href).href
+          });
+          const res = await worker.recognize(pg.img, {}, {blocks:true, text:true});
+          const data = res.data || {};
+          const pushLine = (text, bbox)=>{
+            const t = (text||'').replace(/\s+/g,' ').trim();
+            if(t.length < 2 || !bbox) return;
+            lines.push({ text: t, page: pg.num, x: bbox.x0, xEnd: bbox.x1, y: pg.h - bbox.y1, h: bbox.y1 - bbox.y0, items: [] });
+          };
+          if(Array.isArray(data.blocks) && data.blocks.length){
+            data.blocks.forEach(b=> (b.paragraphs||[]).forEach(par=> (par.lines||[]).forEach(l=> pushLine(l.text, l.bbox))));
+          }else if(data.text){
+            (data.text||'').split('\n').forEach(t=> pushLine(t, {x0:10, x1:pg.w-10, y0:0, y1:24}));
+          }
+          if(src) src.__ocrLines = lines.slice(pg.lineStart).map(l=>({text:l.text, x:l.x, xEnd:l.xEnd, y:l.y, h:l.h}));
         }
         pg.lineEnd = lines.length;
         buildSentencesChunk(pg.lineStart, pg.lineEnd);
       }catch(e){ say(`Page ${pg.num}: could not read it (${e.message}). Skipping.`,'sys'); }
       updateProgress();
-      if(!greeted && sentences.length){ greeted = true; removeProgress(); afterDocOpen(); }
+      if(!greeted && sentences.length){ greeted = true; removeProgress(); setDocBusy(false); afterDocOpen(); }
       else if(waitingForMore && sentences.length > current+1){
         waitingForMore = false;
         playing = true; setPlayBtn(); speakLine(current+1);
       }
     }
     ocrBusy = false;
-    try{ await worker.terminate(); }catch(e){}
+    if(worker){ try{ await worker.terminate(); }catch(e){} }
     removeProgress();
+    setDocBusy(false);
     if(!lines.length) say('I could not find readable text in the pictures — but you can still look at them here, and save them as a PDF with ⬇.');
+    else if(isAppend){
+      say(`✅ Page ${pages.length} added — say "read page ${pages.length}" or tap it to hear it.`,'sys');
+      const pg = pages[pages.length-1];
+      if(pg && pg.wrap) pg.wrap.scrollIntoView({behavior:'smooth', block:'start'});
+    }
     else if(pages.length > 1) say(`All ${pages.length} pages are ready. 📄 Tip: the ⬇ PDF button saves this scan as a real PDF file.`,'sys');
     if(waitingForMore){ waitingForMore = false; finishDoc(); }
   }catch(e){ removeProgress(); say('Sorry, I could not open those pictures ('+e.message+').'); }
 }
 function tapImagePage(pg, e){
+  if(docBusy) return;
   const r = pg.wrap.getBoundingClientRect();
   const px = (e.clientX - r.left) / fitScale;
   const py = pg.h - (e.clientY - r.top) / fitScale;
@@ -960,17 +997,33 @@ function tapImagePage(pg, e){
 
 /* ---------------- Camera scan (Adobe-Scan style) ---------------- */
 let camStream = null, camShots = [];
+let scanSession = null;    /* sources of the currently open photo document */
+let scanAppend = false;    /* next capture should be ADDED to the open scan */
 const isMobileDevice = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
 $('scanBtn').addEventListener('click', ()=>{
   /* phones: the native camera app gives autofocus & flash — use it.
      laptops: live webcam preview in the app. */
+  scanAppend = false;
   if(isMobileDevice){ $('camInput').click(); return; }
   openCamera();
 });
+$('addPageBtn').addEventListener('click', ()=>{
+  if(!scanSession) return;
+  scanAppend = true;
+  if(isMobileDevice) $('camInput').click();
+  else openCamera();
+});
 $('camInput').addEventListener('change', e=>{
   const files = [...e.target.files];
-  if(files.length) openImagePages(files.length > 1 ? `Camera scan (${files.length} pages)` : 'Camera scan', files);
   e.target.value = '';
+  if(!files.length){ scanAppend = false; return; }
+  if(scanAppend && scanSession){
+    scanAppend = false;
+    scanSession.push(...files);
+    openImagePages(`Camera scan (${scanSession.length} pages)`, scanSession, true);
+  }else{
+    openImagePages(files.length > 1 ? `Camera scan (${files.length} pages)` : 'Camera scan', files);
+  }
 });
 async function openCamera(){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ $('camInput').click(); return; }
@@ -1011,7 +1064,14 @@ $('camCancel').addEventListener('click', ()=>{ camShots = []; closeCamera(); });
 $('camDone').addEventListener('click', ()=>{
   const shots = camShots.slice(); camShots = [];
   closeCamera();
-  if(shots.length) openImagePages(`Camera scan (${shots.length} ${shots.length===1?'page':'pages'})`, shots);
+  if(!shots.length){ scanAppend = false; return; }
+  if(scanAppend && scanSession){
+    scanAppend = false;
+    scanSession.push(...shots);
+    openImagePages(`Camera scan (${scanSession.length} pages)`, scanSession, true);
+  }else{
+    openImagePages(`Camera scan (${shots.length} ${shots.length===1?'page':'pages'})`, shots);
+  }
 });
 
 /* ---------------- Save photo pages as a real PDF ---------------- */
@@ -1053,6 +1113,7 @@ $('pdfBtn').addEventListener('click', async ()=>{
 /* Render plain text as a clean readable page with tappable sentences */
 function openText(name, rawText){
   docName = name;
+  docLabel = friendlyName(name, 'doc');
   numPages = 1;
   lines = []; sentences = []; lineToSent = []; current = -1; chatHistory = []; pages = [];
   stopSpeech(); hideMarker();
@@ -1063,7 +1124,7 @@ function openText(name, rawText){
   $('dropZone').style.display = 'none';
   viewer.style.display = 'block';
   $('playbar').style.display = 'flex';
-    $('pdfBtn').style.display = 'none';
+    $('pdfBtn').style.display = 'none'; $('addPageBtn').style.display = 'none';
 
   const wrap = document.createElement('div');
   wrap.className = 'textWrap';
@@ -1162,6 +1223,7 @@ function wrapBlockSentences(block){
 /* Render mammoth HTML (Word) as a real-looking document page */
 function openRichText(name, html){
   docName = name;
+  docLabel = friendlyName(name, 'doc');
   numPages = 1;
   lines = []; sentences = []; lineToSent = []; current = -1; chatHistory = []; pages = [];
   stopSpeech(); hideMarker();
@@ -1172,7 +1234,7 @@ function openRichText(name, html){
   $('dropZone').style.display = 'none';
   viewer.style.display = 'block';
   $('playbar').style.display = 'flex';
-    $('pdfBtn').style.display = 'none';
+    $('pdfBtn').style.display = 'none'; $('addPageBtn').style.display = 'none';
 
   const wrap = document.createElement('div');
   wrap.className = 'textWrap richDoc';
@@ -1204,12 +1266,13 @@ function openRichText(name, html){
 }
 
 function afterDocOpen(){
+  const label = docLabel || `"${docName}"`;
   if(companionAvailable()){
     awaitingStart = true;
-    const greet = `Lovely — "${docName}" is open. Where shall we start? Say "from the first page", a page number, or a topic and I will find it. You can also select any text to get it explained.`;
+    const greet = `Yep, all done — ${label} is ready! 🎉 Do you want me to read it to you, or do you have any doubts first? Ask me about a specific topic, line, or page — or just press ▶ Play and I will start from the beginning.`;
     say(greet); speakText(greet);
   }else{
-    say(`"${docName}" is ready. Starting now! Tap any sentence to read from there.`);
+    say(`${label.charAt(0).toUpperCase()+label.slice(1)} is ready. Starting now! Tap any sentence to read from there.`);
     playing = true; setPlayBtn(); speakLine(0);
   }
 }
@@ -1223,7 +1286,8 @@ async function openPdf(file){
   if(!pdfjsLib) pdfjsLib = window['pdfjs-dist/build/pdf'];
   if(!pdfjsLib){ say('⚠️ My PDF engine did not load. Refresh with Ctrl+F5.'); return; }
   docName = file.name;
-  say(`Opening "${file.name}" — one moment…`,'sys');
+  docLabel = friendlyName(file.name, 'doc');
+  say(`Opening ${docLabel} — one moment…`,'sys');
   try{
     const buf = await file.arrayBuffer();
     const loadingTask = pdfjsLib.getDocument({
@@ -1252,7 +1316,7 @@ async function openPdf(file){
     $('dropZone').style.display='none';
     viewer.style.display='block';
     $('playbar').style.display='flex';
-    $('pdfBtn').style.display='none';
+    $('pdfBtn').style.display='none'; $('addPageBtn').style.display='none';
 
     computeFitScale();
 
@@ -1298,7 +1362,7 @@ function computeFitScale(){
   const vw = $('viewer').clientWidth || window.innerWidth;
   const margin = window.innerWidth <= 900 ? 10 : 48;
   const baseW = pages.length ? pages[0].w : 612;
-  fitScale = Math.min(2.5, Math.max(0.4, (vw - margin) / baseW));
+  fitScale = Math.min(2.5, Math.max(0.05, (vw - margin) / baseW));   /* .05 floor: camera photos are 3000+px wide */
 }
 
 function buildPageShell(pg){
@@ -1691,6 +1755,7 @@ function speakLine(i, attempt){ /* speaks SENTENCE i; the visual marker follows 
   updateProgress();
 }
 function togglePlay(){
+  if(docBusy){ say('🔍 One moment — I am still recognising the text. I will be ready in a few seconds!','sys'); return; }
   if(!sentences.length) return;
   if(playing){ playing=false; cancelSpeech2(); }
   else{ playing=true; awaitingStart=false; speakLine(current<0?0:current); }
@@ -1802,7 +1867,8 @@ $('selExplain').addEventListener('click', async ()=>{
 
 /* ---------------- OCR for scanned PDFs ---------------- */
 async function ocrAll(){
-  say(`"${docName}" is a scanned PDF — pictures of text. Switching on text recognition (OCR). I will start reading as soon as page 1 is ready.`);
+  say(`${(docLabel||'this PDF').replace(/^y/,'Y')} is a scanned PDF — pictures of text. Switching on text recognition. I will start reading as soon as page 1 is ready!`);
+  setDocBusy(true);
   let worker;
   try{
     sayProgress('Starting OCR engine…');
@@ -1848,6 +1914,7 @@ async function ocrAll(){
     updateProgress();
     if(!started && sentences.length){
       started = true;
+      setDocBusy(false);
       say('Page 1 is ready — reading while I convert the rest in the background.');
       playing = true; setPlayBtn(); speakLine(0);
     } else if(waitingForMore && sentences.length > current+1){
@@ -1858,6 +1925,7 @@ async function ocrAll(){
   ocrBusy = false;
   try{ await worker.terminate(); }catch(e){}
   removeProgress();
+  setDocBusy(false);
   if(!lines.length){ say('Sorry — I could not recognise any text in this scan.'); return; }
   buildPageOptions();
   say(`Done! All ${numPages} pages converted.`);
