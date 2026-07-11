@@ -279,6 +279,9 @@
   #camModal{position:fixed; inset:0; z-index:400; display:none; flex-direction:column; background:#000}
   #camStage{flex:1; min-height:0; position:relative; display:flex; align-items:center; justify-content:center}
   #camVideo{width:100%; height:100%; object-fit:contain; background:#000}
+  #camOverlay{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+  #camAuto{width:46px; height:46px; font-size:16px; opacity:.45}
+  #camAuto.on{opacity:1; box-shadow:0 0 0 2px var(--accent,#6c8cff)}
   #revCanvas{max-width:100%; max-height:100%; cursor:crosshair; touch-action:none}
   #revBar{display:flex; align-items:center; justify-content:center; gap:12px; padding:12px; background:#0c0e18; flex-wrap:wrap}
   #revBar button{border:none; cursor:pointer; color:#fff; background:#2a3050; border-radius:10px; padding:10px 14px; font-size:14.5px}
@@ -471,14 +474,16 @@
 <div id="camModal">
   <div id="camStage">
     <video id="camVideo" autoplay playsinline muted></video>
+    <canvas id="camOverlay"></canvas>
     <canvas id="revCanvas" style="display:none"></canvas>
   </div>
-  <div id="camHint">Hold the page flat and fill the frame, then tap 📸 — one shot per page</div>
+  <div id="camHint">Point the camera at the page — I snap automatically when it is steady</div>
   <div id="camBar">
     <button id="camCancel" title="Cancel">✕</button>
-    <button id="camUndo" title="Remove last page" disabled>↩</button>
+    <button id="camAuto" class="on" title="Auto-capture on/off">🅰</button>
     <button id="camShot" title="Capture page">📸</button>
     <span id="camCount">0 pages</span>
+    <button id="camUndo" title="Remove last page" disabled>↩</button>
     <button id="camDone" title="Finish and read" disabled>✓ Read</button>
   </div>
   <div id="revBar" style="display:none">
@@ -650,7 +655,7 @@ $('appleBtn').addEventListener('click', async ()=>{
   }
 });
 $('loginHdrBtn').addEventListener('click', ()=>{ $('login').style.display = 'flex'; });
-$('scanHdrBtn').addEventListener('click', ()=>{ scanAppend = false; if(isMobileDevice) $('camInput').click(); else openCamera(); });
+$('scanHdrBtn').addEventListener('click', ()=>{ scanAppend = false; openCamera(); });
 $('logoutBtn').addEventListener('click', async ()=>{ if(sb) await sb.auth.signOut(); location.reload(); });
 
 function companionAvailable(){ return !!session && navigator.onLine && companionOn && configured; }
@@ -1107,6 +1112,7 @@ function detectQuad(c){
       (quad[1].x-quad[0].x)*(quad[3].y-quad[0].y) - (quad[3].x-quad[0].x)*(quad[1].y-quad[0].y)
     );
     if(area < c.width*c.height*0.12) return inset(0.02);
+    quad.found = true;      /* real page detected (fallback insets stay undefined) */
     return quad;
   }catch(e){ return inset(0.02); }
 }
@@ -1224,7 +1230,9 @@ function exitReview(toCapture){
   if(toCapture && camStream){
     $('camVideo').style.display = 'block';
     $('camBar').style.display = 'flex';
-    $('camHint').textContent = 'Hold the page flat and fill the frame, then tap 📸 — one shot per page';
+    $('camHint').textContent = camAutoOn
+      ? 'Point the camera at the next page — I snap automatically when it is steady'
+      : 'Auto-capture off — tap 📸 to snap each page';
   }else{
     $('camModal').style.display = 'none';
     $('camBar').style.display = 'flex';
@@ -1336,17 +1344,15 @@ let scanSession = null;    /* sources of the currently open photo document */
 let scanAppend = false;    /* next capture should be ADDED to the open scan */
 const isMobileDevice = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
 $('scanBtn').addEventListener('click', ()=>{
-  /* phones: the native camera app gives autofocus & flash — use it.
-     laptops: live webcam preview in the app. */
+  /* in-app camera everywhere (live page detection + auto-capture, like Adobe Scan);
+     falls back to the native camera / file picker if the browser refuses */
   scanAppend = false;
-  if(isMobileDevice){ $('camInput').click(); return; }
   openCamera();
 });
 $('addPageBtn').addEventListener('click', ()=>{
   if(!scanSession) return;
   scanAppend = true;
-  if(isMobileDevice) $('camInput').click();
-  else openCamera();
+  openCamera();
 });
 $('camInput').addEventListener('change', async e=>{
   const files = [...e.target.files];
@@ -1371,29 +1377,94 @@ $('camInput').addEventListener('change', async e=>{
     openImagePages(shots.length > 1 ? `Camera scan (${shots.length} pages)` : 'Camera scan', shots);
   }
 });
-async function openCamera(){
+async function openCamera(keepShots){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ $('camInput').click(); return; }
   try{
     camStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode:'environment', width:{ideal:2560}, height:{ideal:1440} }, audio:false
     });
   }catch(e){ $('camInput').click(); return; }   /* no camera / permission denied → file picker */
-  camShots = [];
+  if(!keepShots) camShots = [];
   updateCamUI();
   $('camVideo').srcObject = camStream;
   $('camModal').style.display = 'flex';
+  startCamLoop();
 }
 function closeCamera(){
+  stopCamLoop();
   if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
   $('camVideo').srcObject = null;
   $('camModal').style.display = 'none';
 }
+
+/* ---------- live paper detection on the preview + Adobe-style auto-capture ---------- */
+let camLoopInt = null, camAutoOn = true, camStable = 0, camPrevQuad = null, camCooldown = 0;
+const camDetC = document.createElement('canvas');
+function startCamLoop(){
+  stopCamLoop();
+  camStable = 0; camPrevQuad = null; camCooldown = Date.now() + 1200;
+  camLoopInt = setInterval(camLoopTick, 140);
+}
+function stopCamLoop(){
+  clearInterval(camLoopInt); camLoopInt = null;
+  const o = $('camOverlay');
+  if(o) o.getContext('2d').clearRect(0, 0, o.width, o.height);
+}
+function camLoopTick(){
+  const v = $('camVideo');
+  if(!camStream || !v.videoWidth || v.style.display === 'none') return;
+  /* detect on a small frame */
+  const SW = 320, SH = Math.max(24, Math.round(v.videoHeight * SW / v.videoWidth));
+  camDetC.width = SW; camDetC.height = SH;
+  camDetC.getContext('2d').drawImage(v, 0, 0, SW, SH);
+  const q = detectQuad(camDetC);
+  /* draw the live outline (map: detect-canvas → video px → displayed rect of object-fit:contain) */
+  const stage = $('camStage'), o = $('camOverlay');
+  if(o.width !== stage.clientWidth || o.height !== stage.clientHeight){ o.width = stage.clientWidth; o.height = stage.clientHeight; }
+  const ctx = o.getContext('2d');
+  ctx.clearRect(0, 0, o.width, o.height);
+  const vsc = Math.min(o.width / v.videoWidth, o.height / v.videoHeight);
+  const ox = (o.width - v.videoWidth * vsc) / 2, oy = (o.height - v.videoHeight * vsc) / 2;
+  const toDisp = p => ({ x: p.x * (v.videoWidth / SW) * vsc + ox, y: p.y * (v.videoWidth / SW) * vsc + oy });
+  if(q.found){
+    const d = q.map(toDisp);
+    ctx.strokeStyle = 'rgba(108,140,255,.95)'; ctx.lineWidth = 3;
+    ctx.fillStyle = 'rgba(108,140,255,.13)';
+    ctx.beginPath();
+    ctx.moveTo(d[0].x, d[0].y); d.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    d.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, 7); ctx.fillStyle = '#6c8cff'; ctx.fill(); });
+  }
+  /* auto-capture: page found and steady for ~1.2s */
+  if(!camAutoOn || !q.found || Date.now() < camCooldown){ camStable = 0; camPrevQuad = q.found ? q : null; return; }
+  if(camPrevQuad && camPrevQuad.found){
+    let move = 0;
+    for(let i = 0; i < 4; i++) move = Math.max(move, Math.hypot(q[i].x - camPrevQuad[i].x, q[i].y - camPrevQuad[i].y));
+    camStable = move < SW * 0.015 ? camStable + 1 : 0;
+  }
+  camPrevQuad = q;
+  /* countdown ring on the shutter */
+  if(camStable > 2) $('camShot').style.boxShadow = `0 0 0 ${camStable}px rgba(108,140,255,.4)`;
+  else $('camShot').style.boxShadow = '';
+  if(camStable >= 9){
+    camStable = 0; camCooldown = Date.now() + 3000;
+    $('camShot').style.boxShadow = '';
+    captureFrame();
+  }
+}
+$('camAuto').addEventListener('click', ()=>{
+  camAutoOn = !camAutoOn;
+  $('camAuto').classList.toggle('on', camAutoOn);
+  $('camHint').textContent = camAutoOn
+    ? 'Point the camera at the page — I snap automatically when it is steady'
+    : 'Auto-capture off — tap 📸 to snap each page';
+});
 function updateCamUI(){
   $('camCount').textContent = camShots.length + (camShots.length === 1 ? ' page' : ' pages');
   $('camUndo').disabled = !camShots.length;
   $('camDone').disabled = !camShots.length;
 }
-$('camShot').addEventListener('click', ()=>{
+function captureFrame(){
   const v = $('camVideo');
   if(!v.videoWidth) return;
   const MAX = 2000;
@@ -1402,11 +1473,13 @@ $('camShot').addEventListener('click', ()=>{
   c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
   c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
   const f = $('camFlash'); f.style.opacity = .7; setTimeout(()=> f.style.opacity = 0, 120);
+  stopCamLoop();
   /* Adobe-Scan style: review each shot — auto-detected corners, drag to adjust, filter, keep */
   enterReview(c,
-    shot=>{ camShots.push(shot); updateCamUI(); exitReview(true); },
-    ()=> exitReview(true));
-});
+    shot=>{ camShots.push(shot); updateCamUI(); exitReview(true); startCamLoop(); },
+    ()=>{ exitReview(true); startCamLoop(); });
+}
+$('camShot').addEventListener('click', captureFrame);
 $('camUndo').addEventListener('click', ()=>{ camShots.pop(); updateCamUI(); });
 $('camCancel').addEventListener('click', ()=>{ camShots = []; closeCamera(); });
 $('camDone').addEventListener('click', ()=>{
