@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>ReadAloud AI</title>
+<title>Lexora AI — Your AI Companion for Every Document</title>
 <script src="lib/pdf.min.js"></script>
 <script src="lib/pdf.worker.min.js"></script>
 <script src="lib/ocr/tesseract.min.js"></script>
@@ -30,7 +30,9 @@
   /* ---------- Header ---------- */
   header{display:flex; align-items:center; gap:10px; padding:9px 14px; background:var(--panel);
     border-bottom:1px solid var(--line); flex-shrink:0; z-index:40}
-  header .logo{font-size:20px}
+  header .logo{width:26px; height:26px; border-radius:7px; font-size:15px; font-weight:800; color:#fff;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--accent), var(--accent2))}
   header h1{font-size:16px; font-weight:650; letter-spacing:.2px}
   header h1 span{color:var(--accent)}
   #userBox{margin-left:auto; display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted)}
@@ -157,25 +159,79 @@
     background:var(--warn); border:2px solid var(--panel); display:none}
   #chatFab{touch-action:none}
 
-  /* ---------- Login ---------- */
-  #login{position:fixed; inset:0; background:radial-gradient(1200px 700px at 70% -10%, rgba(108,140,255,.18), transparent),
-    radial-gradient(900px 500px at 10% 110%, rgba(255,179,71,.14), transparent), var(--bg);
+  /* ---------- Login (classic, production-grade) ---------- */
+  #login{position:fixed; inset:0; background:
+    radial-gradient(1100px 600px at 85% -5%, rgba(108,140,255,.14), transparent),
+    radial-gradient(800px 500px at 0% 110%, rgba(154,108,255,.10), transparent), var(--bg);
     display:flex; align-items:center; justify-content:center; z-index:100; padding:16px}
-  #login .card{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:36px 30px;
-    width:min(420px, 94vw); text-align:center; box-shadow:var(--shadow)}
-  #login .logo2{font-size:46px; margin-bottom:8px}
-  #login h2{font-size:22px; margin-bottom:6px}
+  #login .card{background:transparent; width:min(400px, 94vw); text-align:center}
+  #login .logo2{width:64px; height:64px; margin:0 auto 22px; border-radius:16px; font-size:30px; font-weight:800; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 8px 28px rgba(108,140,255,.35)}
+  #login h2{font-size:26px; font-weight:700; letter-spacing:-.3px; margin-bottom:8px}
   #login h2 span{color:var(--accent)}
-  #login p{color:var(--muted); font-size:13.5px; line-height:1.65; margin-bottom:20px}
-  #login input{width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:12px;
-    padding:13px; font-size:14px; margin-bottom:10px; outline:none}
-  #login input:focus{border-color:var(--accent2)}
-  #loginBtn{width:100%; background:var(--accent); color:#14161f; border:none; border-radius:12px; padding:13px;
-    font-weight:800; font-size:14px; cursor:pointer; margin-bottom:10px}
-  #guestBtn{width:100%; background:none; border:1px solid var(--line); color:var(--muted); border-radius:12px;
-    padding:12px; font-size:13px; cursor:pointer}
-  #guestBtn:hover{border-color:var(--accent)}
-  #loginMsg{font-size:12.5px; color:var(--ok); min-height:18px; margin-bottom:6px}
+  #login p{color:var(--muted); font-size:14px; line-height:1.6; margin-bottom:26px}
+  #login .fieldLabel{display:block; text-align:left; font-size:13px; color:var(--muted); margin:0 0 6px 2px}
+  #login input{width:100%; background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:10px;
+    padding:13px 14px; font-size:14.5px; margin-bottom:14px; outline:none; transition:border-color .15s, box-shadow .15s}
+  #login input:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(108,140,255,.18)}
+  #login .card{animation:cardIn .55s cubic-bezier(.2,.8,.25,1)}
+  @keyframes cardIn{from{opacity:0; transform:translateY(14px) scale(.985)}to{opacity:1; transform:none}}
+  @keyframes borderFlow{to{background-position:0 0, 300% 50%}}
+  @keyframes gradShift{to{background-position:150% 50%}}
+  #loginBtn{width:100%; color:#fff; border:none; border-radius:10px;
+    background:linear-gradient(90deg, var(--accent), var(--accent2), #ff8bd3, var(--accent));
+    background-size:300% 100%; background-position:0% 50%;
+    padding:13px; font-weight:700; font-size:15px; cursor:pointer; margin-bottom:4px;
+    transition:box-shadow .3s, transform .15s;}
+  #loginBtn:hover{animation:gradShift 1.6s linear infinite alternate;
+    box-shadow:0 8px 28px rgba(108,140,255,.5), 0 2px 10px rgba(154,108,255,.4); transform:translateY(-1.5px)}
+  #loginBtn:active{transform:translateY(0)}
+  #loginBtn:disabled{opacity:.6; cursor:default; animation:none}
+  #googleBtn{width:100%; color:var(--text); border-radius:10px; border:1px solid transparent;
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--line), var(--line)) border-box;
+    padding:12px; font-size:14.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    gap:10px; margin-bottom:4px; transition:box-shadow .3s, transform .15s}
+  #googleBtn:hover{
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--accent), #ff8bd3, var(--accent2), var(--accent)) border-box;
+    background-size:auto, 300% 100%;
+    animation:borderFlow 2.2s linear infinite;
+    box-shadow:0 6px 24px rgba(108,140,255,.28); transform:translateY(-1.5px)}
+  #googleBtn:active{transform:translateY(0)}
+  #googleBtn svg{width:18px; height:18px; flex:none}
+  #appleBtn{width:100%; color:var(--text); border-radius:10px; border:1px solid transparent; margin-top:8px;
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--line), var(--line)) border-box;
+    padding:12px; font-size:14.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    gap:10px; margin-bottom:4px; transition:box-shadow .3s, transform .15s}
+  #appleBtn:hover{
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--accent), #ff8bd3, var(--accent2), var(--accent)) border-box;
+    background-size:auto, 300% 100%;
+    animation:borderFlow 2.2s linear infinite;
+    box-shadow:0 6px 24px rgba(108,140,255,.28); transform:translateY(-1.5px)}
+  #appleBtn:active{transform:translateY(0)}
+  #appleBtn svg{width:16px; height:16px; flex:none}
+  #login .logo2{transition:box-shadow .35s, transform .35s}
+  #login .card:hover .logo2{box-shadow:0 10px 40px rgba(108,140,255,.55), 0 0 60px rgba(154,108,255,.25); transform:translateY(-2px)}
+  #login .divider{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12.5px; margin:18px 0}
+  #login .divider::before, #login .divider::after{content:''; flex:1; height:1px; background:var(--line)}
+  #guestBtn{width:100%; background:none; border:none; color:var(--muted); padding:12px 0 0; font-size:13.5px; cursor:pointer}
+  #guestBtn:hover{color:var(--accent); text-decoration:underline}
+  #loginMsg{font-size:13px; color:var(--ok); min-height:18px; margin-bottom:10px}
+  #login .foot{color:var(--muted); font-size:12px; margin-top:22px; line-height:1.6}
+  #login .foot a{color:var(--muted); text-decoration:underline}
+  #login .foot a:hover{color:var(--accent)}
+  #otpBtn{width:100%; color:var(--accent); border-radius:10px; border:1px solid transparent;
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--accent), var(--accent2)) border-box;
+    padding:12px; font-size:14px; font-weight:600; cursor:pointer; transition:box-shadow .3s, transform .15s}
+  #otpBtn:hover{background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--accent), #ff8bd3, var(--accent2), var(--accent)) border-box;
+    background-size:auto, 300% 100%; animation:borderFlow 2.2s linear infinite;
+    box-shadow:0 6px 22px rgba(108,140,255,.28); transform:translateY(-1.5px)}
 
   /* ---------- Wallet ---------- */
   #wallet{margin-top:5px}
@@ -216,6 +272,23 @@
     #pbExtra{display:none}
     #playbar.expanded #pbExtra{display:flex}
   }
+  /* ---------- Camera scan ---------- */
+  #scanBtn{margin-top:14px; background:transparent; border:1.5px solid var(--accent,#6c8cff); color:var(--accent,#6c8cff);
+    border-radius:10px; padding:10px 20px; font-size:14.5px; cursor:pointer; font-weight:600}
+  #scanBtn:hover{background:rgba(108,140,255,.12)}
+  #camModal{position:fixed; inset:0; z-index:400; display:none; flex-direction:column; background:#000}
+  #camVideo{flex:1; min-height:0; width:100%; object-fit:contain; background:#000}
+  #camHint{position:absolute; top:14px; left:0; right:0; text-align:center; color:#fff; font-size:13px;
+    text-shadow:0 1px 4px #000; opacity:.85; pointer-events:none}
+  #camBar{display:flex; align-items:center; justify-content:center; gap:18px; padding:14px; background:#0c0e18}
+  #camBar button{border:none; border-radius:50%; cursor:pointer; color:#fff; background:#2a3050}
+  #camCancel,#camUndo{width:46px; height:46px; font-size:17px}
+  #camShot{width:70px; height:70px; font-size:26px; background:linear-gradient(135deg,#6c8cff,#9a6cff); box-shadow:0 4px 18px rgba(108,140,255,.45)}
+  #camDone{width:auto; height:46px; border-radius:23px; padding:0 20px; font-size:15px; font-weight:700; background:#2e7d4f}
+  #camBar button:disabled{opacity:.35; cursor:default}
+  #camCount{color:#cfd4e6; font-size:13.5px; min-width:64px; text-align:center}
+  #camFlash{position:fixed; inset:0; z-index:401; background:#fff; opacity:0; pointer-events:none; transition:opacity .18s}
+  #pdfBtn{background:transparent; border:1px solid var(--accent,#6c8cff); color:var(--accent,#6c8cff); border-radius:8px; padding:5px 10px; font-size:12.5px; cursor:pointer}
   /* ---------- Cookie / consent banner ---------- */
   #consent{position:fixed; left:0; right:0; bottom:0; z-index:300; display:none;
     background:var(--panel, #181c2f); border-top:1px solid #2a3050; padding:12px 16px;
@@ -233,26 +306,46 @@
 
 <div id="login">
   <div class="card">
-    <div class="logo2">📖</div>
-    <h2>ReadAloud <span>AI</span></h2>
-    <p>Your reading companion. I read any PDF aloud, follow the words on the page, explain anything you select, and chat with you about it.</p>
+    <div class="logo2">L</div>
+    <h2>Log in to Lexora <span>AI</span></h2>
+    <p><b style="color:var(--text)">Your AI Companion for Every Document.</b><br>No account needed — one is created automatically the first time you log in.</p>
+    <button id="googleBtn">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.7 1.22 9.2 3.6l6.85-6.85C35.9 2.4 30.5 0 24 0 14.6 0 6.5 5.4 2.55 13.3l7.98 6.2C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.55c0-1.57-.15-3.09-.4-4.55H24v9.02h12.4c-.55 2.9-2.17 5.35-4.6 7l7.5 5.85C43.9 37.6 46.1 31.65 46.1 24.55z"/><path fill="#FBBC05" d="M10.53 28.5c-.48-1.45-.76-2.96-.76-4.5s.28-3.05.76-4.5l-7.98-6.2C.92 16.46 0 20.12 0 24s.92 7.54 2.55 10.7l7.98-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.15 15.85-5.85l-7.5-5.85c-2.1 1.4-4.8 2.25-8.35 2.25-6.3 0-11.6-4.1-13.47-9.75l-7.98 6.2C6.5 42.6 14.6 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <button id="appleBtn">
+      <svg viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+      Continue with Apple
+    </button>
+    <div class="divider">or</div>
     <div id="loginMsg"></div>
-    <input type="email" id="emailInput" placeholder="Your email address">
-    <button id="loginBtn">Send me a login link</button>
-    <button id="guestBtn">Continue without login (reader only)</button>
-    <p style="margin-top:14px"><a class="legalLink" href="privacy.html" target="_blank">Privacy Policy &amp; Terms</a></p>
+    <div style="display:flex; justify-content:space-between; align-items:baseline">
+      <label class="fieldLabel" for="emailInput">Email</label>
+      <button id="emailEdit" style="display:none; background:none; border:none; color:var(--accent); font-size:12.5px; cursor:pointer; padding:0 2px 6px">✏️ Change</button>
+    </div>
+    <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
+    <button id="loginBtn">Continue with email</button>
+    <div id="otpRow" style="display:none; margin-top:12px">
+      <label class="fieldLabel" for="otpInput">6-digit code from the email</label>
+      <input id="otpInput" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code">
+      <button id="otpBtn">Login with code</button>
+    </div>
+    <button id="guestBtn">Continue without login (reader only) →</button>
+    <p class="foot">By continuing, you agree to our <a href="privacy.html" target="_blank">Terms &amp; Privacy Policy</a>.<br>No ads · no tracking · your documents never leave your device.</p>
   </div>
 </div>
 
 <header>
-  <span class="logo">📖</span>
-  <h1>ReadAloud <span>AI</span></h1>
+  <span class="logo">L</span>
+  <h1>Lexora <span>AI</span></h1>
   <div id="userBox">
     <span id="userEmail"></span>
     <button class="icon-btn" id="upgradeBtn" title="Plans & upgrade">⭐</button>
     <button class="icon-btn" id="compToggle" title="Companion on/off">🤖</button>
     <button class="icon-btn" id="themeBtn" title="Light / dark">🌓</button>
-    <button class="icon-btn" id="openBtn" title="Open another PDF">📂</button>
+    <button class="icon-btn" id="openBtn" title="Open another document">📂</button>
+    <button class="icon-btn" id="scanHdrBtn" title="Scan with camera">📷</button>
+    <button class="icon-btn" id="loginHdrBtn" style="display:none" title="Login">🔑</button>
     <button class="icon-btn" id="logoutBtn" style="display:none" title="Logout">⎋</button>
   </div>
 </header>
@@ -263,8 +356,10 @@
       <div class="big">📄</div>
       <h2>Open a document</h2>
       <p>Click here or drag &amp; drop a file.<br>PDF · Word (DOCX) · Text · Images (photos of pages)<br>Your file stays on your device — it is never uploaded.</p>
+      <button id="scanBtn" onclick="event.stopPropagation()">📷 Scan with camera</button>
       <p style="margin-top:10px"><a class="legalLink" href="privacy.html" target="_blank" onclick="event.stopPropagation()">Privacy Policy &amp; Terms</a></p>
-      <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp" hidden>
+      <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp" multiple hidden>
+      <input type="file" id="camInput" accept="image/*" capture="environment" multiple hidden>
     </div>
 
     <div id="viewer"></div>
@@ -297,6 +392,7 @@
           </select>
         </div>
         <div class="ctl">🗣 <select id="voiceSel"></select></div>
+        <button id="pdfBtn" style="display:none" title="Save your scan as a PDF file">⬇ PDF</button>
         <span id="progressText"></span>
       </div>
     </div>
@@ -307,7 +403,7 @@
   <div id="assistCol">
     <div id="assistHead">
       <span class="face">🤖</span>
-      <div style="flex:1; min-width:0"><b>Reading Companion</b><small id="assistMode">Reader mode</small>
+      <div style="flex:1; min-width:0"><b>Lexora Companion</b><small id="assistMode">Reader mode</small>
         <div id="wallet" style="display:none">
           <div id="walletLabel"></div>
           <div id="walletBar"><i id="walletFill"></i></div>
@@ -358,9 +454,22 @@
   </div>
 </div>
 
+<div id="camModal">
+  <video id="camVideo" autoplay playsinline muted></video>
+  <div id="camHint">Hold the page flat and fill the frame, then tap 📸 — one shot per page</div>
+  <div id="camBar">
+    <button id="camCancel" title="Cancel">✕</button>
+    <button id="camUndo" title="Remove last page" disabled>↩</button>
+    <button id="camShot" title="Capture page">📸</button>
+    <span id="camCount">0 pages</span>
+    <button id="camDone" title="Finish and read" disabled>✓ Read</button>
+  </div>
+</div>
+<div id="camFlash"></div>
+
 <div id="consent">
   <div class="inner">
-    <p>🍪 ReadAloud AI uses only <b>essential</b> cookies &amp; local storage — for login, your preferences and your token wallet. No ads, no tracking, ever. Your documents never leave your device. <a href="privacy.html" target="_blank">Privacy Policy &amp; Terms</a></p>
+    <p>🍪 Lexora AI uses only <b>essential</b> cookies &amp; local storage — for login, your preferences and your token wallet. No ads, no tracking, ever. Your documents never leave your device. <a href="privacy.html" target="_blank">Privacy Policy &amp; Terms</a></p>
     <button id="consentOk">Got it</button>
   </div>
 </div>
@@ -424,16 +533,86 @@ async function initAuth(){
   if(s) enterApp(s);
   sb.auth.onAuthStateChange((ev, s2)=>{ if(s2 && !session) enterApp(s2); });
 }
+/* after sending: lock the email, turn the button into a resend countdown */
+let resendInt = null, resendLeft = 0;
+function startCooldown(secs){
+  clearInterval(resendInt);
+  resendLeft = Math.max(1, secs|0);
+  $('loginBtn').disabled = true;
+  $('loginBtn').textContent = `Resend in ${resendLeft}s`;
+  resendInt = setInterval(()=>{
+    resendLeft--;
+    if(resendLeft <= 0){ clearInterval(resendInt); $('loginBtn').disabled = false; $('loginBtn').textContent = 'Resend link & code'; }
+    else $('loginBtn').textContent = `Resend in ${resendLeft}s`;
+  }, 1000);
+}
+function lockEmail(){ $('emailInput').readOnly = true; $('emailInput').style.opacity = .65; $('emailEdit').style.display = 'inline-block'; }
+function unlockEmail(){
+  $('emailInput').readOnly = false; $('emailInput').style.opacity = 1; $('emailEdit').style.display = 'none';
+  clearInterval(resendInt);
+  $('loginBtn').disabled = false; $('loginBtn').textContent = 'Continue with email';
+  $('otpRow').style.display = 'none'; $('loginMsg').textContent = '';
+  $('emailInput').focus();
+}
+$('emailEdit').addEventListener('click', unlockEmail);
 $('loginBtn').addEventListener('click', async ()=>{
   const email = $('emailInput').value.trim();
   if(!/^\S+@\S+\.\S+$/.test(email)){ $('loginMsg').style.color='var(--warn)'; $('loginMsg').textContent='Please enter a valid email.'; return; }
   $('loginBtn').disabled = true;
   const {error} = await sb.auth.signInWithOtp({email, options:{emailRedirectTo: location.href.split('#')[0]}});
-  $('loginBtn').disabled = false;
   $('loginMsg').style.color = error ? 'var(--warn)' : 'var(--ok)';
-  $('loginMsg').textContent = error ? error.message : '✓ Link sent! Check your email and click it.';
+  if(error){
+    const wait = (error.message.match(/after (\d+) seconds/) || [])[1];
+    if(wait){                       /* asked too soon — lock and count down exactly that long */
+      lockEmail(); startCooldown(+wait);
+      $('loginMsg').textContent = `Please wait — you can resend in ${wait} seconds.`;
+    }else{
+      $('loginBtn').disabled = false;
+      $('loginMsg').textContent = /rate limit/i.test(error.message)
+        ? 'Too many login emails were sent in the last hour — please try again later, or continue as guest below.'
+        : error.message;
+    }
+    return;
+  }
+  $('loginMsg').textContent = '✓ Sent! Check your email — click the link, or type the 6-digit code below.';
+  $('otpRow').style.display = 'block';
+  lockEmail();
+  startCooldown(50);
+  $('otpInput').focus();
+});
+$('otpBtn').addEventListener('click', async ()=>{
+  const email = $('emailInput').value.trim();
+  const code = $('otpInput').value.trim();
+  if(!/^\d{6}$/.test(code)){ $('loginMsg').style.color='var(--warn)'; $('loginMsg').textContent='The code is the 6-digit number from the email.'; return; }
+  $('otpBtn').disabled = true;
+  const {data, error} = await sb.auth.verifyOtp({ email, token: code, type: 'email' });
+  $('otpBtn').disabled = false;
+  if(error){ $('loginMsg').style.color='var(--warn)'; $('loginMsg').textContent = 'That code did not work — check it or request a new link.'; return; }
+  if(data && data.session) enterApp(data.session);
 });
 $('guestBtn').addEventListener('click', ()=>{ guest = true; enterApp(null); });
+$('googleBtn').addEventListener('click', async ()=>{
+  if(!sb) return;
+  const {error} = await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.href.split('#')[0] } });
+  if(error){
+    $('loginMsg').style.color = 'var(--warn)';
+    $('loginMsg').textContent = /provider is not enabled/i.test(error.message)
+      ? 'Google login is being set up — please use email for now.'
+      : error.message;
+  }
+});
+$('appleBtn').addEventListener('click', async ()=>{
+  if(!sb) return;
+  const {error} = await sb.auth.signInWithOAuth({ provider:'apple', options:{ redirectTo: location.href.split('#')[0] } });
+  if(error){
+    $('loginMsg').style.color = 'var(--warn)';
+    $('loginMsg').textContent = /provider is not enabled/i.test(error.message)
+      ? 'Apple login is coming soon — please use Google or email for now.'
+      : error.message;
+  }
+});
+$('loginHdrBtn').addEventListener('click', ()=>{ $('login').style.display = 'flex'; });
+$('scanHdrBtn').addEventListener('click', ()=>{ if(isMobileDevice) $('camInput').click(); else openCamera(); });
 $('logoutBtn').addEventListener('click', async ()=>{ if(sb) await sb.auth.signOut(); location.reload(); });
 
 function companionAvailable(){ return !!session && navigator.onLine && companionOn && configured; }
@@ -443,12 +622,13 @@ function enterApp(s){
   $('login').style.display = 'none';
   $('userEmail').textContent = s ? s.user.email : 'Guest';
   $('logoutBtn').style.display = s ? 'block' : 'none';
+  $('loginHdrBtn').style.display = s ? 'none' : 'block';   /* guests can always get back to login */
   updateMode();
   if(s) fetchMe();
   const name = s ? s.user.email.split('@')[0] : 'friend';
   say(s
     ? `Namaste, ${name}! 🙏 Open a PDF and we will go through it together — I read aloud, follow the words on the page, and you can select any text to get it explained.`
-    : 'Namaste! 🙏 Reader mode: I will read your PDF aloud and follow the words. Login to unlock the AI companion for explanations and chat.');
+    : 'Namaste! 🙏 Reader mode: I will read your File aloud and follow the words. Login to unlock the AI companion for explanations and chat.');
 }
 function updateMode(){
   $('assistMode').textContent = companionAvailable() ? 'AI companion — online'
@@ -617,7 +797,14 @@ function rate(){ return parseFloat($('rateSel').value); }
 /* ---------------- Open PDF ---------------- */
 $('dropZone').addEventListener('click', ()=> $('fileInput').click());
 $('openBtn').addEventListener('click', ()=> $('fileInput').click());
-$('fileInput').addEventListener('change', e=>{ if(e.target.files[0]) openFile(e.target.files[0]); });
+$('fileInput').addEventListener('change', e=>{
+  const files = [...e.target.files];
+  if(!files.length) return;
+  const allImages = files.length > 1 && files.every(f=>/^image\//.test(f.type) || /\.(png|jpe?g|webp|bmp)$/i.test(f.name));
+  if(allImages) openImagePages(`${files.length} photos`, files);   /* several photos = one multi-page document */
+  else openFile(files[0]);
+  e.target.value = '';
+});
 ['dragover','dragleave','drop'].forEach(ev=>{
   $('dropZone').addEventListener(ev, e=>{
     e.preventDefault();
@@ -664,85 +851,204 @@ async function openTxt(file){
   }catch(e){ say('Sorry, I could not read that file ('+e.message+').'); }
 }
 
-async function openImage(file){
-  if(location.protocol === 'file:'){ say('Reading photos needs the app to run from the launcher or website.'); return; }
-  say(`Reading the text in "${file.name}" — one moment…`,'sys');
-  const url = URL.createObjectURL(file);
-  try{
-    /* show the real picture as the page (like a scanned PDF page) */
-    const img = new Image();
-    await new Promise((res, rej)=>{ img.onload = res; img.onerror = ()=>rej(new Error('could not load the image')); img.src = url; });
+function openImage(file){ return openImagePages(file.name, [file]); }
 
-    docName = file.name;
-    numPages = 1;
+/* One or many photos of pages (upload or camera scan) — shown as real pages,
+   OCR page by page, reading starts after page 1 like a scanned PDF. */
+async function openImagePages(name, sources){
+  if(location.protocol === 'file:'){ say('Reading photos needs the app to run from the launcher or website.'); return; }
+  say(`Opening "${name}" — one moment…`,'sys');
+  try{
+    /* load all pictures first (they may be Files or captured data URLs) */
+    const imgs = [];
+    for(const s of sources){
+      const img = new Image();
+      const isFile = (typeof File !== 'undefined') && (s instanceof File);
+      img.src = isFile ? URL.createObjectURL(s) : (s.data || s);
+      await new Promise((res, rej)=>{ img.onload = res; img.onerror = ()=>rej(new Error('could not load an image')); });
+      imgs.push(img);
+    }
+    docName = name;
+    numPages = imgs.length;
     lines = []; sentences = []; lineToSent = []; current = -1; chatHistory = []; pages = [];
     stopSpeech(); hideMarker();
     const viewer = $('viewer');
     viewer.innerHTML = '';
     viewer.appendChild(markerEl);
-    $('pageSel').innerHTML = '<option value="1">Page 1</option>';
     $('dropZone').style.display = 'none';
     viewer.style.display = 'block';
     $('playbar').style.display = 'flex';
+    $('pdfBtn').style.display = 'none';
 
-    const pg = {num:1, w: img.naturalWidth, h: img.naturalHeight, rendered:true, isImage:true, spans:[], lineStart:0};
-    pages.push(pg);
+    imgs.forEach((img, ix)=> pages.push({num:ix+1, w:img.naturalWidth, h:img.naturalHeight, rendered:true, isImage:true, spans:[], img, lineStart:0, lineEnd:0}));
     computeFitScale();
-    const wrap = document.createElement('div');
-    wrap.className = 'pageWrap';
-    wrap.dataset.page = 1;
-    wrap.style.width  = (pg.w * fitScale) + 'px';
-    wrap.style.height = (pg.h * fitScale) + 'px';
-    img.className = 'imgPage';
-    wrap.appendChild(img);
-    viewer.appendChild(wrap);
-    pg.wrap = wrap;
+    pages.forEach(pg=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'pageWrap';
+      wrap.dataset.page = pg.num;
+      wrap.style.width  = (pg.w * fitScale) + 'px';
+      wrap.style.height = (pg.h * fitScale) + 'px';
+      pg.img.className = 'imgPage';
+      wrap.appendChild(pg.img);
+      const num = document.createElement('div');
+      num.className = 'pageNum'; num.textContent = pg.num;
+      wrap.appendChild(num);
+      viewer.appendChild(wrap);
+      pg.wrap = wrap;
+      wrap.addEventListener('click', e=> tapImagePage(pg, e));
+    });
+    buildPageOptions();
+    updateProgress();
+    $('pdfBtn').style.display = 'inline-block';   /* photo documents can be saved as PDF */
 
+    /* OCR page by page — greet/start after page 1, keep converting behind */
     sayProgress('🔍 Recognising text…');
     const worker = await Tesseract.createWorker('eng', 1, {
       workerPath: new URL('lib/ocr/worker.min.js', location.href).href,
       corePath:   new URL('lib/ocr', location.href).href,
       langPath:   new URL('lib/lang', location.href).href
     });
-    const res = await worker.recognize(url, {}, {blocks:true, text:true});
-    await worker.terminate();
-    removeProgress();
-    const data = res.data || {};
-
-    /* lines with real positions → the marker can follow the voice on the photo */
-    const pushLine = (text, bbox)=>{
-      const t = (text||'').replace(/\s+/g,' ').trim();
-      if(t.length < 2 || !bbox) return;
-      lines.push({ text: t, page: 1, x: bbox.x0, xEnd: bbox.x1, y: pg.h - bbox.y1, h: bbox.y1 - bbox.y0, items: [] });
-    };
-    if(Array.isArray(data.blocks) && data.blocks.length){
-      data.blocks.forEach(b=> (b.paragraphs||[]).forEach(par=> (par.lines||[]).forEach(l=> pushLine(l.text, l.bbox))));
-    }else if(data.text){
-      (data.text||'').split('\n').forEach(t=> pushLine(t, {x0:10, x1:pg.w-10, y0:0, y1:24}));
-    }
-    pg.lineEnd = lines.length;
-    if(!lines.length){ say('I could not find any readable text in this image — but you can still look at it here.'); return; }
-    buildSentencesChunk(0, lines.length);
-
-    /* tap anywhere on the photo to read from that line */
-    wrap.addEventListener('click', e=>{
-      const r = wrap.getBoundingClientRect();
-      const px = (e.clientX - r.left) / fitScale;
-      const py = pg.h - (e.clientY - r.top) / fitScale;
-      let bestLi = -1, bestD = 1e12;
-      for(let li=0; li<lines.length; li++){
-        const ln = lines[li];
-        const inY = py >= ln.y - ln.h*0.3 && py <= ln.y + ln.h*1.3;
-        const d = Math.abs((ln.y + ln.h/2) - py) + (px < ln.x || px > ln.xEnd ? 1e6 : 0);
-        if(inY && d < bestD){ bestD = d; bestLi = li; }
+    ocrBusy = true;
+    let greeted = false;
+    for(const pg of pages){
+      if(pages.length > 1) sayProgress(`🔍 Recognising page ${pg.num} of ${pages.length}…`);
+      try{
+        const res = await worker.recognize(pg.img, {}, {blocks:true, text:true});
+        const data = res.data || {};
+        pg.lineStart = lines.length;
+        const pushLine = (text, bbox)=>{
+          const t = (text||'').replace(/\s+/g,' ').trim();
+          if(t.length < 2 || !bbox) return;
+          lines.push({ text: t, page: pg.num, x: bbox.x0, xEnd: bbox.x1, y: pg.h - bbox.y1, h: bbox.y1 - bbox.y0, items: [] });
+        };
+        if(Array.isArray(data.blocks) && data.blocks.length){
+          data.blocks.forEach(b=> (b.paragraphs||[]).forEach(par=> (par.lines||[]).forEach(l=> pushLine(l.text, l.bbox))));
+        }else if(data.text){
+          (data.text||'').split('\n').forEach(t=> pushLine(t, {x0:10, x1:pg.w-10, y0:0, y1:24}));
+        }
+        pg.lineEnd = lines.length;
+        buildSentencesChunk(pg.lineStart, pg.lineEnd);
+      }catch(e){ say(`Page ${pg.num}: could not read it (${e.message}). Skipping.`,'sys'); }
+      updateProgress();
+      if(!greeted && sentences.length){ greeted = true; removeProgress(); afterDocOpen(); }
+      else if(waitingForMore && sentences.length > current+1){
+        waitingForMore = false;
+        playing = true; setPlayBtn(); speakLine(current+1);
       }
-      if(bestLi >= 0){ const si = lineToSent[bestLi]; if(si !== undefined){ jumpTo(si); if(!playing) togglePlay(); } }
-    });
-    updateProgress();
-    afterDocOpen();
-  }catch(e){ removeProgress(); say('Sorry, I could not read that image ('+e.message+').'); }
-  finally{ URL.revokeObjectURL(url); }
+    }
+    ocrBusy = false;
+    try{ await worker.terminate(); }catch(e){}
+    removeProgress();
+    if(!lines.length) say('I could not find readable text in the pictures — but you can still look at them here, and save them as a PDF with ⬇.');
+    else if(pages.length > 1) say(`All ${pages.length} pages are ready. 📄 Tip: the ⬇ PDF button saves this scan as a real PDF file.`,'sys');
+    if(waitingForMore){ waitingForMore = false; finishDoc(); }
+  }catch(e){ removeProgress(); say('Sorry, I could not open those pictures ('+e.message+').'); }
 }
+function tapImagePage(pg, e){
+  const r = pg.wrap.getBoundingClientRect();
+  const px = (e.clientX - r.left) / fitScale;
+  const py = pg.h - (e.clientY - r.top) / fitScale;
+  let bestLi = -1, bestD = 1e12;
+  for(let li = pg.lineStart; li < pg.lineEnd; li++){
+    const ln = lines[li];
+    const inY = py >= ln.y - ln.h*0.3 && py <= ln.y + ln.h*1.3;
+    const d = Math.abs((ln.y + ln.h/2) - py) + (px < ln.x || px > ln.xEnd ? 1e6 : 0);
+    if(inY && d < bestD){ bestD = d; bestLi = li; }
+  }
+  if(bestLi >= 0){ const si = lineToSent[bestLi]; if(si !== undefined){ jumpTo(si); if(!playing) togglePlay(); } }
+}
+
+/* ---------------- Camera scan (Adobe-Scan style) ---------------- */
+let camStream = null, camShots = [];
+const isMobileDevice = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+$('scanBtn').addEventListener('click', ()=>{
+  /* phones: the native camera app gives autofocus & flash — use it.
+     laptops: live webcam preview in the app. */
+  if(isMobileDevice){ $('camInput').click(); return; }
+  openCamera();
+});
+$('camInput').addEventListener('change', e=>{
+  const files = [...e.target.files];
+  if(files.length) openImagePages(files.length > 1 ? `Camera scan (${files.length} pages)` : 'Camera scan', files);
+  e.target.value = '';
+});
+async function openCamera(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ $('camInput').click(); return; }
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:'environment', width:{ideal:2560}, height:{ideal:1440} }, audio:false
+    });
+  }catch(e){ $('camInput').click(); return; }   /* no camera / permission denied → file picker */
+  camShots = [];
+  updateCamUI();
+  $('camVideo').srcObject = camStream;
+  $('camModal').style.display = 'flex';
+}
+function closeCamera(){
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+  $('camVideo').srcObject = null;
+  $('camModal').style.display = 'none';
+}
+function updateCamUI(){
+  $('camCount').textContent = camShots.length + (camShots.length === 1 ? ' page' : ' pages');
+  $('camUndo').disabled = !camShots.length;
+  $('camDone').disabled = !camShots.length;
+}
+$('camShot').addEventListener('click', ()=>{
+  const v = $('camVideo');
+  if(!v.videoWidth) return;
+  const MAX = 1800;
+  const sc = Math.min(1, MAX / Math.max(v.videoWidth, v.videoHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  camShots.push({ data: c.toDataURL('image/jpeg', .88), w: c.width, h: c.height });
+  updateCamUI();
+  const f = $('camFlash'); f.style.opacity = .7; setTimeout(()=> f.style.opacity = 0, 120);
+});
+$('camUndo').addEventListener('click', ()=>{ camShots.pop(); updateCamUI(); });
+$('camCancel').addEventListener('click', ()=>{ camShots = []; closeCamera(); });
+$('camDone').addEventListener('click', ()=>{
+  const shots = camShots.slice(); camShots = [];
+  closeCamera();
+  if(shots.length) openImagePages(`Camera scan (${shots.length} ${shots.length===1?'page':'pages'})`, shots);
+});
+
+/* ---------------- Save photo pages as a real PDF ---------------- */
+async function ensureJsPDF(){
+  if(window.jspdf) return true;
+  try{
+    await new Promise((res, rej)=>{
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }catch(e){ return false; }
+  return !!window.jspdf;
+}
+$('pdfBtn').addEventListener('click', async ()=>{
+  const imgPages = pages.filter(p=>p.isImage && p.img);
+  if(!imgPages.length) return;
+  sayProgress('📄 Building your PDF…');
+  if(!(await ensureJsPDF())){ removeProgress(); say('Could not load the PDF maker — please check your internet connection.'); return; }
+  try{
+    const { jsPDF } = window.jspdf;
+    let doc = null;
+    imgPages.forEach(pg=>{
+      const pt = [pg.w * 0.75, pg.h * 0.75];              /* px → pt */
+      if(!doc) doc = new jsPDF({ unit:'pt', format:pt, orientation: pg.w > pg.h ? 'l' : 'p', compress:true });
+      else doc.addPage(pt, pg.w > pg.h ? 'l' : 'p');
+      const c = document.createElement('canvas');
+      c.width = pg.w; c.height = pg.h;
+      c.getContext('2d').drawImage(pg.img, 0, 0);
+      doc.addImage(c.toDataURL('image/jpeg', .88), 'JPEG', 0, 0, pt[0], pt[1]);
+    });
+    doc.save((docName.replace(/\.(png|jpe?g|webp|bmp)$/i,'') || 'Lexora scan') + '.pdf');
+    removeProgress();
+    say('✅ PDF saved to your downloads.');
+  }catch(e){ removeProgress(); say('Could not build the PDF ('+e.message+').'); }
+});
 
 /* Render plain text as a clean readable page with tappable sentences */
 function openText(name, rawText){
@@ -757,6 +1063,7 @@ function openText(name, rawText){
   $('dropZone').style.display = 'none';
   viewer.style.display = 'block';
   $('playbar').style.display = 'flex';
+    $('pdfBtn').style.display = 'none';
 
   const wrap = document.createElement('div');
   wrap.className = 'textWrap';
@@ -865,6 +1172,7 @@ function openRichText(name, html){
   $('dropZone').style.display = 'none';
   viewer.style.display = 'block';
   $('playbar').style.display = 'flex';
+    $('pdfBtn').style.display = 'none';
 
   const wrap = document.createElement('div');
   wrap.className = 'textWrap richDoc';
@@ -944,6 +1252,7 @@ async function openPdf(file){
     $('dropZone').style.display='none';
     viewer.style.display='block';
     $('playbar').style.display='flex';
+    $('pdfBtn').style.display='none';
 
     computeFitScale();
 
@@ -1726,7 +2035,7 @@ function handleCommand(t){
   if(goM) return searchAndRead(goM[1].replace(/^the\s+/,''));
   if(/^(play|start|read|resume|continue)$/.test(s)){ if(!playing) togglePlay(); say('Reading.'); return true; }
   if(/^(pause|stop|wait|halt)$/.test(s)){ if(playing) togglePlay(); say('Paused. Say "play" when you are ready.'); return true; }
-  if(/^(slower|slow down)$/.test(s)){ const o=$('rateSel'); o.selectedIndex=Math.max(0,o.selectedIndex-1); if(playing) speakLine(current); say(`Speed: ${o.value}×.`); return true; }
+  if(/^(slower|slow down)$/.test(s)){ const o=$('rateSel'); o.selectedIndex=Math.max(0,o.selectedIndex-1); if(playing) speakLine(current); say(`chd: ${o.value}×.`); return true; }
   if(/^(faster|speed up)$/.test(s)){ const o=$('rateSel'); o.selectedIndex=Math.min(o.options.length-1,o.selectedIndex+1); if(playing) speakLine(current); say(`Speed: ${o.value}×.`); return true; }
   if(/^(next|skip)$/.test(s)){ jumpTo(current+1); if(!playing) togglePlay(); return true; }
   if(/^(back|previous|repeat|again)$/.test(s)){ jumpTo(/repeat|again/.test(s)?current:current-1); if(!playing) togglePlay(); return true; }
@@ -1762,9 +2071,14 @@ async function sendChat(){
 $('sendBtn').addEventListener('click', sendChat);
 $('chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter') sendChat(); });
 
-/* ---------------- Mic ---------------- */
+/* ---------------- Mic — hybrid speech recognition ----------------
+   1) Browser SpeechRecognition (Chrome/Edge): free and instant.
+   2) If unsupported (Brave, Firefox…) or it fails with an unrecoverable
+      error, fall back automatically to recording the mic and transcribing
+      on the server (Cloudflare Worker → OpenAI), no user action needed. */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, listening = false;
+let rec = null, listening = false, srBroken = !SR;
+let mediaRec = null, mediaChunks = [], mediaStream = null, mediaTimer = null;
 if(SR){
   rec = new SR();
   rec.lang = 'en-IN';
@@ -1774,7 +2088,12 @@ if(SR){
   rec.onend = ()=> setListening(false);
   rec.onerror = e=>{
     setListening(false);
-    if(e.error==='not-allowed') say('Please allow microphone access in your browser to talk to me.','sys');
+    if(e.error === 'not-allowed'){ say('Please allow microphone access in your browser to talk to me.','sys'); return; }
+    if(e.error === 'no-speech' || e.error === 'aborted') return;
+    /* network / service-not-allowed / audio-capture etc. → this browser cannot do it natively */
+    console.warn('SpeechRecognition failed:', e.error, '→ switching to cloud transcription');
+    srBroken = true;
+    startServerSTT();   /* take over seamlessly */
   };
 }
 function setListening(on){
@@ -1783,12 +2102,57 @@ function setListening(on){
   $('micBar').classList.toggle('listening', on);
 }
 function startListening(){
-  if(!rec){ say('Voice input is not supported in this browser — Chrome or Edge works best.','sys'); return; }
-  if(listening){ rec.stop(); return; }
+  if(listening){ stopAnyListening(); return; }
   if(playing) togglePlay();
   cancelSpeech2();
+  if(rec && !srBroken){
+    setListening(true);
+    try{ rec.start(); }catch(e){ srBroken = true; setListening(false); startServerSTT(); }
+  }else{
+    startServerSTT();
+  }
+}
+function stopAnyListening(){
+  if(mediaRec && mediaRec.state === 'recording'){ clearTimeout(mediaTimer); mediaRec.stop(); return; }
+  if(rec){ try{ rec.stop(); }catch(e){} }
+  setListening(false);
+}
+async function startServerSTT(){
+  if(!session || !configured){ say('This browser needs cloud voice recognition — please login first, then the 🎤 will work.','sys'); return; }
+  if(!navigator.mediaDevices || !window.MediaRecorder){ say('Microphone recording is not available in this browser.','sys'); return; }
+  try{ mediaStream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ say('Please allow microphone access in your browser to talk to me.','sys'); return; }
+  mediaChunks = [];
+  const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+             : MediaRecorder.isTypeSupported('audio/mp4')  ? 'audio/mp4' : '';
+  try{ mediaRec = new MediaRecorder(mediaStream, mime ? {mimeType:mime} : undefined); }
+  catch(e){ mediaStream.getTracks().forEach(t=>t.stop()); say('Recording is not supported here.','sys'); return; }
+  mediaRec.ondataavailable = e=>{ if(e.data && e.data.size) mediaChunks.push(e.data); };
+  mediaRec.onstop = async ()=>{
+    if(mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream = null; }
+    setListening(false);
+    const blob = new Blob(mediaChunks, {type: mime || 'audio/webm'});
+    mediaChunks = [];
+    if(blob.size < 1500) return;              /* too short to contain speech */
+    sayProgress('👂 Understanding…');
+    try{
+      const {data:{session:s}} = await sb.auth.getSession();
+      const r = await fetch(CONFIG.API_URL + '/stt', {
+        method:'POST',
+        headers:{ authorization:'Bearer '+s.access_token, 'content-type': blob.type },
+        body: blob
+      });
+      const j = await r.json().catch(()=>null);
+      removeProgress();
+      if(r.ok && j && j.text){ $('chatInput').value = j.text; sendChat(); }
+      else say((j && j.error) || 'I could not hear that clearly — please try again.','sys');
+    }catch(e){ removeProgress(); say('Voice transcription failed ('+e.message+').','sys'); }
+  };
   setListening(true);
-  rec.start();
+  say('🎙 Listening… tap the mic again when you finish speaking.','sys');
+  mediaRec.start();
+  clearTimeout(mediaTimer);
+  mediaTimer = setTimeout(()=>{ if(mediaRec && mediaRec.state === 'recording') mediaRec.stop(); }, 20000);
 }
 $('micBtn').addEventListener('click', startListening);
 $('micBar').addEventListener('click', startListening);
@@ -1810,10 +2174,12 @@ function renderWallet(){
   if(!me){ $('wallet').style.display='none'; return; }
   if(me.effective === 'paid'){
     $('wallet').style.display='block';
-    const label = (me.provider==='anthropic'?'Claude':'OpenAI') + ' · ' + fmtTokens(me.tokens_balance) + ' tokens left';
+    const max = Math.max(me.tokens_balance + (me.tokens_used || 0), 1);
+    const pct = Math.max(0, Math.min(100, Math.round(me.tokens_balance / max * 100)));
+    const label = (me.provider==='anthropic'?'Claude':'OpenAI') + ' plan · ' + pct + '% left';
     $('walletLabel').textContent = label;
-    const max = Math.max(me.tokens_balance + me.tokens_used, 1);
-    $('walletFill').style.width = Math.min(100, Math.round(me.tokens_balance / max * 100)) + '%';
+    $('walletLabel').title = fmtTokens(me.tokens_balance) + ' of ' + fmtTokens(max) + ' tokens';
+    $('walletFill').style.width = pct + '%';
     $('planStatus').textContent = 'Current: ' + label + '.';
   }else{
     $('wallet').style.display='block';
@@ -1913,7 +2279,7 @@ async function buy(planKey){
       order_id: order.order_id,
       amount: order.amount,
       currency: 'INR',
-      name: 'ReadAloud AI',
+      name: 'Lexora AI',
       description: order.label,
       prefill: { email: session.user.email },
       theme: { color: '#ffb347' },

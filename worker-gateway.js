@@ -236,6 +236,31 @@ export default {
     const rate = await checkRate(env, uid, isPaid);
     if (!rate.ok) return json({ error: rate.why }, 429, cors);
 
+    /* ---------- speech-to-text fallback (browsers without native recognition) ---------- */
+    if (url.pathname.endsWith('/stt')) {
+      const ct = request.headers.get('content-type') || 'audio/webm';
+      if (!/^audio\//.test(ct)) return json({ error: 'Expected audio' }, 400, cors);
+      const buf = await request.arrayBuffer();
+      if (buf.byteLength < 1000) return json({ error: 'Recording too short.' }, 400, cors);
+      if (buf.byteLength > 5_000_000) return json({ error: 'Recording too long — keep it under ~20 seconds.' }, 413, cors);
+      const ext = ct.includes('mp4') ? 'audio.mp4' : 'audio.webm';
+      const fd = new FormData();
+      fd.append('file', new File([buf], ext, { type: ct }));
+      fd.append('model', env.STT_MODEL || 'gpt-4o-mini-transcribe');   /* cheapest good STT (~₹0.25/min) */
+      const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { authorization: 'Bearer ' + env.OPENAI_API_KEY },
+        body: fd
+      });
+      if (!r.ok) {
+        const t = await r.text().catch(() => '');
+        console.log('stt error', r.status, t.slice(0, 150));
+        return json({ error: 'Transcription failed — please try again.' }, 502, cors);
+      }
+      const j = await r.json();
+      return json({ text: (j.text || '').trim() }, 200, cors);
+    }
+
     /* input */
     let body;
     try { body = await request.json(); } catch { return json({ error: 'Bad request' }, 400, cors); }

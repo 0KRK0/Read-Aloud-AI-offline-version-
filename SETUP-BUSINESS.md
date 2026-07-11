@@ -73,6 +73,23 @@ can call /verify. Razorpay's servers call the worker directly.
    (check Supabase → transactions table). Duplicate credits are impossible:
    the transactions table rejects a repeated razorpay_payment_id.
 
+## 8. Voice input fallback (STT)
+Browsers without native speech recognition (Brave, Firefox) automatically send
+mic audio to the gateway's POST /stt, which uses OpenAI `gpt-4o-mini-transcribe`
+(≈ $0.003/min ≈ ₹0.25/min — negligible). No new keys needed (uses OPENAI_API_KEY).
+Optional worker var `STT_MODEL` to change the model. Just redeploy worker-gateway.js.
+
+## 9. Login emails (magic link + 6-digit code)
+The app now accepts BOTH the link and a 6-digit code. To make the code appear
+in the email: Supabase → Authentication → Email Templates → Magic Link →
+add a line: `Your code: {{ .Token }}`.
+Fix the "rate limit exceeded" error permanently with free custom SMTP:
+- resend.com — free 3,000 emails/month (recommended), or brevo.com — free 300/day
+- Supabase → Authentication → SMTP Settings → enable custom SMTP
+  (Resend: host smtp.resend.com, port 465, user `resend`, password = API key)
+- Then Authentication → Rate Limits → raise emails/hour to e.g. 100.
+Paid (only if you outgrow free): Resend $20/mo for 50k emails.
+
 ## Pricing hint (₹, with margin)
 Raw cost ≈ ₹0.04/question (Haiku) or ₹0.006 (4o-mini). Suggested retail:
 ₹99/mo ≈ 1.2M tokens Claude Haiku; ₹49/mo ≈ 2M tokens GPT-4o-mini;

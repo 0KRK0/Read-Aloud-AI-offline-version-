@@ -1,71 +1,60 @@
-# Deploy ReadAloud AI online to GitHub Pages
+# Deploy ReadAloud AI to lexoraai.online (Cloudflare Pages)
 
-The whole `online\` folder goes to GitHub. Nothing in it is secret
-(the CONFIG values in index.html are publishable by design).
+Domain: **lexoraai.online** — registrar Namecheap (registrar only),
+DNS + SSL + hosting all on Cloudflare. Universal SSL is automatic; never buy SSL separately.
 
-## Option A — with git (recommended, one-time 5 minutes)
+## 1. Create the Pages project (5 min, no git needed)
 
-If git is not installed: download from https://git-scm.com/download/win (defaults are fine).
+1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Upload assets** (Direct Upload)
+2. Project name: `readaloud-ai`
+3. Drag the whole **contents** of `D:\Pdf to Voice\ReadAloud AI\online`
+   (index.html, privacy.html, lib folder — the .md/.sql/worker files are harmless but you can skip them)
+4. Deploy → you get `readaloud-ai.pages.dev` — check it loads.
 
-Open PowerShell and run, line by line:
+Future updates: Workers & Pages → readaloud-ai → **Create new deployment** → drag the folder again.
 
-```powershell
-cd "D:\Pdf to Voice\ReadAloud AI\online"
-git init
-git add .
-git commit -m "ReadAloud AI online v1"
-```
+## 2. Attach your domain (2 min)
 
-On github.com (logged in as 0KRK0): **New repository** → name: `readaloud-ai` →
-Public → do NOT add a README → Create. Then back in PowerShell:
+Pages project → **Custom domains → Set up a custom domain** → `lexoraai.online` → Activate.
+(Cloudflare adds the DNS record itself because the zone is already on Cloudflare.)
+Optionally add `www.lexoraai.online` too.
+SSL is automatic — the site is https within minutes.
 
-```powershell
-git branch -M main
-git remote add origin https://github.com/0KRK0/readaloud-ai.git
-git push -u origin main
-```
+## 3. Point the backend at the new origin (5 min)
 
-(git will open a browser window to log you in the first time.)
+1. Worker `readaloudai` → Settings → Variables →
+   `ALLOWED_ORIGIN` = `http://localhost:8977,https://lexoraai.online,https://readaloud-ai.pages.dev`
+2. Worker `readaloudai-pay` → same value.
+3. Supabase → Authentication → URL Configuration →
+   - Site URL: `https://lexoraai.online`
+   - Redirect URLs: add `https://lexoraai.online/**` (and the pages.dev one if you want)
 
-Future updates are just:
-```powershell
-cd "D:\Pdf to Voice\ReadAloud AI\online"
-git add . ; git commit -m "update" ; git push
-```
+## 4. Google login (optional but recommended, 10 min, free)
 
-## Option B — GitHub Desktop (no commands)
+1. console.cloud.google.com → new project → **APIs & Services → OAuth consent screen**
+   → External → fill app name ReadAloud AI + your email → save
+2. **Credentials → Create credentials → OAuth client ID** → Web application →
+   Authorized redirect URI: `https://lgwqqytjqoenozhjhbkr.supabase.co/auth/v1/callback`
+3. Copy Client ID + Secret → Supabase → **Authentication → Sign In / Providers → Google**
+   → enable, paste both → Save.
+The app's "Continue with Google" button then works instantly.
 
-1. Install https://desktop.github.com → sign in
-2. File → Add local repository → choose `D:\Pdf to Voice\ReadAloud AI\online`
-   → "create a repository" when asked → Publish repository → name `readaloud-ai`,
-   untick "Keep this code private" → Publish
-3. Future updates: open GitHub Desktop → write a summary → Commit → Push
+## 5. Login emails (do once — fixes "rate limit exceeded")
 
-(Plain web upload is NOT practical here — lib\cmaps has ~170 files and the
-upload page takes max 100 files at a time.)
+See SETUP-BUSINESS.md §9: Resend.com free SMTP (3,000/month) + raise Supabase
+email rate limit + add `Your code: {{ .Token }}` to the Magic Link template
+so the 6-digit code login works.
 
-## Turn on GitHub Pages
+## 6. Razorpay webhook (if not done yet)
 
-Repo page → **Settings → Pages** → Source: *Deploy from a branch* →
-Branch: `main`, folder `/ (root)` → Save.
-After ~1 minute your app is live at:
+See SETUP-BUSINESS.md §7a — webhook URL is your pay worker /webhook.
+Later you can also give the workers pretty subdomains (api.lexoraai.online,
+pay.lexoraai.online) via Worker → Settings → Domains & Routes → nothing else changes
+except CONFIG.API_URL/PAY_URL in index.html.
 
-    https://0krk0.github.io/readaloud-ai/
+## 7. Test from your phone
 
-## After deploy — 3 config changes (5 min)
+https://lexoraai.online → login (Google or email code) → open a PDF → play →
+scan with camera → test payment (card 5267 3181 8797 5449).
 
-1. **Cloudflare worker `readaloudai`** → Settings → Variables →
-   `ALLOWED_ORIGIN` = `http://localhost:8977,https://0krk0.github.io`
-2. **Cloudflare worker `readaloudai-pay`** → same `ALLOWED_ORIGIN` value.
-3. **Supabase** → Authentication → URL Configuration →
-   - Site URL: `https://0krk0.github.io/readaloud-ai/`
-   - Redirect URLs: add `https://0krk0.github.io/readaloud-ai/**`
-   (otherwise magic-link emails keep sending people to localhost)
-
-## Test from your phone
-
-Open https://0krk0.github.io/readaloud-ai/ → login (magic link) → open a PDF
-→ play → ask the companion something → make a ₹49 TEST payment
-(card 5267 3181 8797 5449, any future expiry, any CVV).
-
-Done — the product is public. 🎉
+Live! 🎉
