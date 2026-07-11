@@ -52,7 +52,12 @@ Later you can also give the workers pretty subdomains (api.lexoraai.online,
 pay.lexoraai.online) via Worker → Settings → Domains & Routes → nothing else changes
 except CONFIG.API_URL/PAY_URL in index.html.
 
-## 7. Test from your phone
+## 7. Tools subdomain (optional, 1 min)
+Pages project → Custom domains → add **tools.lexoraai.online** (same project).
+The app detects the subdomain and opens the 🧰 Tools panel automatically.
+lexoraai.online/#tools does the same thing.
+
+## 8. Test from your phone
 
 https://lexoraai.online → login (Google or email code) → open a PDF → play →
 scan with camera → test payment (card 5267 3181 8797 5449).

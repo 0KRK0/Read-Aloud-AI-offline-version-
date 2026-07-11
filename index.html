@@ -272,6 +272,33 @@
     #pbExtra{display:none}
     #playbar.expanded #pbExtra{display:flex}
   }
+  /* ---------- Tools sidebar ---------- */
+  #tools{position:fixed; inset:0; z-index:350; display:none; background:rgba(0,0,0,.5)}
+  #toolsPane{position:absolute; left:0; top:0; bottom:0; width:min(420px, 100vw); background:var(--bg,#0f1220);
+    border-right:1px solid var(--line,#262b45); display:flex; flex-direction:column; overflow-y:auto;
+    animation:toolsIn .28s cubic-bezier(.2,.8,.25,1); padding:18px}
+  @keyframes toolsIn{from{transform:translateX(-40px); opacity:0}to{transform:none; opacity:1}}
+  #toolsHead{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px}
+  #toolsHead b{font-size:18px}
+  #toolsHead small{display:block; color:var(--muted,#9aa1b5); font-size:12px; margin-top:3px}
+  #toolsClose{background:none; border:none; color:var(--muted,#9aa1b5); font-size:18px; cursor:pointer; padding:4px 8px}
+  #toolsClose:hover{color:var(--text,#e8eaf2)}
+  #toolGrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .toolCard{background:var(--panel,#181c2f); border:1px solid var(--line,#262b45); border-radius:12px;
+    padding:13px 12px; cursor:pointer; text-align:left; color:var(--text,#e8eaf2); transition:border-color .15s, transform .12s}
+  .toolCard:hover{border-color:var(--accent,#6c8cff); transform:translateY(-1px)}
+  .toolCard .tIc{font-size:20px}
+  .toolCard b{display:block; font-size:13px; margin-top:6px}
+  .toolCard small{display:block; color:var(--muted,#9aa1b5); font-size:10.5px; margin-top:2px; line-height:1.45}
+  #toolOpts{margin-top:14px; background:var(--panel,#181c2f); border:1px solid var(--line,#262b45); border-radius:12px; padding:14px}
+  #toolOpts label{display:block; font-size:12.5px; color:var(--muted,#9aa1b5); margin-bottom:6px}
+  #toolOpts input,#toolOpts select{width:100%; background:var(--panel2,#141828); border:1px solid var(--line,#262b45);
+    color:var(--text,#e8eaf2); border-radius:8px; padding:9px 10px; font-size:13.5px; margin-bottom:10px}
+  #toolOpts .go{width:100%; background:linear-gradient(90deg, var(--accent,#6c8cff), var(--accent2,#9a6cff)); color:#fff;
+    border:none; border-radius:9px; padding:11px; font-size:14px; font-weight:700; cursor:pointer}
+  #toolStatus{margin-top:14px; font-size:13px; color:var(--muted,#9aa1b5)}
+  #toolBar{height:5px; background:var(--panel2,#141828); border-radius:3px; overflow:hidden; margin-top:8px}
+  #toolBarFill{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--accent,#6c8cff), var(--accent2,#9a6cff)); transition:width .3s}
   /* ---------- Camera scan ---------- */
   .orScan{margin-top:12px; color:var(--muted,#9aa1b5); font-size:13px}
   /* ---------- Engine tiers + Token Saver ---------- */
@@ -377,6 +404,7 @@
   <h1>Lexora <span>AI</span></h1>
   <div id="userBox">
     <span id="userEmail"></span>
+    <button class="icon-btn" id="toolsBtn" title="PDF & Word tools">🧰</button>
     <button class="icon-btn" id="upgradeBtn" title="Plans & upgrade">⭐</button>
     <button class="icon-btn" id="compToggle" title="Companion on/off">🤖</button>
     <button class="icon-btn" id="themeBtn" title="Light / dark">🌓</button>
@@ -510,6 +538,18 @@
     </div>
     <div class="planNote">Tokens are used per question — the bar in the companion panel shows the % left. Top up anytime. Switch between Swift and Sage for free — your balance converts by money value, nothing you paid for is lost. Higher engine power gives smarter answers but uses your balance faster. When it runs out you return to the Free plan (Spark engine). Payments are one-time, no auto-renewal, no refunds — see <a href="privacy.html" target="_blank" style="color:var(--accent)">Privacy &amp; Terms</a>.</div>
     <button id="plansClose">Close</button>
+  </div>
+</div>
+
+<div id="tools">
+  <div id="toolsPane">
+    <div id="toolsHead">
+      <div><b>🧰 Tools</b><small>Everything runs on your device — your files never leave.</small></div>
+      <button id="toolsClose">✕</button>
+    </div>
+    <div id="toolGrid"></div>
+    <div id="toolOpts" style="display:none"></div>
+    <div id="toolStatus" style="display:none"><div id="toolStatusTxt"></div><div id="toolBar"><i id="toolBarFill"></i></div></div>
   </div>
 </div>
 
@@ -1785,6 +1825,348 @@ function buildDocx(pagesArr){   /* [{title, text}] */
     {name:'word/document.xml', data: documentXml}
   ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
 }
+
+/* ================= 🧰 TOOLS — all client-side, files never leave the device ================= */
+function pickFiles(accept, multiple){
+  return new Promise(res=>{
+    const i = document.createElement('input');
+    i.type = 'file'; i.accept = accept; i.multiple = !!multiple;
+    i.onchange = ()=> res([...i.files]);
+    i.click();
+  });
+}
+function downloadBlob(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 8000);
+}
+async function ensurePdfLib(){
+  if(window.PDFLib) return true;
+  try{
+    await new Promise((res, rej)=>{
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }catch(e){ return false; }
+  return !!window.PDFLib;
+}
+function ensurePdfjs(){
+  if(!pdfjsLib) pdfjsLib = window['pdfjs-dist/build/pdf'];
+  return !!pdfjsLib;
+}
+async function newOcrWorker(){
+  return Tesseract.createWorker('eng', 1, {
+    workerPath: new URL('lib/ocr/worker.min.js', location.href).href,
+    corePath:   new URL('lib/ocr', location.href).href,
+    langPath:   new URL('lib/lang', location.href).href
+  });
+}
+async function openPdfjs(file){
+  ensurePdfjs();
+  return pdfjsLib.getDocument({
+    data: await file.arrayBuffer(),
+    cMapUrl: new URL('lib/cmaps/', location.href).href, cMapPacked: true,
+    standardFontDataUrl: new URL('lib/standard_fonts/', location.href).href,
+    stopAtErrors: false
+  }).promise;
+}
+function parseRange(str, n){
+  const out = new Set();
+  String(str||'').split(',').forEach(part=>{
+    const m = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+    if(!m) return;
+    const a = Math.max(1, +m[1]), b = Math.min(n, +(m[2]||m[1]));
+    for(let i=a; i<=b; i++) out.add(i-1);
+  });
+  return [...out].sort((a,b)=>a-b);
+}
+function baseName(f){ return f.name.replace(/\.[a-z0-9]{2,5}$/i,''); }
+function toolBusy(msg, pct){
+  $('toolOpts').style.display = 'none';
+  $('toolStatus').style.display = 'block';
+  $('toolStatusTxt').textContent = msg;
+  $('toolBarFill').style.width = (pct==null ? 15 : Math.round(pct)) + '%';
+}
+function toolDone(msg, ok){
+  $('toolStatusTxt').textContent = (ok===false ? '⚠ ' : '✅ ') + msg;
+  $('toolBarFill').style.width = ok===false ? '0%' : '100%';
+}
+function toolOptions(html, onGo){
+  $('toolStatus').style.display = 'none';
+  const box = $('toolOpts');
+  box.innerHTML = html + '<button class="go" id="toolGo">Start</button>';
+  box.style.display = 'block';
+  $('toolGo').onclick = onGo;
+}
+async function runTool(fn){
+  try{ await fn(); }
+  catch(e){ console.warn('tool error', e); toolDone('Something went wrong: ' + e.message, false); }
+}
+
+/* --- text extraction (with automatic OCR fallback for scanned PDFs) --- */
+async function pdfPagesText(file, allowOcr){
+  const doc = await openPdfjs(file);
+  const pages = [];
+  let totalChars = 0;
+  for(let p=1; p<=doc.numPages; p++){
+    toolBusy(`Reading page ${p} of ${doc.numPages}…`, p/doc.numPages*70);
+    const page = await doc.getPage(p);
+    const tc = await page.getTextContent();
+    const rows = {};
+    tc.items.forEach(it=>{
+      if(!it.str || !it.str.trim()) return;
+      const y = Math.round(it.transform[5]);
+      const k = Object.keys(rows).find(r=>Math.abs(r-y)<=2) ?? y;
+      (rows[k] = rows[k] || []).push(it);
+    });
+    const text = Object.keys(rows).map(Number).sort((a,b)=>b-a)
+      .map(y=> rows[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(i=>i.str).join(' ').replace(/\s+/g,' ').trim())
+      .join('\n');
+    totalChars += text.length;
+    pages.push({ text, page });
+  }
+  if(totalChars < 60 && allowOcr){
+    /* scanned PDF — OCR each page */
+    const worker = await newOcrWorker();
+    for(let i=0; i<pages.length; i++){
+      toolBusy(`Scanned PDF — recognising page ${i+1} of ${pages.length}…`, 70 + (i+1)/pages.length*28);
+      const vp = pages[i].page.getViewport({scale:2});
+      const c = document.createElement('canvas');
+      c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+      await pages[i].page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+      const res = await worker.recognize(c);
+      pages[i].text = (res.data.text || '').trim();
+    }
+    await worker.terminate();
+  }
+  return { doc, pages };
+}
+
+/* --- the tools --- */
+const TOOLS = [
+  { ic:'🧩', name:'Merge PDFs', desc:'Combine several PDFs into one', run: async ()=>{
+      const files = await pickFiles('.pdf', true);
+      if(files.length < 2){ toolDone('Pick at least two PDF files.', false); return; }
+      if(!(await ensurePdfLib())){ toolDone('Could not load the PDF engine — check internet.', false); return; }
+      toolBusy('Merging…');
+      const out = await PDFLib.PDFDocument.create();
+      for(let i=0;i<files.length;i++){
+        toolBusy(`Adding "${files[i].name}"…`, (i+1)/files.length*95);
+        const src = await PDFLib.PDFDocument.load(await files[i].arrayBuffer(), {ignoreEncryption:true});
+        (await out.copyPages(src, src.getPageIndices())).forEach(pg=> out.addPage(pg));
+      }
+      downloadBlob(new Blob([await out.save()], {type:'application/pdf'}), 'merged.pdf');
+      toolDone(`Merged ${files.length} files → merged.pdf`);
+  }},
+  { ic:'✂️', name:'Split PDF', desc:'Extract chosen pages into a new PDF', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      if(!(await ensurePdfLib())) { toolDone('Could not load the PDF engine.', false); return; }
+      const src = await PDFLib.PDFDocument.load(await f.arrayBuffer(), {ignoreEncryption:true});
+      toolOptions(`<label>Pages to keep from "${f.name}" (${src.getPageCount()} pages) — e.g. 1-3,7</label>
+        <input id="optRange" placeholder="1-3,7">`, async ()=>{
+        const idx = parseRange($('optRange').value, src.getPageCount());
+        if(!idx.length){ toolDone('Enter which pages to keep, like 1-3,7', false); return; }
+        toolBusy('Extracting…');
+        const out = await PDFLib.PDFDocument.create();
+        (await out.copyPages(src, idx)).forEach(pg=> out.addPage(pg));
+        downloadBlob(new Blob([await out.save()], {type:'application/pdf'}), baseName(f)+' (pages).pdf');
+        toolDone(`Saved ${idx.length} pages.`);
+      });
+  }},
+  { ic:'🗑', name:'Remove pages', desc:'Delete chosen pages from a PDF', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      if(!(await ensurePdfLib())) { toolDone('Could not load the PDF engine.', false); return; }
+      const src = await PDFLib.PDFDocument.load(await f.arrayBuffer(), {ignoreEncryption:true});
+      toolOptions(`<label>Pages to REMOVE from "${f.name}" (${src.getPageCount()} pages) — e.g. 2,5-6</label>
+        <input id="optRange" placeholder="2,5-6">`, async ()=>{
+        const del = new Set(parseRange($('optRange').value, src.getPageCount()));
+        if(!del.size){ toolDone('Enter which pages to remove.', false); return; }
+        const keep = src.getPageIndices().filter(i=>!del.has(i));
+        if(!keep.length){ toolDone('That would remove every page!', false); return; }
+        toolBusy('Removing…');
+        const out = await PDFLib.PDFDocument.create();
+        (await out.copyPages(src, keep)).forEach(pg=> out.addPage(pg));
+        downloadBlob(new Blob([await out.save()], {type:'application/pdf'}), baseName(f)+' (edited).pdf');
+        toolDone(`Removed ${del.size} pages, kept ${keep.length}.`);
+      });
+  }},
+  { ic:'🔄', name:'Rotate PDF', desc:'Turn pages 90°, 180° or 270°', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      if(!(await ensurePdfLib())) { toolDone('Could not load the PDF engine.', false); return; }
+      toolOptions(`<label>Rotate all pages of "${f.name}" by</label>
+        <select id="optAngle"><option value="90">90° clockwise</option><option value="180">180°</option><option value="270">90° anti-clockwise</option></select>`, async ()=>{
+        toolBusy('Rotating…');
+        const src = await PDFLib.PDFDocument.load(await f.arrayBuffer(), {ignoreEncryption:true});
+        const ang = +$('optAngle').value;
+        src.getPages().forEach(pg=> pg.setRotation(PDFLib.degrees((pg.getRotation().angle + ang) % 360)));
+        downloadBlob(new Blob([await src.save()], {type:'application/pdf'}), baseName(f)+' (rotated).pdf');
+        toolDone('Rotated and saved.');
+      });
+  }},
+  { ic:'📉', name:'Compress PDF', desc:'Shrink a big PDF (pages become images)', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      toolOptions(`<label>Compression for "${f.name}" (${(f.size/1048576).toFixed(1)} MB)</label>
+        <select id="optQ"><option value="0.72">Balanced — good quality</option><option value="0.5">Strong — smallest file</option></select>
+        <label style="margin-top:4px">Note: the result is image-based (text can't be selected). Use "Make searchable" after, if needed.</label>`, async ()=>{
+        if(!(await ensureJsPDF())){ toolDone('Could not load the PDF maker.', false); return; }
+        const q = +$('optQ').value;
+        const doc = await openPdfjs(f);
+        const { jsPDF } = window.jspdf;
+        let out = null;
+        for(let p=1; p<=doc.numPages; p++){
+          toolBusy(`Compressing page ${p} of ${doc.numPages}…`, p/doc.numPages*95);
+          const page = await doc.getPage(p);
+          const vp = page.getViewport({scale:1.5});
+          const c = document.createElement('canvas');
+          c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+          await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+          const pt = [c.width*0.5, c.height*0.5];
+          if(!out) out = new jsPDF({unit:'pt', format:pt, orientation: pt[0]>pt[1]?'l':'p', compress:true});
+          else out.addPage(pt, pt[0]>pt[1]?'l':'p');
+          out.addImage(c.toDataURL('image/jpeg', q), 'JPEG', 0, 0, pt[0], pt[1]);
+        }
+        const blob = out.output('blob');
+        downloadBlob(blob, baseName(f)+' (compressed).pdf');
+        toolDone(`${(f.size/1048576).toFixed(1)} MB → ${(blob.size/1048576).toFixed(1)} MB`);
+      });
+  }},
+  { ic:'🖼', name:'PDF → Images', desc:'Every page as a JPG picture', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      const doc = await openPdfjs(f);
+      const imgs = [];
+      for(let p=1; p<=doc.numPages; p++){
+        toolBusy(`Rendering page ${p} of ${doc.numPages}…`, p/doc.numPages*90);
+        const page = await doc.getPage(p);
+        const vp = page.getViewport({scale:2});
+        const c = document.createElement('canvas');
+        c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+        await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+        const blob = await new Promise(res=> c.toBlob(res, 'image/jpeg', .9));
+        imgs.push({ name: `page-${String(p).padStart(2,'0')}.jpg`, data: new Uint8Array(await blob.arrayBuffer()) });
+      }
+      if(imgs.length === 1) downloadBlob(new Blob([imgs[0].data], {type:'image/jpeg'}), baseName(f)+'.jpg');
+      else downloadBlob(makeZip(imgs, 'application/zip'), baseName(f)+' (images).zip');
+      toolDone(imgs.length === 1 ? 'Image saved.' : `${imgs.length} images saved as a ZIP.`);
+  }},
+  { ic:'📄', name:'Images → PDF', desc:'Photos or pictures into one PDF', run: async ()=>{
+      const files = await pickFiles('image/*', true);
+      if(!files.length) return;
+      if(!(await ensureJsPDF())){ toolDone('Could not load the PDF maker.', false); return; }
+      const { jsPDF } = window.jspdf;
+      let out = null;
+      for(let i=0;i<files.length;i++){
+        toolBusy(`Adding picture ${i+1} of ${files.length}…`, (i+1)/files.length*95);
+        const c = await fileToCanvas(files[i], 2200);
+        const pt = [c.width*0.75, c.height*0.75];
+        if(!out) out = new jsPDF({unit:'pt', format:pt, orientation: pt[0]>pt[1]?'l':'p', compress:true});
+        else out.addPage(pt, pt[0]>pt[1]?'l':'p');
+        out.addImage(c.toDataURL('image/jpeg', .88), 'JPEG', 0, 0, pt[0], pt[1]);
+      }
+      out.save((files.length===1 ? baseName(files[0]) : 'pictures')+'.pdf');
+      toolDone('PDF saved to downloads.');
+  }},
+  { ic:'📝', name:'PDF → Word', desc:'Editable .docx (OCR for scans)', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      const { pages } = await pdfPagesText(f, true);
+      toolBusy('Building the Word file…', 98);
+      const pagesArr = pages.map((pg,i)=>({ title: pages.length>1 ? 'Page '+(i+1) : '', text: pg.text || '' })).filter(p=>p.text.trim());
+      if(!pagesArr.length){ toolDone('No readable text found in this PDF.', false); return; }
+      downloadBlob(buildDocx(pagesArr), baseName(f)+'.docx');
+      toolDone('Word file saved — opens on phone and computer.');
+  }},
+  { ic:'🔤', name:'PDF → Text', desc:'Plain text file of everything', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      const { pages } = await pdfPagesText(f, true);
+      const txt = pages.map((pg,i)=> (pages.length>1 ? `\n===== Page ${i+1} =====\n` : '') + pg.text).join('\n').trim();
+      if(!txt){ toolDone('No readable text found.', false); return; }
+      downloadBlob(new Blob([txt], {type:'text/plain;charset=utf-8'}), baseName(f)+'.txt');
+      toolDone('Text file saved.');
+  }},
+  { ic:'📃', name:'Word → PDF', desc:'A .docx as a clean PDF', run: async ()=>{
+      const [f] = await pickFiles('.docx'); if(!f) return;
+      if(!(await ensureJsPDF())){ toolDone('Could not load the PDF maker.', false); return; }
+      toolBusy('Converting…');
+      const html = (await mammoth.convertToHtml({arrayBuffer: await f.arrayBuffer()})).value;
+      const div = document.createElement('div'); div.innerHTML = html;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({unit:'pt', format:'a4'});
+      const W = 515, M = 40; let y = M + 14;
+      const put = (text, size, bold)=>{
+        doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(size);
+        doc.splitTextToSize(text, W).forEach(ln=>{
+          if(y > 800){ doc.addPage(); y = M + 14; }
+          doc.text(ln, M, y); y += size * 1.45;
+        });
+        y += size * 0.5;
+      };
+      div.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li').forEach(el=>{
+        if(el.querySelector('p,li')) return;   /* container — its children are handled separately */
+        const t = el.textContent.replace(/\s+/g,' ').trim();
+        if(!t) return;
+        const tag = el.tagName.toLowerCase();
+        if(tag[0] === 'h') put(t, tag==='h1'?19:tag==='h2'?15.5:13, true);
+        else put((tag==='li' ? '•  ' : '') + t, 11.5, false);
+      });
+      doc.save(baseName(f)+'.pdf');
+      toolDone('PDF saved to downloads.');
+  }},
+  { ic:'🔍', name:'Make PDF searchable', desc:'OCR a scanned PDF — select & search its text', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      if(!(await ensureJsPDF())){ toolDone('Could not load the PDF maker.', false); return; }
+      const doc = await openPdfjs(f);
+      const worker = await newOcrWorker();
+      const { jsPDF } = window.jspdf;
+      let out = null;
+      for(let p=1; p<=doc.numPages; p++){
+        toolBusy(`Recognising page ${p} of ${doc.numPages}… (this takes a moment)`, p/doc.numPages*95);
+        const page = await doc.getPage(p);
+        const vp = page.getViewport({scale:2});
+        const c = document.createElement('canvas');
+        c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+        await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+        const pt = [c.width*0.375, c.height*0.375];
+        if(!out) out = new jsPDF({unit:'pt', format:pt, orientation: pt[0]>pt[1]?'l':'p', compress:true});
+        else out.addPage(pt, pt[0]>pt[1]?'l':'p');
+        out.addImage(c.toDataURL('image/jpeg', .85), 'JPEG', 0, 0, pt[0], pt[1]);
+        try{
+          const res = await worker.recognize(c, {}, {blocks:true});
+          (res.data.blocks||[]).forEach(b=> (b.paragraphs||[]).forEach(par=> (par.lines||[]).forEach(l=>{
+            const t = (l.text||'').trim();
+            if(!t || !l.bbox) return;
+            const h = (l.bbox.y1 - l.bbox.y0) * 0.375;
+            out.setFontSize(Math.max(4, h * 0.9));
+            out.text(t, l.bbox.x0 * 0.375, l.bbox.y1 * 0.375, { renderingMode: 'invisible' });
+          })));
+        }catch(e){ console.warn('ocr page', p, e); }
+      }
+      try{ await worker.terminate(); }catch(e){}
+      out.save(baseName(f)+' (searchable).pdf');
+      toolDone('Searchable PDF saved — the text is now selectable and findable.');
+  }}
+];
+
+/* build the grid + open/close */
+(function(){
+  const grid = $('toolGrid');
+  TOOLS.forEach(t=>{
+    const b = document.createElement('button');
+    b.className = 'toolCard';
+    b.innerHTML = `<span class="tIc">${t.ic}</span><b>${t.name}</b><small>${t.desc}</small>`;
+    b.addEventListener('click', ()=> runTool(t.run));
+    grid.appendChild(b);
+  });
+})();
+function openTools(){ $('tools').style.display = 'block'; }
+function closeTools(){ $('tools').style.display = 'none'; $('toolOpts').style.display='none'; $('toolStatus').style.display='none'; }
+$('toolsBtn').addEventListener('click', openTools);
+$('toolsClose').addEventListener('click', closeTools);
+$('tools').addEventListener('click', e=>{ if(e.target === $('tools')) closeTools(); });
+/* deep links: lexoraai.online/#tools and tools.lexoraai.online both open the panel */
+if(location.hash === '#tools' || /^tools\./i.test(location.hostname)) setTimeout(openTools, 400);
 
 /* ---------- Rich text (Word) rendering: keep formatting + images,
      wrap each sentence in a tappable span for read-along highlighting ---------- */
