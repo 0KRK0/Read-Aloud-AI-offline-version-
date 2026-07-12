@@ -136,12 +136,23 @@
 
   window.startTour = function(){ i = 0; if(!veil) build(); else paint(); };
 
+  /* only for someone actually inside the app — never over the login screen */
+  function appReady(){
+    var lg = document.getElementById('login');
+    if(lg && lg.offsetParent !== null && getComputedStyle(lg).display !== 'none') return false;
+    var hasSession = (typeof session !== 'undefined' && session);
+    var isGuest = (typeof guest !== 'undefined' && guest);
+    return !!(hasSession || isGuest);
+  }
   function maybeAutoRun(){
     try{ if(localStorage.getItem('ra_tour_done') === '1') return; }catch(e){}
-    setTimeout(function(){
-      try{ if(localStorage.getItem('ra_tour_done') === '1') return; }catch(e){}
-      window.startTour();
-    }, 1300);
+    var tries = 0;
+    var iv = setInterval(function(){
+      tries++;
+      try{ if(localStorage.getItem('ra_tour_done') === '1'){ clearInterval(iv); return; } }catch(e){}
+      if(appReady()){ clearInterval(iv); window.startTour(); }
+      else if(tries > 20){ clearInterval(iv); }   /* still on login after ~16s — give up quietly */
+    }, 800);
   }
   if(document.readyState === 'complete') maybeAutoRun();
   else window.addEventListener('load', maybeAutoRun);

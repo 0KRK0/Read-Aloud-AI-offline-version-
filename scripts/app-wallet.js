@@ -132,6 +132,22 @@ async function doFreeUpgrade(){
   }catch(e){ removeProgress(); say('Switch error: '+e.message); }
 }
 
+/* our own toast notification (not a browser alert) */
+function lxToast(msg){
+  let t = document.getElementById('lxToast');
+  if(!t){ t = document.createElement('div'); t.id = 'lxToast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(lxToast._t);
+  lxToast._t = setTimeout(()=> t.classList.remove('show'), 2800);
+}
+/* custom amount: cap at ₹5000 as the user types, with a friendly in-app notice */
+$('customAmt').addEventListener('input', ()=>{
+  if(parseInt($('customAmt').value) > 5000){
+    $('customAmt').value = '5000';
+    lxToast('You can top up up to ₹5,000 at a time.');
+  }
+});
 /* custom top-up: live token preview + provider lock for active subscribers */
 function customPreview(){
   const amt = parseInt($('customAmt').value) || 0;

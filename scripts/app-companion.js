@@ -149,11 +149,39 @@ function searchAndRead(q){
   return true;
 }
 
+/* Voice transcripts (esp. the OpenAI fallback) spell numbers out and add
+   punctuation — "go to page three." — which the digit matchers below miss.
+   normalizeCmd() converts words→digits and tidies the text so BOTH the browser
+   speech path and the cloud STT path hit the same navigation commands. */
+const NUM_WORDS = {
+  zero:0, one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10,
+  eleven:11, twelve:12, thirteen:13, fourteen:14, fifteen:15, sixteen:16, seventeen:17,
+  eighteen:18, nineteen:19, twenty:20,
+  first:1, second:2, third:3, fourth:4, fifth:5, sixth:6, seventh:7, eighth:8, ninth:9, tenth:10,
+  eleventh:11, twelfth:12, thirteenth:13, fourteenth:14, fifteenth:15, sixteenth:16,
+  seventeenth:17, eighteenth:18, nineteenth:19, twentieth:20
+};
+const NUM_RE = new RegExp('\\b(' + Object.keys(NUM_WORDS).join('|') + ')\\b', 'g');
+function normalizeCmd(t){
+  let s = (t || '').toLowerCase().trim().replace(/[.?!,;:]+$/, '');   /* drop trailing punctuation */
+  if(typeof numPages === 'number' && numPages > 0){
+    s = s.replace(/\b(?:the\s+)?(?:last|final)\s+page\b/g, numPages + ' page');   /* "last page" → "N page" */
+  }
+  s = s.replace(NUM_RE, w => NUM_WORDS[w]);                            /* spelled numbers → digits */
+  return s.replace(/\s+/g, ' ').trim();
+}
 function handleCommand(t){
-  const s = t.toLowerCase().trim();
+  const s = normalizeCmd(t);
   /* "read from there" / "start from there / that" — use the last found spot */
   if(/\b(from|at)\s+(there|that|here|it)\b/.test(s) || /^(read|start|continue|go|begin)\s+(it|on|reading)?\s*$/.test(s)){
     if(lastFoundIdx >= 0){ awaitingStart=false; say('Reading from there.'); playing=true; setPlayBtn(); speakLine(lastFoundIdx); return true; }
+  }
+  /* "go to / start from the beginning · top · front · first page" → read from page 1 */
+  if(/^(?:the\s+)?(?:beginning|top|front|very\s*start|first\s*page)$/.test(s)
+     || /\b(?:go|take\s+me|jump|scroll|move|start|begin|read)\b[^.]*\b(?:beginning|top|front|very\s+start|first\s*page|the\s+start)\b/.test(s)){
+    awaitingStart=false; say('Starting from the top!');
+    if(typeof goPage === 'function') goPage(1);
+    playing=true; setPlayBtn(); speakLine(0); return true;
   }
   /* explain / summarize a page (either word order: "page 5 and explain" or "explain page 5") */
   const pgEx = s.match(/page\s+(\d+)\s+and\s+(?:explain|summari[sz]e)/) || s.match(/(?:explain|summari[sz]e)\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+page/) || s.match(/(?:explain|summari[sz]e)\s+page\s+(\d+)/);
