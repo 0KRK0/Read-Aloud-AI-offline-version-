@@ -1,0 +1,259 @@
+/* ============================================================
+   Lexora AI — Claude-inspired design system (Phase 1)
+   Palette: near-black / off-white / orange accent. No gradients.
+   Loaded AFTER the legacy inline styles — overrides them.
+   ============================================================ */
+
+:root{
+  --bg:#111110;          /* near-black, warm like Claude */
+  --panel:#1b1a18;
+  --panel2:#242320;
+  --text:#f2f0ea;
+  --muted:#a09d94;
+  --accent:#e07a3f;      /* Lexora orange (terracotta family) */
+  --accent2:#e07a3f;     /* second accent collapses into the one orange */
+  --line:#33312c;
+  --ok:#5fbf7a;
+  --warn:#e05c5c;
+  --page-bg:#191917;
+  --mark:rgba(224,122,63,.4);
+  --radius:12px;
+  --shadow:0 8px 30px rgba(0,0,0,.4);
+}
+body.light{
+  --bg:#faf9f5;          /* warm off-white */
+  --panel:#ffffff;
+  --panel2:#f1efe9;
+  --text:#1a1915;
+  --muted:#6e6b62;
+  --accent:#c96431;
+  --accent2:#c96431;
+  --line:#e4e1d8;
+  --ok:#1f8a4c;
+  --warn:#c4403f;
+  --page-bg:#edebe4;
+  --mark:rgba(201,100,49,.32);
+  --shadow:0 8px 24px rgba(60,50,30,.10);
+}
+
+body{
+  font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  letter-spacing:.01em;
+}
+
+/* ---------- de-gradient: every gradient becomes calm, solid color ---------- */
+header .logo,
+#login .logo2{
+  background:var(--accent);
+  box-shadow:none;
+}
+#login{background:var(--bg)}
+#login .card:hover .logo2{box-shadow:none; transform:none}
+#loginBtn{
+  background:var(--accent);
+  animation:none !important;
+}
+#loginBtn:hover{
+  animation:none !important;
+  background:var(--accent);
+  filter:brightness(1.08);
+  box-shadow:none;
+  transform:none;
+}
+#googleBtn, #appleBtn, #otpBtn{
+  background:var(--panel);
+  border:1px solid var(--line);
+}
+#googleBtn:hover, #appleBtn:hover, #otpBtn:hover{
+  background:var(--panel);
+  border-color:var(--accent);
+  animation:none !important;
+  box-shadow:none;
+  transform:none;
+}
+#readProgFill, #walletFill, #toolBarFill{background:var(--accent)}
+#micBar{background:var(--accent) !important; color:#fff !important; box-shadow:none}
+#playBtn{background:var(--accent) !important; color:#fff !important}
+#chatFab{background:var(--accent); box-shadow:var(--shadow)}
+#sendBtn{background:var(--accent)}
+.msg.user{background:var(--accent); color:#fff}
+#consentOk, #customBuy, #toolOpts .go{background:var(--accent)}
+#camShot{background:var(--accent); box-shadow:none}
+#revFilters button.on{background:var(--accent); color:#fff}
+.tierBtn.on{border-color:var(--accent); box-shadow:none}
+.tierBtn[data-tier="ultra"].on{border-color:var(--accent); box-shadow:none}
+#revKeep{background:var(--ok) !important}
+#selBar button:hover{background:var(--accent); color:#fff}
+#dropZone .big{filter:none}
+#dropZone:hover, #dropZone.drag{background:var(--panel); border-color:var(--accent)}
+.textLayer ::selection{background:var(--mark)}
+#pdfBtn,#addPageBtn{border-color:var(--line); color:var(--muted)}
+#pdfBtn:hover,#addPageBtn:hover{border-color:var(--accent); color:var(--accent)}
+#scanBtn{text-decoration-color:var(--line)}
+#chatInput:focus{border-color:var(--accent)}
+#login input:focus{border-color:var(--accent); box-shadow:none}
+.pageLoading{background:var(--panel2); color:var(--muted)}
+#camOverlay + * {}
+#consent{border-top:1px solid var(--line)}
+#consent a{color:var(--accent)}
+.toolCard:hover{border-color:var(--accent)}
+#toolsClose:hover{color:var(--text)}
+.saverRow input{accent-color:var(--accent)}
+.legalLink:hover{color:var(--accent) !important}
+
+/* ---------- typography: quiet serif display, like Claude ---------- */
+#login h2, #dropZone h2, #plans h2, #toolsHead b{
+  font-family:Georgia, 'Times New Roman', serif;
+  font-weight:600;
+  letter-spacing:-.01em;
+}
+#login h2 span{color:var(--accent)}
+header h1{font-weight:600}
+header h1 span{color:var(--accent)}
+
+/* softer cards & buttons everywhere */
+.icon-btn{border-radius:8px}
+.planCard{border-radius:10px}
+#plans .box{border-radius:14px}
+#playbar{border-radius:16px}
+#selBar{border-radius:10px}
+
+/* ============================================================
+   Claude-style left sidebar (desktop)
+   ============================================================ */
+#sideNav{
+  display:none;
+  position:fixed; left:0; top:0; bottom:0; width:236px; z-index:60;
+  background:var(--panel);
+  border-right:1px solid var(--line);
+  flex-direction:column;
+  padding:18px 12px 14px;
+}
+#sideNav .brand{
+  display:flex; align-items:center; gap:10px;
+  padding:4px 10px 18px;
+  font-size:16px; font-weight:600;
+  font-family:Georgia, 'Times New Roman', serif;
+}
+#sideNav .brand .mark{
+  width:26px; height:26px; border-radius:7px; background:var(--accent); color:#fff;
+  display:inline-flex; align-items:center; justify-content:center; font-size:14px; font-weight:700;
+  font-family:-apple-system,'Segoe UI',sans-serif;
+}
+#sideNav .brand span{color:var(--accent)}
+#sideNav nav{display:flex; flex-direction:column; gap:2px; flex:1}
+#sideNav nav a, #sideNav nav button{
+  display:block; width:100%; text-align:left;
+  background:none; border:none; cursor:pointer;
+  color:var(--muted); font-size:14px; font-family:inherit;
+  padding:9px 12px; border-radius:8px; text-decoration:none;
+  transition:background .12s, color .12s;
+}
+#sideNav nav a:hover, #sideNav nav button:hover{background:var(--panel2); color:var(--text)}
+#sideNav nav .active{background:var(--panel2); color:var(--text); font-weight:600}
+#sideNav .navSep{height:1px; background:var(--line); margin:10px 12px}
+#sideNav .account{
+  border-top:1px solid var(--line);
+  padding-top:12px; margin-top:8px;
+  display:flex; flex-direction:column; gap:2px;
+}
+#sideNav .account .who{
+  display:flex; align-items:center; gap:9px; padding:6px 10px 10px;
+}
+#sideNav .account .avatar{
+  width:28px; height:28px; border-radius:50%; background:var(--panel2); border:1px solid var(--line);
+  display:inline-flex; align-items:center; justify-content:center; font-size:12px; color:var(--accent); font-weight:700;
+  flex:none;
+}
+#sideNav .account .whoTxt{min-width:0}
+#sideNav .account .whoTxt b{display:block; font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#sideNav .account .whoTxt small{color:var(--muted); font-size:11px}
+#sideNav .account button{
+  display:block; width:100%; text-align:left; background:none; border:none; cursor:pointer;
+  color:var(--muted); font-size:13px; font-family:inherit; padding:8px 12px; border-radius:8px;
+}
+#sideNav .account button:hover{background:var(--panel2); color:var(--text)}
+
+/* companion collapse (desktop) */
+#compCollapse{
+  display:none;
+  margin-left:auto; background:none; border:none; color:var(--muted);
+  font-size:16px; cursor:pointer; padding:4px 8px; border-radius:6px;
+}
+#compCollapse:hover{background:var(--panel2); color:var(--text)}
+#compReopen{
+  display:none;
+  position:fixed; right:16px; bottom:16px; z-index:55;
+  background:var(--panel); border:1px solid var(--line); color:var(--text);
+  border-radius:20px; padding:9px 16px; font-size:13px; cursor:pointer; box-shadow:var(--shadow);
+}
+#compReopen:hover{border-color:var(--accent)}
+
+@media (min-width:901px){
+  header{display:none}
+  #sideNav{display:flex}
+  main{margin-left:236px}
+  #login{z-index:200}
+  #compCollapse{display:block}
+  #sheetClose{display:none !important}
+  #assistCol{transition:none}
+  body.compHidden #assistCol{display:none}
+  body.compHidden #compReopen{display:block}
+}
+@media (max-width:900px){
+  /* Claude-style drawer: the same sidebar slides in from the left */
+  #sideNav{display:none; position:fixed; left:0; top:0; bottom:0; width:266px; z-index:130;
+    box-shadow:8px 0 40px rgba(0,0,0,.45)}
+  body.navOpen #sideNav{display:flex}
+  #compReopen{display:none !important}
+}
+#navVeil{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:120}
+body.navOpen #navVeil{display:block}
+@media (min-width:901px){ #navVeil{display:none !important} .hambBtn{display:none !important} }
+.hambBtn{background:none; border:none; color:var(--text); cursor:pointer; padding:6px;
+  border-radius:8px; display:inline-flex; align-items:center}
+.hambBtn:hover{background:var(--panel2)}
+.hambBtn svg{width:22px; height:22px}
+
+/* header: plain icon buttons + 9-dot dropdown menu (Claude-style) */
+header .icon-btn{background:none !important; border:none !important; box-shadow:none !important;
+  color:var(--text); padding:7px; border-radius:8px; display:inline-flex; align-items:center}
+header .icon-btn:hover{background:var(--panel2) !important}
+#userBox{position:relative}
+#userEmail{max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#hdrMenu{display:none; position:absolute; right:0; top:calc(100% + 8px); z-index:140;
+  background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
+  min-width:224px; padding:6px; flex-direction:column}
+#hdrMenu.open{display:flex}
+#hdrMenu .mItem{display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+  background:none; border:none; cursor:pointer; color:var(--text); font-size:13.5px; font-family:inherit;
+  padding:10px 12px; border-radius:8px}
+#hdrMenu .mItem:hover{background:var(--panel2)}
+#hdrMenu .mItem svg{width:17px; height:17px; flex:none; color:var(--muted)}
+#hdrMenu .mItem.on svg{color:var(--accent)}
+
+/* friendlier dropzone */
+#dropZone .dzSub{color:var(--muted); font-size:14px; margin:2px 0 20px}
+#dropZone .dzBtn{display:inline-block; background:var(--accent); color:#fff; border-radius:11px;
+  padding:14px 34px; font-size:16px; font-weight:700; box-shadow:var(--shadow)}
+#dropZone .dzFormats{color:var(--muted); font-size:12.5px; margin:14px 0 22px}
+#dropZone .orScan{display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:6px}
+#dropZone .orScan small{color:var(--muted); font-size:12px}
+#dropZone .dzPriv{color:var(--muted); font-size:12px; margin-top:14px}
+
+/* icon-only camera chip in the dropzone */
+.camChip{width:46px; height:46px; border-radius:50%; background:none; border:1px solid var(--line);
+  color:var(--muted); cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  transition:border-color .12s, color .12s}
+.camChip:hover{border-color:var(--accent); color:var(--accent)}
+.camChip svg{width:21px; height:21px}
+
+/* plain line icons (Claude-style) */
+.icon-btn svg{width:18px; height:18px; vertical-align:-3px}
+#micBtn svg{width:18px; height:18px; vertical-align:-4px}
+#micBar svg{width:22px; height:22px; vertical-align:-5px}
+#scanBtn svg{width:16px; height:16px; vertical-align:-3px; margin-right:5px}
+#attachBtn{background:none; border:1px solid var(--line); color:var(--muted); border-radius:9px;
+  cursor:pointer; padding:0 10px; display:inline-flex; align-items:center; flex:none}
+#attachBtn:hover{border-color:var(--accent); color:var(--accent)}
+#attachBtn svg{width:17px; height:17px}

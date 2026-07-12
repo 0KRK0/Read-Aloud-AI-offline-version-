@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Settings — Lexora AI</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="styles/theme.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body>
+<script>if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');</script>
+
+<aside id="sideNav">
+  <div class="brand"><span class="mark">L</span>Lexora <span>AI</span></div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="tools.html">Tools</a>
+    <a href="scan.html">Scan</a>
+    <a href="index.html#plans">Plans &amp; wallet</a>
+    <a href="settings.html" class="active">Settings</a>
+    <div class="navSep"></div>
+    <a href="privacy.html" target="_blank">Privacy</a>
+    <a href="terms.html" target="_blank">Terms</a>
+  </nav>
+  <div class="account">
+    <div class="who">
+      <span class="avatar" id="acctAvatar">👤</span>
+      <span class="whoTxt"><b id="acctEmail">Guest</b><small>Lexora AI</small></span>
+    </div>
+    <button id="acctTheme">Switch theme</button>
+    <button id="acctBack" onclick="location.href='index.html'">Back to the reader</button>
+  </div>
+</aside>
+
+<div id="navVeil"></div>
+<div class="pageTop">
+  <button class="hambBtn" id="hambBtn" title="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+  <b>Settings · Lexora <span>AI</span></b>
+  <span class="spacer"></span>
+  <button class="btn ghost" id="topTheme" style="padding:6px 12px; font-size:12.5px">Theme</button>
+</div>
+
+<main><div class="wrap">
+  <h1 class="pageTitle">Settings</h1>
+  <p class="pageSub">Your account, wallet, history and preferences — all in one place.</p>
+
+  <div class="setGrid">
+    <nav class="secNav" id="secNav">
+      <a href="#profile" class="active">Profile</a>
+      <a href="#wallet">Wallet</a>
+      <a href="#purchases">Purchases</a>
+      <a href="#usage">Usage</a>
+      <a href="#general">General</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#about">About</a>
+    </nav>
+
+    <div>
+      <section class="setSec" id="profile">
+        <h2 class="secTitle">Profile</h2>
+        <div class="card" id="profileCard">
+          <div class="row" style="margin-bottom:14px">
+            <span class="avatar" id="profAvatar" style="width:44px;height:44px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:18px;color:var(--accent);font-weight:700">👤</span>
+            <div>
+              <b id="profEmail">Not logged in</b>
+              <div><span class="pill" id="profProvider" style="display:none"></span></div>
+            </div>
+          </div>
+          <div id="profForm" style="display:none">
+            <label class="f" for="profName">Display name</label>
+            <div class="row">
+              <input type="text" id="profName" placeholder="Your name" style="max-width:280px">
+              <button class="btn" id="profSave">Save</button>
+            </div>
+            <p class="hint" id="profMsg"></p>
+          </div>
+          <p class="hint" id="profLoginHint">Log in to manage your profile, wallet and history. <a href="login.html">Log in →</a></p>
+        </div>
+      </section>
+
+      <section class="setSec" id="wallet">
+        <h2 class="secTitle">Wallet</h2>
+        <div class="card">
+          <div id="walletBody"><p class="empty">Log in to see your wallet.</p></div>
+          <div class="row" style="margin-top:12px">
+            <a class="btn" href="index.html#plans">Top up / change plan</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="setSec" id="purchases">
+        <h2 class="secTitle">Purchases</h2>
+        <div class="card">
+          <p class="hint">Top-ups, subscriptions and document unlocks. For a GST invoice, email us with the payment date.</p>
+          <div id="txBody"><p class="empty">Log in to see your purchase history.</p></div>
+        </div>
+      </section>
+
+      <section class="setSec" id="usage">
+        <h2 class="secTitle">Usage</h2>
+        <div class="card">
+          <div id="usageBody"><p class="empty">Log in to see your usage.</p></div>
+        </div>
+      </section>
+
+      <section class="setSec" id="general">
+        <h2 class="secTitle">General</h2>
+        <div class="card">
+          <label class="f">Theme</label>
+          <div class="row" style="margin-bottom:16px">
+            <select id="setTheme" style="max-width:220px">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+          <label class="f">Reading voice (used by the reader)</label>
+          <div class="row">
+            <select id="setVoice" style="max-width:340px"><option>Loading voices…</option></select>
+            <button class="btn ghost" id="voiceTest">▶ Test</button>
+          </div>
+          <p class="hint">Voices come from your device/browser. Voices marked “Online” need internet.</p>
+        </div>
+      </section>
+
+      <section class="setSec" id="privacy">
+        <h2 class="secTitle">Privacy</h2>
+        <div class="card">
+          <h3>Your documents never leave this device</h3>
+          <p class="hint">Reading, OCR and all PDF tools run 100% in your browser. Only the questions you ask the AI companion (plus the relevant text snippets) are sent to the AI engine.</p>
+          <p class="hint" id="consentInfo"></p>
+          <div class="row">
+            <button class="btn ghost" id="exportBtn">⬇ Export my data (JSON)</button>
+            <button class="btn danger" id="clearBtn">Clear data on this device</button>
+          </div>
+          <p class="hint" style="margin-top:14px">To permanently delete your account and server data, email
+            <a href="mailto:konarajeshkumar011@gmail.com?subject=Delete%20my%20Lexora%20AI%20account">konarajeshkumar011@gmail.com</a>
+            from your login address. Details in the <a href="privacy.html" target="_blank">Privacy Policy</a>.</p>
+        </div>
+      </section>
+
+      <section class="setSec" id="about">
+        <h2 class="secTitle">About</h2>
+        <div class="card">
+          <p><b>Lexora AI</b> — Your AI Companion for Every Document.</p>
+          <p class="hint">Version: July 2026 · Made in India 🇮🇳</p>
+          <p class="hint">Recent updates: true PDF compression (text stays selectable) · searchable-OCR alignment fix ·
+            richer PDF→Word with headings, bold &amp; pictures · dedicated Tools, Scan and Settings pages.</p>
+          <p class="hint">Support: <a href="mailto:konarajeshkumar011@gmail.com?subject=Lexora%20AI%20support">konarajeshkumar011@gmail.com</a></p>
+          <p class="hint"><a href="privacy.html" target="_blank">Privacy Policy</a> · <a href="terms.html" target="_blank">Terms</a></p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div></main>
+
+<script src="scripts/settings.js"></script>
+</body>
+</html>

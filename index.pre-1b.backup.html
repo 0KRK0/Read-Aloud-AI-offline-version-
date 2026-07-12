@@ -1,0 +1,3517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Lexora AI — Your AI Companion for Every Document</title>
+<script src="lib/pdf.min.js"></script>
+<script src="lib/pdf.worker.min.js"></script>
+<script src="lib/ocr/tesseract.min.js"></script>
+<script src="lib/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0d0f15; --panel:#161923; --panel2:#1f2330; --text:#eceef6; --muted:#98a0b5;
+    --accent:#ffb347; --accent2:#6c8cff; --line:#272c3d; --ok:#4cd97b; --warn:#ff6b6b;
+    --page-bg:#26293a; --mark:rgba(255,179,71,.45);
+    --radius:16px; --shadow:0 10px 40px rgba(0,0,0,.5);
+  }
+  body.light{
+    --bg:#eef0f6; --panel:#ffffff; --panel2:#f1f3f9; --text:#181b26; --muted:#5b6274;
+    --accent:#e08900; --accent2:#3b5bdb; --line:#dfe3ee; --ok:#199d4c; --warn:#d43f3f;
+    --page-bg:#d7dae6; --shadow:0 10px 30px rgba(30,40,80,.15);
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:var(--bg); color:var(--text); font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden}
+  button{font-family:inherit}
+
+  /* ---------- Header ---------- */
+  header{display:flex; align-items:center; gap:10px; padding:9px 14px; background:var(--panel);
+    border-bottom:1px solid var(--line); flex-shrink:0; z-index:40}
+  header .logo{width:26px; height:26px; border-radius:7px; font-size:15px; font-weight:800; color:#fff;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--accent), var(--accent2))}
+  header h1{font-size:16px; font-weight:650; letter-spacing:.2px}
+  header h1 span{color:var(--accent)}
+  #userBox{margin-left:auto; display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted)}
+  #userEmail{max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .icon-btn{background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:10px;
+    padding:7px 11px; cursor:pointer; font-size:13px; transition:border-color .15s}
+  .icon-btn:hover{border-color:var(--accent)}
+  #compToggle.on{border-color:var(--ok); color:var(--ok)}
+
+  /* ---------- Layout ---------- */
+  main{flex:1; display:flex; min-height:0; position:relative}
+  #viewerWrap{flex:1.7; min-width:0; min-height:0; position:relative; display:flex; flex-direction:column}
+
+  /* ---------- Drop zone ---------- */
+  #dropZone{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    margin:22px; border:2px dashed var(--line); border-radius:var(--radius); cursor:pointer; text-align:center;
+    padding:20px; transition:border-color .2s, background .2s}
+  #dropZone:hover, #dropZone.drag{border-color:var(--accent); background:rgba(255,179,71,.04)}
+  #dropZone .big{font-size:52px; filter:drop-shadow(0 6px 18px rgba(255,179,71,.35))}
+  #dropZone h2{font-size:20px}
+  #dropZone p{color:var(--muted); font-size:14px; max-width:420px; line-height:1.65}
+
+  /* ---------- PDF viewer ---------- */
+  #viewer{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; display:none; padding:18px 0 190px;
+    background:var(--page-bg); scroll-behavior:smooth; -webkit-overflow-scrolling:touch; overscroll-behavior:contain}
+  .pageWrap{position:relative; margin:0 auto 16px; background:#fff; border-radius:6px;
+    box-shadow:0 4px 24px rgba(0,0,0,.35); overflow:hidden}
+  .pageWrap canvas{position:absolute; inset:0; display:block}
+  .pageNum{position:absolute; top:8px; right:10px; z-index:5; font-size:10.5px; color:#666; background:rgba(255,255,255,.75);
+    border-radius:6px; padding:2px 7px; pointer-events:none}
+  .pageLoading{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#aab; font-size:13px; background:repeating-linear-gradient(45deg,#f5f6fa,#f5f6fa 12px,#eef0f6 12px,#eef0f6 24px)}
+
+  /* text layer (selection like Adobe) */
+  .textLayer{position:absolute; inset:0; overflow:hidden; line-height:1; z-index:2; text-align:initial;
+    forced-color-adjust:none; transform-origin:0 0}
+  .textLayer span{color:transparent; position:absolute; white-space:pre; cursor:text; transform-origin:0 0}
+  .textLayer ::selection{background:rgba(108,140,255,.4)}
+  .textLayer br{user-select:none}
+
+  /* text-document pages (DOCX, TXT, images after OCR) */
+  .textWrap{position:relative; max-width:820px; margin:0 auto 16px; background:#fff; color:#1d2129;
+    border-radius:6px; box-shadow:0 4px 24px rgba(0,0,0,.35); padding:42px 46px; font-size:17px; line-height:1.85}
+  .textWrap p{margin-bottom:1.1em}
+  .sentSpan{cursor:pointer; border-radius:3px}
+  .sentSpan:hover{background:rgba(108,140,255,.12)}
+  .sentSpan.active{background:var(--mark)}
+  /* Word documents rendered with their real formatting */
+  .richDoc h1,.richDoc h2,.richDoc h3,.richDoc h4,.richDoc h5,.richDoc h6{margin:1.1em 0 .45em; line-height:1.25; color:#111}
+  .richDoc h1{font-size:1.7em} .richDoc h2{font-size:1.45em} .richDoc h3{font-size:1.22em} .richDoc h4{font-size:1.08em}
+  .richDoc ul,.richDoc ol{margin:0 0 1.1em; padding-left:1.6em}
+  .richDoc li{margin-bottom:.35em}
+  .richDoc img{max-width:100%; height:auto; border-radius:6px; margin:.6em 0; display:block}
+  .richDoc table{border-collapse:collapse; margin:1em 0; max-width:100%}
+  .richDoc td,.richDoc th{border:1px solid #d5d9e0; padding:6px 10px; vertical-align:top}
+  .richDoc th{background:#f2f4f8}
+  .richDoc blockquote{border-left:3px solid #c9d2ea; margin:1em 0; padding:.2em 0 .2em 1em; color:#444}
+  .richDoc a{color:#3c5ccf}
+  /* photo/image documents shown as the real picture */
+  .imgPage{display:block; width:100%; height:100%; user-select:none; -webkit-user-drag:none}
+  @media (max-width:900px){ .textWrap{padding:22px 18px; font-size:16px} }
+
+  /* karaoke highlight */
+  #marker{position:absolute; z-index:1; background:var(--mark); border-radius:4px; pointer-events:none;
+    transition:top .18s ease, left .18s ease, width .18s ease, height .18s ease; mix-blend-mode:multiply; display:none}
+
+  /* selection toolbar */
+  #selBar{position:fixed; z-index:80; display:none; gap:6px; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:6px; box-shadow:var(--shadow)}
+  #selBar button{border:none; background:var(--panel2); color:var(--text); border-radius:9px; padding:8px 12px;
+    font-size:13px; cursor:pointer; font-weight:600}
+  #selBar button:hover{background:var(--accent); color:#14161f}
+
+  /* ---------- Floating play bar ---------- */
+  #playbar{display:none; position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:30;
+    background:var(--panel); border:1px solid var(--line); border-radius:24px; padding:12px 14px 10px;
+    flex-direction:column; gap:8px; width:max-content;
+    max-width:calc(100% - 20px); box-shadow:var(--shadow); backdrop-filter:blur(8px)}
+  #readProg{position:absolute; bottom:0; left:26px; right:26px; height:4px; background:var(--panel2); border-radius:4px 4px 0 0; overflow:hidden}
+  #readProgFill{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent2)); transition:width .3s}
+  #pbMain{display:flex; align-items:center; gap:8px; justify-content:center; flex-wrap:nowrap}
+  #playbar button{background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:11px;
+    padding:9px 13px; font-size:15px; cursor:pointer; white-space:nowrap}
+  #playbar button:hover{border-color:var(--accent)}
+  #playBtn{background:var(--accent) !important; color:#14161f !important; font-weight:800; border:none !important}
+  #micBar{width:54px; height:54px; min-width:54px; border-radius:50% !important; font-size:23px;
+    background:linear-gradient(145deg, var(--accent), #ff9a1f) !important; color:#14161f !important;
+    border:none !important; margin-top:-26px; box-shadow:0 6px 18px rgba(255,179,71,.5)}
+  #micBar.listening{background:var(--warn) !important; color:#fff !important; animation:pulse 1s infinite}
+  .ctl{display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted)}
+  #playbar select{background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:9px;
+    padding:8px 6px; font-size:12.5px; max-width:150px}
+  #pbExtra{display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap}
+  #moreBtn{display:none}
+  #progressText{font-size:11.5px; color:var(--muted); text-align:center}
+
+  /* ---------- Companion panel ---------- */
+  #assistCol{flex:1; display:flex; flex-direction:column; min-width:300px; max-width:440px; background:var(--panel);
+    border-left:1px solid var(--line)}
+  #assistHead{padding:12px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px}
+  #assistHead .face{font-size:24px}
+  #assistHead b{font-size:14px}
+  #assistHead small{display:block; color:var(--muted); font-size:11px}
+  #sheetClose{display:none; margin-left:auto; background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer}
+  #chat{flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; -webkit-overflow-scrolling:touch}
+  .msg{max-width:88%; padding:10px 13px; border-radius:15px; font-size:14px; line-height:1.55; white-space:pre-wrap; word-wrap:break-word}
+  .msg.bot{background:var(--panel2); border-bottom-left-radius:4px; align-self:flex-start}
+  .msg.user{background:var(--accent2); color:#fff; border-bottom-right-radius:4px; align-self:flex-end}
+  .msg.sys{align-self:center; color:var(--muted); font-size:12px; background:none; text-align:center}
+  #chatBar{display:flex; gap:8px; padding:12px; border-top:1px solid var(--line)}
+  #chatInput{flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:12px;
+    padding:11px 13px; font-size:14px; outline:none; min-width:0}
+  #chatInput:focus{border-color:var(--accent2)}
+  #micBtn{background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:12px; padding:0 14px; cursor:pointer; font-size:17px}
+  #micBtn.listening{background:var(--warn); color:#fff; border-color:var(--warn); animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.55}}
+  #sendBtn{background:var(--accent2); color:#fff; border:none; border-radius:12px; padding:0 17px; cursor:pointer; font-size:16px}
+
+  /* chat FAB (mobile) */
+  #chatFab{display:none; position:absolute; right:14px; bottom:96px; z-index:35; width:54px; height:54px;
+    border-radius:50%; border:none; background:var(--accent2); color:#fff; font-size:24px; cursor:pointer;
+    box-shadow:0 8px 24px rgba(60,90,220,.5)}
+  #chatFab .dot{position:absolute; top:2px; right:2px; width:13px; height:13px; border-radius:50%;
+    background:var(--warn); border:2px solid var(--panel); display:none}
+  #chatFab{touch-action:none}
+
+  /* ---------- Login (classic, production-grade) ---------- */
+  #login{position:fixed; inset:0; background:
+    radial-gradient(1100px 600px at 85% -5%, rgba(108,140,255,.14), transparent),
+    radial-gradient(800px 500px at 0% 110%, rgba(154,108,255,.10), transparent), var(--bg);
+    display:flex; z-index:100; padding:16px; overflow-y:auto}
+  #login .card{background:transparent; width:min(400px, 94vw); text-align:center; margin:auto; padding:24px 0}
+  #login .logo2{width:64px; height:64px; margin:0 auto 22px; border-radius:16px; font-size:30px; font-weight:800; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 8px 28px rgba(108,140,255,.35)}
+  #login h2{font-size:26px; font-weight:700; letter-spacing:-.3px; margin-bottom:8px}
+  #login h2 span{color:var(--accent)}
+  #login p{color:var(--muted); font-size:14px; line-height:1.6; margin-bottom:26px}
+  #login .fieldLabel{display:block; text-align:left; font-size:13px; color:var(--muted); margin:0 0 6px 2px}
+  #login input{width:100%; background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:10px;
+    padding:13px 14px; font-size:14.5px; margin-bottom:14px; outline:none; transition:border-color .15s, box-shadow .15s}
+  #login input:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(108,140,255,.18)}
+  #login .card{animation:cardIn .55s cubic-bezier(.2,.8,.25,1)}
+  @keyframes cardIn{from{opacity:0; transform:translateY(14px) scale(.985)}to{opacity:1; transform:none}}
+  @keyframes borderFlow{to{background-position:0 0, 300% 50%}}
+  @keyframes gradShift{to{background-position:150% 50%}}
+  #loginBtn{width:100%; color:#fff; border:none; border-radius:10px;
+    background:linear-gradient(90deg, var(--accent), var(--accent2), #ff8bd3, var(--accent));
+    background-size:300% 100%; background-position:0% 50%;
+    padding:13px; font-weight:700; font-size:15px; cursor:pointer; margin-bottom:4px;
+    transition:box-shadow .3s, transform .15s;}
+  #loginBtn:hover{animation:gradShift 1.6s linear infinite alternate;
+    box-shadow:0 8px 28px rgba(108,140,255,.5), 0 2px 10px rgba(154,108,255,.4); transform:translateY(-1.5px)}
+  #loginBtn:active{transform:translateY(0)}
+  #loginBtn:disabled{opacity:.6; cursor:default; animation:none}
+  #googleBtn{width:100%; color:var(--text); border-radius:10px; border:1px solid transparent;
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--line), var(--line)) border-box;
+    padding:12px; font-size:14.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    gap:10px; margin-bottom:4px; transition:box-shadow .3s, transform .15s}
+  #googleBtn:hover{
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--accent), #ff8bd3, var(--accent2), var(--accent)) border-box;
+    background-size:auto, 300% 100%;
+    animation:borderFlow 2.2s linear infinite;
+    box-shadow:0 6px 24px rgba(108,140,255,.28); transform:translateY(-1.5px)}
+  #googleBtn:active{transform:translateY(0)}
+  #googleBtn svg{width:18px; height:18px; flex:none}
+  #appleBtn{width:100%; color:var(--text); border-radius:10px; border:1px solid transparent; margin-top:8px;
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--line), var(--line)) border-box;
+    padding:12px; font-size:14.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    gap:10px; margin-bottom:4px; transition:box-shadow .3s, transform .15s}
+  #appleBtn:hover{
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--accent), #ff8bd3, var(--accent2), var(--accent)) border-box;
+    background-size:auto, 300% 100%;
+    animation:borderFlow 2.2s linear infinite;
+    box-shadow:0 6px 24px rgba(108,140,255,.28); transform:translateY(-1.5px)}
+  #appleBtn:active{transform:translateY(0)}
+  #appleBtn svg{width:16px; height:16px; flex:none}
+  #login .logo2{transition:box-shadow .35s, transform .35s}
+  #login .card:hover .logo2{box-shadow:0 10px 40px rgba(108,140,255,.55), 0 0 60px rgba(154,108,255,.25); transform:translateY(-2px)}
+  #login .divider{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12.5px; margin:18px 0}
+  #login .divider::before, #login .divider::after{content:''; flex:1; height:1px; background:var(--line)}
+  #guestBtn{width:100%; background:none; border:none; color:var(--muted); padding:12px 0 0; font-size:13.5px; cursor:pointer}
+  #guestBtn:hover{color:var(--accent); text-decoration:underline}
+  #loginMsg{font-size:13px; color:var(--ok); min-height:18px; margin-bottom:10px}
+  #login .foot{color:var(--muted); font-size:12px; margin-top:22px; line-height:1.6}
+  #login .foot a{color:var(--muted); text-decoration:underline}
+  #login .foot a:hover{color:var(--accent)}
+  #otpBtn{width:100%; color:var(--accent); border-radius:10px; border:1px solid transparent;
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--accent), var(--accent2)) border-box;
+    padding:12px; font-size:14px; font-weight:600; cursor:pointer; transition:box-shadow .3s, transform .15s}
+  #otpBtn:hover{background:linear-gradient(var(--panel), var(--panel)) padding-box,
+               linear-gradient(90deg, var(--accent), #ff8bd3, var(--accent2), var(--accent)) border-box;
+    background-size:auto, 300% 100%; animation:borderFlow 2.2s linear infinite;
+    box-shadow:0 6px 22px rgba(108,140,255,.28); transform:translateY(-1.5px)}
+
+  /* ---------- Wallet ---------- */
+  #wallet{margin-top:5px}
+  #walletLabel{font-size:10.5px; color:var(--muted); margin-bottom:3px}
+  #walletBar{height:5px; background:var(--panel2); border-radius:3px; overflow:hidden}
+  #walletFill{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent2)); border-radius:3px; transition:width .4s}
+
+  /* ---------- Plans modal ---------- */
+  #plans{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:95; padding:14px}
+  #plans .box{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:26px; width:min(430px,94vw); max-height:90vh; overflow-y:auto; box-shadow:var(--shadow)}
+  #plans h2{font-size:18px; margin-bottom:4px}
+  #plans .sub{color:var(--muted); font-size:12.5px; margin-bottom:16px}
+  .planCard{border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:10px; cursor:pointer; transition:border-color .15s; display:flex; align-items:center; gap:12px}
+  .planCard:hover{border-color:var(--accent)}
+  .planCard .ic{font-size:22px}
+  .planCard b{font-size:14px; display:block}
+  .planCard small{color:var(--muted); font-size:11.5px; line-height:1.5; display:block}
+  .planCard .price{margin-left:auto; font-weight:800; color:var(--accent); white-space:nowrap}
+  #plansClose{width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--muted); border-radius:12px; padding:11px; cursor:pointer; margin-top:6px}
+  .planNote{font-size:11px; color:var(--muted); margin-top:10px; line-height:1.5}
+
+  /* ---------- Mobile ---------- */
+  @media (max-width:900px){
+    header{padding:8px 10px}
+    #userEmail{display:none}
+    #assistCol{position:fixed; left:0; right:0; bottom:0; top:auto; height:74vh; height:74dvh; max-width:none;
+      min-width:0; z-index:90; border-left:none; border-top:1px solid var(--line); border-radius:20px 20px 0 0;
+      transform:translateY(105%); transition:transform .28s ease; box-shadow:0 -10px 40px rgba(0,0,0,.45)}
+    #assistCol.open{transform:translateY(0)}
+    #sheetClose{display:block}
+    #chatFab{display:block}
+    #viewer{padding-bottom:150px}
+    #playbar{bottom:10px; padding:10px 10px 8px; gap:7px; border-radius:20px; max-width:calc(100% - 10px); width:calc(100% - 10px)}
+    #pbMain{gap:6px}
+    #playbar button{padding:8px 10px; font-size:14px}
+    #playbar select{max-width:96px; font-size:12px}
+    #moreBtn{display:block}
+    #pbExtra{display:none}
+    #playbar.expanded #pbExtra{display:flex}
+  }
+  /* ---------- Tools sidebar ---------- */
+  #tools{position:fixed; inset:0; z-index:350; display:none; background:rgba(0,0,0,.5)}
+  #toolsPane{position:absolute; left:0; top:0; bottom:0; width:min(420px, 100vw); background:var(--bg,#0f1220);
+    border-right:1px solid var(--line,#262b45); display:flex; flex-direction:column; overflow-y:auto;
+    animation:toolsIn .28s cubic-bezier(.2,.8,.25,1); padding:18px}
+  @keyframes toolsIn{from{transform:translateX(-40px); opacity:0}to{transform:none; opacity:1}}
+  #toolsHead{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px}
+  #toolsHead b{font-size:18px}
+  #toolsHead small{display:block; color:var(--muted,#9aa1b5); font-size:12px; margin-top:3px}
+  #toolsClose{background:none; border:none; color:var(--muted,#9aa1b5); font-size:18px; cursor:pointer; padding:4px 8px}
+  #toolsClose:hover{color:var(--text,#e8eaf2)}
+  #toolGrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .toolCard{background:var(--panel,#181c2f); border:1px solid var(--line,#262b45); border-radius:12px;
+    padding:13px 12px; cursor:pointer; text-align:left; color:var(--text,#e8eaf2); transition:border-color .15s, transform .12s}
+  .toolCard:hover{border-color:var(--accent,#6c8cff); transform:translateY(-1px)}
+  .toolCard .tIc{font-size:20px}
+  .toolCard b{display:block; font-size:13px; margin-top:6px}
+  .toolCard small{display:block; color:var(--muted,#9aa1b5); font-size:10.5px; margin-top:2px; line-height:1.45}
+  #toolOpts{margin-top:14px; background:var(--panel,#181c2f); border:1px solid var(--line,#262b45); border-radius:12px; padding:14px}
+  #toolOpts label{display:block; font-size:12.5px; color:var(--muted,#9aa1b5); margin-bottom:6px}
+  #toolOpts input,#toolOpts select{width:100%; background:var(--panel2,#141828); border:1px solid var(--line,#262b45);
+    color:var(--text,#e8eaf2); border-radius:8px; padding:9px 10px; font-size:13.5px; margin-bottom:10px}
+  #toolOpts .go{width:100%; background:linear-gradient(90deg, var(--accent,#6c8cff), var(--accent2,#9a6cff)); color:#fff;
+    border:none; border-radius:9px; padding:11px; font-size:14px; font-weight:700; cursor:pointer}
+  #toolStatus{margin-top:14px; font-size:13px; color:var(--muted,#9aa1b5)}
+  #toolBar{height:5px; background:var(--panel2,#141828); border-radius:3px; overflow:hidden; margin-top:8px}
+  #toolBarFill{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--accent,#6c8cff), var(--accent2,#9a6cff)); transition:width .3s}
+  /* ---------- Camera scan ---------- */
+  .orScan{margin-top:12px; color:var(--muted,#9aa1b5); font-size:13px}
+  /* ---------- Engine tiers + Token Saver ---------- */
+  #tierBox{margin:14px 0 4px; padding:12px; background:var(--panel2,#141828); border-radius:12px}
+  .tierHead{font-size:13px; font-weight:700; margin-bottom:8px}
+  .tierHead small{color:var(--muted,#9aa1b5); font-weight:400}
+  .tierRow{display:flex; gap:8px}
+  .tierBtn{flex:1; background:var(--panel,#181c2f); border:1.5px solid var(--line,#262b45); border-radius:10px;
+    padding:9px 6px; cursor:pointer; color:var(--text,#e8eaf2); text-align:center; transition:border-color .15s}
+  .tierBtn small{display:block; font-size:10.5px; color:var(--muted,#9aa1b5); margin-top:2px}
+  .tierBtn.on{border-color:var(--accent,#6c8cff); box-shadow:0 0 0 2px rgba(108,140,255,.18)}
+  .tierBtn[data-tier="ultra"].on{border-color:#ff9d5c; box-shadow:0 0 0 2px rgba(255,157,92,.2)}
+  .saverRow{display:flex; align-items:center; gap:8px; margin-top:12px; font-size:12.5px; color:var(--muted,#9aa1b5); cursor:pointer}
+  .saverRow b{color:var(--text,#e8eaf2)}
+  .saverRow input{accent-color:var(--accent,#6c8cff); width:16px; height:16px}
+  #customRow{display:flex; align-items:center; gap:6px; margin-top:8px}
+  #customRow select,#customRow input{background:var(--panel,#181c2f); border:1px solid var(--line,#262b45);
+    color:var(--text,#e8eaf2); border-radius:8px; padding:7px 8px; font-size:13px}
+  #customRow input{width:84px}
+  #customRow .rupee{color:var(--muted,#9aa1b5)}
+  #customBuy{background:linear-gradient(90deg, var(--accent,#6c8cff), var(--accent2,#9a6cff)); color:#fff;
+    border:none; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:700; cursor:pointer}
+  #customBuy:hover{filter:brightness(1.1)}
+  #scanBtn{background:none; border:none; padding:0; color:var(--muted,#9aa1b5); font-size:13px; cursor:pointer;
+    text-decoration:underline; text-underline-offset:3px; text-decoration-color:rgba(108,140,255,.5); transition:color .15s}
+  #scanBtn:hover{color:var(--accent,#6c8cff)}
+  #camModal{position:fixed; inset:0; z-index:400; display:none; flex-direction:column; background:#000}
+  #camStage{flex:1; min-height:0; position:relative; display:flex; align-items:center; justify-content:center}
+  #camVideo{width:100%; height:100%; object-fit:contain; background:#000}
+  #camOverlay{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+  #camAuto{width:46px; height:46px; font-size:16px; opacity:.45}
+  #camAuto.on{opacity:1; box-shadow:0 0 0 2px var(--accent,#6c8cff)}
+  #revCanvas{max-width:100%; max-height:100%; cursor:crosshair; touch-action:none}
+  #revBar{display:flex; align-items:center; justify-content:center; gap:12px; padding:12px; background:#0c0e18; flex-wrap:wrap}
+  #revBar button{border:none; cursor:pointer; color:#fff; background:#2a3050; border-radius:10px; padding:10px 14px; font-size:14.5px}
+  #revCancel{background:#5a2733!important}
+  #revKeep{background:#2e7d4f!important; font-weight:700; padding:10px 22px!important}
+  #revFilters{display:flex; gap:6px; background:#181c2f; border-radius:10px; padding:4px}
+  #revFilters button{background:transparent; padding:7px 12px; font-size:13px; border-radius:8px; color:#cfd4e6}
+  #revFilters button.on{background:linear-gradient(90deg, var(--accent,#6c8cff), var(--accent2,#9a6cff)); color:#fff}
+  #camHint{position:absolute; top:14px; left:0; right:0; text-align:center; color:#fff; font-size:13px;
+    text-shadow:0 1px 4px #000; opacity:.85; pointer-events:none}
+  #camBar{display:flex; align-items:center; justify-content:center; gap:18px; padding:14px; background:#0c0e18}
+  #camBar button{border:none; border-radius:50%; cursor:pointer; color:#fff; background:#2a3050}
+  #camCancel,#camUndo{width:46px; height:46px; font-size:17px}
+  #camShot{width:70px; height:70px; font-size:26px; background:linear-gradient(135deg,#6c8cff,#9a6cff); box-shadow:0 4px 18px rgba(108,140,255,.45)}
+  #camDone{width:auto; height:46px; border-radius:23px; padding:0 20px; font-size:15px; font-weight:700; background:#2e7d4f}
+  #camBar button:disabled{opacity:.35; cursor:default}
+  #camCount{color:#cfd4e6; font-size:13.5px; min-width:64px; text-align:center}
+  #camFlash{position:fixed; inset:0; z-index:401; background:#fff; opacity:0; pointer-events:none; transition:opacity .18s}
+  #pdfBtn,#addPageBtn{background:transparent; border:1px solid var(--accent,#6c8cff); color:var(--accent,#6c8cff); border-radius:8px; padding:5px 10px; font-size:12.5px; cursor:pointer; white-space:nowrap}
+  /* while recognising: playbar is visibly locked */
+  #playbar.busy button, #playbar.busy select{opacity:.4; pointer-events:none}
+  #playbar.busy{cursor:progress}
+  /* ---------- Cookie / consent banner ---------- */
+  #consent{position:fixed; left:0; right:0; bottom:0; z-index:300; display:none;
+    background:var(--panel, #181c2f); border-top:1px solid #2a3050; padding:12px 16px;
+    font-size:13.5px; line-height:1.5; box-shadow:0 -6px 24px rgba(0,0,0,.35)}
+  #consent .inner{max-width:900px; margin:0 auto; display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+  #consent p{flex:1; min-width:220px; margin:0}
+  #consent a{color:var(--accent, #6c8cff)}
+  #consentOk{background:linear-gradient(90deg, var(--accent,#6c8cff), var(--accent2,#9a6cff)); color:#fff;
+    border:none; border-radius:8px; padding:9px 22px; font-size:14px; font-weight:600; cursor:pointer}
+  .legalLink{font-size:12px; color:var(--muted,#9aa1b5)!important; text-decoration:none}
+  .legalLink:hover{text-decoration:underline}
+</style>
+<link rel="stylesheet" href="styles/theme.css">
+</head>
+<body>
+
+<div id="login">
+  <div class="card">
+    <div class="logo2">L</div>
+    <h2>Log in to Lexora <span>AI</span></h2>
+    <p><b style="color:var(--text)">Your AI Companion for Every Document.</b><br>No account needed — one is created automatically the first time you log in.</p>
+    <button id="googleBtn">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.7 1.22 9.2 3.6l6.85-6.85C35.9 2.4 30.5 0 24 0 14.6 0 6.5 5.4 2.55 13.3l7.98 6.2C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.55c0-1.57-.15-3.09-.4-4.55H24v9.02h12.4c-.55 2.9-2.17 5.35-4.6 7l7.5 5.85C43.9 37.6 46.1 31.65 46.1 24.55z"/><path fill="#FBBC05" d="M10.53 28.5c-.48-1.45-.76-2.96-.76-4.5s.28-3.05.76-4.5l-7.98-6.2C.92 16.46 0 20.12 0 24s.92 7.54 2.55 10.7l7.98-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.15 15.85-5.85l-7.5-5.85c-2.1 1.4-4.8 2.25-8.35 2.25-6.3 0-11.6-4.1-13.47-9.75l-7.98 6.2C6.5 42.6 14.6 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <button id="appleBtn">
+      <svg viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+      Continue with Apple
+    </button>
+    <div class="divider">or</div>
+    <div id="loginMsg"></div>
+    <div style="display:flex; justify-content:space-between; align-items:baseline">
+      <label class="fieldLabel" for="emailInput">Email</label>
+      <button id="emailEdit" style="display:none; background:none; border:none; color:var(--accent); font-size:12.5px; cursor:pointer; padding:0 2px 6px">✏️ Change</button>
+    </div>
+    <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
+    <button id="loginBtn">Continue with email</button>
+    <div id="otpRow" style="display:none; margin-top:12px">
+      <label class="fieldLabel" for="otpInput">6-digit code from the email</label>
+      <input id="otpInput" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code">
+      <button id="otpBtn">Login with code</button>
+    </div>
+    <button id="guestBtn">Continue without login (reader only) →</button>
+    <p class="foot">By continuing, you agree to our <a href="privacy.html" target="_blank">Terms &amp; Privacy Policy</a>.<br>No ads · no tracking · your documents never leave your device.</p>
+  </div>
+</div>
+
+<aside id="sideNav">
+  <div class="brand"><span class="mark">L</span>Lexora <span>AI</span></div>
+  <nav>
+    <button id="navHome" class="active">Home</button>
+    <button id="navTools">Tools</button>
+    <button id="navScan">Scan</button>
+    <button id="navPlans">Plans &amp; wallet</button>
+    <button id="navSettings">Settings</button>
+    <div class="navSep"></div>
+    <a href="privacy.html" target="_blank">Privacy</a>
+    <a href="terms.html" target="_blank">Terms</a>
+  </nav>
+  <div class="account">
+    <div class="who">
+      <span class="avatar" id="acctAvatar">👤</span>
+      <span class="whoTxt"><b id="acctEmail">Guest</b><small>Lexora AI</small></span>
+    </div>
+    <button id="acctUpgrade">Upgrade plan</button>
+    <button id="acctTheme">Switch theme</button>
+    <button id="acctLogin" style="display:none">Log in</button>
+    <button id="acctLogout" style="display:none">Log out</button>
+  </div>
+</aside>
+
+<header>
+  <span class="logo">L</span>
+  <h1>Lexora <span>AI</span></h1>
+  <div id="userBox">
+    <span id="userEmail"></span>
+    <button class="icon-btn" id="toolsBtn" title="PDF & Word tools">🧰</button>
+    <button class="icon-btn" id="upgradeBtn" title="Plans & upgrade">⭐</button>
+    <button class="icon-btn" id="compToggle" title="Companion on/off">🤖</button>
+    <button class="icon-btn" id="themeBtn" title="Light / dark">🌓</button>
+    <button class="icon-btn" id="openBtn" title="Open another document">📂</button>
+    <button class="icon-btn" id="scanHdrBtn" title="Scan with camera">📷</button>
+    <button class="icon-btn" id="loginHdrBtn" style="display:none" title="Login">🔑</button>
+    <button class="icon-btn" id="logoutBtn" style="display:none" title="Logout">⎋</button>
+  </div>
+</header>
+
+<main>
+  <div id="viewerWrap">
+    <div id="dropZone">
+      <div class="big">📄</div>
+      <h2>Open a document</h2>
+      <p>Click here or drag &amp; drop a file.<br>PDF · Word (DOCX) · Text · Images (photos of pages)<br>Your file stays on your device — it is never uploaded.</p>
+      <p class="orScan">or <button id="scanBtn" onclick="event.stopPropagation()">📷 scan a paper with your camera</button></p>
+      <p style="margin-top:10px"><a class="legalLink" href="privacy.html" target="_blank" onclick="event.stopPropagation()">Privacy Policy &amp; Terms</a></p>
+      <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp" multiple hidden>
+      <input type="file" id="camInput" accept="image/*" capture="environment" multiple hidden>
+    </div>
+
+    <div id="viewer"></div>
+
+    <div id="playbar">
+      <div id="readProg"><i id="readProgFill"></i></div>
+      <div id="pbMain">
+        <button id="prevBtn" title="Previous sentence">⏮</button>
+        <button id="playBtn">▶ Play</button>
+        <button id="nextBtn" title="Next sentence">⏭</button>
+        <button id="micBar" title="Talk to your companion">🎤</button>
+        <div class="ctl" id="pageNav">
+          <button id="pgPrev" title="Previous page">◀</button>
+          <select id="pageSel" title="Jump to page"></select>
+          <button id="pgNext" title="Next page">▶</button>
+        </div>
+        <button id="moreBtn" title="Speed & voice">⚙️</button>
+      </div>
+      <div id="pbExtra">
+        <div class="ctl">Speed
+          <select id="rateSel" title="Speed">
+            <option value="0.75">0.75×</option>
+            <option value="0.9">0.9×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.15">1.15×</option>
+            <option value="1.3">1.3×</option>
+            <option value="1.5">1.5×</option>
+            <option value="1.75">1.75×</option>
+            <option value="2">2×</option>
+          </select>
+        </div>
+        <div class="ctl">🗣 <select id="voiceSel"></select></div>
+        <button id="pdfBtn" style="display:none" title="Save your scan as a PDF file">⬇ PDF</button>
+        <button id="wordBtn" style="display:none" title="Save the recognised text as a Word file">⬇ Word</button>
+        <button id="addPageBtn" style="display:none" title="Scan another page and add it">📷 ➕ Page</button>
+        <span id="progressText"></span>
+      </div>
+    </div>
+
+    <button id="chatFab" title="Companion">🤖<span class="dot" id="fabDot"></span></button>
+  </div>
+
+  <div id="assistCol">
+    <div id="assistHead">
+      <span class="face">🤖</span>
+      <div style="flex:1; min-width:0"><b>Lexora Companion</b><small id="assistMode">Reader mode</small>
+        <div id="wallet" style="display:none">
+          <div id="walletLabel"></div>
+          <div id="walletBar"><i id="walletFill"></i></div>
+        </div>
+      </div>
+      <button id="compCollapse" title="Hide companion">⇥</button>
+      <button id="sheetClose">▾</button>
+    </div>
+    <div id="chat"></div>
+    <div id="chatBar">
+      <button id="micBtn" title="Speak to me">🎤</button>
+      <input id="chatInput" placeholder="Type or press 🎤 and speak…">
+      <button id="sendBtn">➤</button>
+    </div>
+  </div>
+</main>
+
+<div id="selBar">
+  <button id="selExplain">💡 Explain</button>
+  <button id="selRead">▶ Read from here</button>
+</div>
+
+<div id="plans">
+  <div class="box">
+    <h2>⭐ Plans</h2>
+    <div class="sub" id="planStatus">You are on the Free plan.</div>
+    <div class="planCard" data-plan="sub_openai_49">
+      <span class="ic">⚡</span>
+      <span><b>Swift Plan</b><small>Quick, clever answers for everyday reading</small></span>
+      <span class="price">₹49</span>
+    </div>
+    <div class="planCard" data-plan="sub_claude_99">
+      <span class="ic">🧠</span>
+      <span><b>Sage Plan</b><small>Deepest explanations + live web search</small></span>
+      <span class="price">₹99</span>
+    </div>
+    <div class="planCard" id="customCard" style="cursor:default">
+      <span class="ic">💠</span>
+      <span style="flex:1"><b>Custom amount</b><small>Top up once with any amount — no need to buy again and again</small>
+        <div id="customRow">
+          <select id="customProv"><option value="openai">Swift</option><option value="anthropic">Sage</option></select>
+          <span class="rupee">₹</span><input id="customAmt" type="number" min="49" max="5000" placeholder="199" inputmode="numeric">
+          <button id="customBuy">Buy</button>
+        </div>
+      </span>
+      <span class="price" id="customTok" style="font-size:12px; font-weight:500; color:var(--muted)">min ₹49</span>
+    </div>
+    <div class="planCard" id="convertCard" style="display:none">
+      <span class="ic">🔁</span>
+      <span><b>Switch plan — free</b><small id="convertDesc">Your remaining balance converts by money value</small></span>
+      <span class="price">₹0</span>
+    </div>
+    <div class="planCard" data-plan="doc" id="docPlanCard" style="display:none">
+      <span class="ic">📄</span>
+      <span><b>Just this document</b><small id="docPlanDesc">One-time unlock on Swift</small></span>
+      <span class="price" id="docPlanPrice">₹—</span>
+    </div>
+    <div id="tierBox" style="display:none">
+      <div class="tierHead">Engine power <small>— applies to every question you ask</small></div>
+      <div class="tierRow">
+        <button class="tierBtn" data-tier="core"><b>Core</b><small>default · best value</small></button>
+        <button class="tierBtn" data-tier="plus"><b>Plus</b><small>smarter · ×burn</small></button>
+        <button class="tierBtn" data-tier="ultra"><b>Ultra</b><small>top model · ⚠ burns fast</small></button>
+      </div>
+      <label class="saverRow"><input type="checkbox" id="saverToggle"> <b>🪄 Token Saver</b> — compresses what we send to the engine, same answers for fewer tokens</label>
+    </div>
+    <div class="planNote">Tokens are used per question — the bar in the companion panel shows the % left. Top up anytime. Switch between Swift and Sage for free — your balance converts by money value, nothing you paid for is lost. Higher engine power gives smarter answers but uses your balance faster. When it runs out you return to the Free plan (Spark engine). Payments are one-time, no auto-renewal, no refunds — see <a href="privacy.html" target="_blank" style="color:var(--accent)">Privacy &amp; Terms</a>.</div>
+    <button id="plansClose">Close</button>
+  </div>
+</div>
+
+<div id="tools">
+  <div id="toolsPane">
+    <div id="toolsHead">
+      <div><b>🧰 Tools</b><small>Everything runs on your device — your files never leave.</small></div>
+      <button id="toolsClose">✕</button>
+    </div>
+    <div id="toolGrid"></div>
+    <div id="toolOpts" style="display:none"></div>
+    <div id="toolStatus" style="display:none"><div id="toolStatusTxt"></div><div id="toolBar"><i id="toolBarFill"></i></div></div>
+  </div>
+</div>
+
+<div id="camModal">
+  <div id="camStage">
+    <video id="camVideo" autoplay playsinline muted></video>
+    <canvas id="camOverlay"></canvas>
+    <canvas id="revCanvas" style="display:none"></canvas>
+  </div>
+  <div id="camHint">Point the camera at the page — I snap automatically when it is steady</div>
+  <div id="camBar">
+    <button id="camCancel" title="Cancel">✕</button>
+    <button id="camAuto" class="on" title="Auto-capture on/off">🅰</button>
+    <button id="camShot" title="Capture page">📸</button>
+    <span id="camCount">0 pages</span>
+    <button id="camUndo" title="Remove last page" disabled>↩</button>
+    <button id="camDone" title="Finish and read" disabled>✓ Read</button>
+  </div>
+  <div id="revBar" style="display:none">
+    <button id="revCancel" title="Discard this page">✕</button>
+    <button id="revRotate" title="Rotate 90°">🔄</button>
+    <span id="revFilters">
+      <button data-f="original">Original</button>
+      <button data-f="enhance" class="on">✨ Enhance</button>
+      <button data-f="bw">B&amp;W</button>
+    </span>
+    <button id="revKeep" title="Keep this page">✓ Keep</button>
+  </div>
+</div>
+<div id="camFlash"></div>
+
+<div id="consent">
+  <div class="inner">
+    <p>🍪 Lexora AI uses only <b>essential</b> cookies &amp; local storage — for login, your preferences and your token wallet. No ads, no tracking, ever. Your documents never leave your device. <a href="privacy.html" target="_blank">Privacy Policy &amp; Terms</a></p>
+    <button id="consentOk">Got it</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================= CONFIG ================= */
+const CONFIG = {
+  SUPABASE_URL: 'https://lgwqqytjqoenozhjhbkr.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_lK4DQ5LVguBYO-4afNbbVw_J_WLNlWv',
+  API_URL: 'https://readaloudai.konarajeshkumar011.workers.dev',
+  PAY_URL: 'https://readaloudai-pay.konarajeshkumar011.workers.dev'   // e.g. https://readaloudai-pay.konarajeshkumar011.workers.dev
+};
+/* ========================================== */
+
+const $ = id => document.getElementById(id);
+
+/* ---------------- Cookie / consent banner ---------------- */
+if(!localStorage.getItem('ra_consent')){
+  $('consent').style.display = 'block';
+  $('consentOk').addEventListener('click', ()=>{
+    localStorage.setItem('ra_consent', new Date().toISOString());
+    $('consent').style.display = 'none';
+  });
+}
+let pdfjsLib = window['pdfjs-dist/build/pdf'];
+
+/* ---------------- State ---------------- */
+let pdfDoc = null;
+let pages = [];        // per page: {num, w, h, scale, wrap, canvas, textLayer, rendered, textContent, spans:[]}
+let lines = [];        // visual lines: {text, page, x, xEnd, y, h, items:[itemIdx]}
+let sentences = [];    // spoken units: {text, page, parts:[{line, from, to}]}
+let lineToSent = [];   // visual line index -> sentence index
+let current = -1;      // current SENTENCE index
+let playing = false;
+let voices = [];
+let docName = '';
+let numPages = 0;
+let session = null;
+let guest = false;
+let companionOn = true;
+let awaitingStart = false;
+let chatHistory = [];
+let ocrBusy = false, waitingForMore = false;
+let docBusy = false;      /* true while recognising — controls are locked */
+let docLabel = '';        /* human-friendly way to refer to the open document */
+function setDocBusy(on){ docBusy = on; const pb = $('playbar'); if(pb) pb.classList.toggle('busy', on); }
+/* "IMG_20260711_094512.jpg" is not something a human says out loud */
+function friendlyName(name, kind){
+  const base = String(name||'').replace(/\.[a-z0-9]{2,5}$/i,'');
+  const messy = /\d{4,}/.test(base) || /^(IMG|DSC|PXL|WA|Screenshot|WhatsApp|Scan)[-_ ]?/i.test(base) || base.length > 40 || !/[a-z]{3}/i.test(base);
+  if(kind === 'scan')  return 'your scan';
+  if(kind === 'photo') return messy ? 'your photo' : `your photo "${base}"`;
+  return messy ? 'your document' : `"${base}"`;
+}
+let fitScale = 1;
+function dpr(){ return Math.min(window.devicePixelRatio || 1, 2); }
+
+const configured = !CONFIG.SUPABASE_URL.startsWith('PASTE');
+const sb = configured ? supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
+
+/* ---------------- Auth ---------------- */
+async function initAuth(){
+  if(!sb){
+    $('loginMsg').style.color = 'var(--warn)';
+    $('loginMsg').textContent = 'Backend not set up yet — reader mode only.';
+    $('emailInput').style.display = 'none';
+    $('loginBtn').style.display = 'none';
+    return;
+  }
+  const {data:{session:s}} = await sb.auth.getSession();
+  if(s) enterApp(s);
+  sb.auth.onAuthStateChange((ev, s2)=>{ if(s2 && !session) enterApp(s2); });
+}
+/* after sending: lock the email, turn the button into a resend countdown */
+let resendInt = null, resendLeft = 0;
+function startCooldown(secs){
+  clearInterval(resendInt);
+  resendLeft = Math.max(1, secs|0);
+  $('loginBtn').disabled = true;
+  $('loginBtn').textContent = `Resend in ${resendLeft}s`;
+  resendInt = setInterval(()=>{
+    resendLeft--;
+    if(resendLeft <= 0){ clearInterval(resendInt); $('loginBtn').disabled = false; $('loginBtn').textContent = 'Resend link & code'; }
+    else $('loginBtn').textContent = `Resend in ${resendLeft}s`;
+  }, 1000);
+}
+function lockEmail(){ $('emailInput').readOnly = true; $('emailInput').style.opacity = .65; $('emailEdit').style.display = 'inline-block'; }
+function unlockEmail(){
+  $('emailInput').readOnly = false; $('emailInput').style.opacity = 1; $('emailEdit').style.display = 'none';
+  clearInterval(resendInt);
+  $('loginBtn').disabled = false; $('loginBtn').textContent = 'Continue with email';
+  $('otpRow').style.display = 'none'; $('loginMsg').textContent = '';
+  $('emailInput').focus();
+}
+$('emailEdit').addEventListener('click', unlockEmail);
+$('loginBtn').addEventListener('click', async ()=>{
+  const email = $('emailInput').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){ $('loginMsg').style.color='var(--warn)'; $('loginMsg').textContent='Please enter a valid email.'; return; }
+  $('loginBtn').disabled = true;
+  const {error} = await sb.auth.signInWithOtp({email, options:{emailRedirectTo: location.href.split('#')[0]}});
+  $('loginMsg').style.color = error ? 'var(--warn)' : 'var(--ok)';
+  if(error){
+    const wait = (error.message.match(/after (\d+) seconds/) || [])[1];
+    if(wait){                       /* asked too soon — lock and count down exactly that long */
+      lockEmail(); startCooldown(+wait);
+      $('loginMsg').textContent = `Please wait — you can resend in ${wait} seconds.`;
+    }else{
+      $('loginBtn').disabled = false;
+      $('loginMsg').textContent = /rate limit/i.test(error.message)
+        ? 'Too many login emails were sent in the last hour — please try again later, or continue as guest below.'
+        : error.message;
+    }
+    return;
+  }
+  $('loginMsg').textContent = '✓ Sent! Check your email — click the link, or type the 6-digit code below.';
+  $('otpRow').style.display = 'block';
+  lockEmail();
+  startCooldown(50);
+  $('otpInput').focus();
+});
+$('otpBtn').addEventListener('click', async ()=>{
+  const email = $('emailInput').value.trim();
+  const code = $('otpInput').value.trim();
+  if(!/^\d{6}$/.test(code)){ $('loginMsg').style.color='var(--warn)'; $('loginMsg').textContent='The code is the 6-digit number from the email.'; return; }
+  $('otpBtn').disabled = true;
+  const {data, error} = await sb.auth.verifyOtp({ email, token: code, type: 'email' });
+  $('otpBtn').disabled = false;
+  if(error){ $('loginMsg').style.color='var(--warn)'; $('loginMsg').textContent = 'That code did not work — check it or request a new link.'; return; }
+  if(data && data.session) enterApp(data.session);
+});
+$('guestBtn').addEventListener('click', ()=>{ guest = true; enterApp(null); });
+$('googleBtn').addEventListener('click', async ()=>{
+  if(!sb) return;
+  const {error} = await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.href.split('#')[0] } });
+  if(error){
+    $('loginMsg').style.color = 'var(--warn)';
+    $('loginMsg').textContent = /provider is not enabled/i.test(error.message)
+      ? 'Google login is being set up — please use email for now.'
+      : error.message;
+  }
+});
+$('appleBtn').addEventListener('click', async ()=>{
+  if(!sb) return;
+  const {error} = await sb.auth.signInWithOAuth({ provider:'apple', options:{ redirectTo: location.href.split('#')[0] } });
+  if(error){
+    $('loginMsg').style.color = 'var(--warn)';
+    $('loginMsg').textContent = /provider is not enabled/i.test(error.message)
+      ? 'Apple login is coming soon — please use Google or email for now.'
+      : error.message;
+  }
+});
+$('loginHdrBtn').addEventListener('click', ()=>{ $('login').style.display = 'flex'; });
+$('scanHdrBtn').addEventListener('click', ()=>{ scanAppend = false; openCamera(); });
+$('logoutBtn').addEventListener('click', async ()=>{ if(sb) await sb.auth.signOut(); location.reload(); });
+
+function companionAvailable(){ return !!session && navigator.onLine && companionOn && configured; }
+
+function enterApp(s){
+  session = s;
+  $('login').style.display = 'none';
+  $('userEmail').textContent = s ? s.user.email : 'Guest';
+  $('logoutBtn').style.display = s ? 'block' : 'none';
+  $('loginHdrBtn').style.display = s ? 'none' : 'block';   /* guests can always get back to login */
+  updateMode();
+  if(s) fetchMe();
+  const name = s ? s.user.email.split('@')[0] : 'friend';
+  say(s
+    ? `Namaste, ${name}! 🙏 Open a PDF and we will go through it together — I read aloud, follow the words on the page, and you can select any text to get it explained.`
+    : 'Namaste! 🙏 Reader mode: I will read your File aloud and follow the words. Login to unlock the AI companion for explanations and chat.');
+}
+function updateMode(){
+  $('assistMode').textContent = companionAvailable() ? 'AI companion — online'
+    : session ? 'Companion paused' + (navigator.onLine ? '' : ' — offline')
+    : 'Reader mode — login for AI companion';
+  $('compToggle').classList.toggle('on', companionAvailable());
+}
+window.addEventListener('online', updateMode);
+window.addEventListener('offline', updateMode);
+$('compToggle').addEventListener('click', ()=>{
+  companionOn = !companionOn;
+  updateMode();
+  say(companionOn ? 'Companion is back! Select text or ask me anything.' : 'Okay, I will stay quiet and just read.','sys');
+});
+
+/* ---------------- Chat UI ---------------- */
+function say(text, who='bot'){
+  const m = document.createElement('div');
+  m.className = 'msg ' + who;
+  m.textContent = text;
+  $('chat').appendChild(m);
+  $('chat').scrollTop = $('chat').scrollHeight;
+  if(who==='bot' && window.innerWidth<=900 && !$('assistCol').classList.contains('open')) $('fabDot').style.display='block';
+}
+let progEl = null;
+function sayProgress(t){
+  if(!progEl){ progEl = document.createElement('div'); progEl.className='msg sys'; $('chat').appendChild(progEl); }
+  progEl.textContent = t;
+  $('chat').scrollTop = $('chat').scrollHeight;
+}
+function removeProgress(){ if(progEl){ progEl.remove(); progEl = null; } }
+
+/* mobile bottom sheet */
+function openSheet(){ $('assistCol').classList.add('open'); $('fabDot').style.display='none'; }
+function closeSheet(){ $('assistCol').classList.remove('open'); }
+$('chatFab').addEventListener('click', ()=>{
+  if($('chatFab').dataset.justDragged) return;
+  $('assistCol').classList.contains('open') ? closeSheet() : openSheet();
+});
+
+/* make the bot button freely draggable; position is remembered */
+(function makeDraggable(btn, storeKey){
+  let sx, sy, ox, oy, moved = false, dragging = false;
+  const saved = localStorage.getItem(storeKey);
+  if(saved){
+    try{
+      const p = JSON.parse(saved);
+      btn.style.right = 'auto'; btn.style.bottom = 'auto';
+      btn.style.left = p.l + 'px'; btn.style.top = p.t + 'px';
+    }catch(e){}
+  }
+  btn.addEventListener('pointerdown', e=>{
+    dragging = true; moved = false; sx = e.clientX; sy = e.clientY;
+    const r = btn.getBoundingClientRect(), pr = btn.parentElement.getBoundingClientRect();
+    ox = r.left - pr.left; oy = r.top - pr.top;
+    try{ btn.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  btn.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if(Math.abs(dx) + Math.abs(dy) > 6) moved = true;
+    if(moved){
+      const pr = btn.parentElement.getBoundingClientRect();
+      const l = Math.max(4, Math.min(pr.width - btn.offsetWidth - 4, ox + dx));
+      const t = Math.max(4, Math.min(pr.height - btn.offsetHeight - 4, oy + dy));
+      btn.style.right = 'auto'; btn.style.bottom = 'auto';
+      btn.style.left = l + 'px'; btn.style.top = t + 'px';
+    }
+  });
+  btn.addEventListener('pointerup', ()=>{
+    dragging = false;
+    if(moved){
+      localStorage.setItem(storeKey, JSON.stringify({l: parseInt(btn.style.left)||0, t: parseInt(btn.style.top)||0}));
+      btn.dataset.justDragged = '1';
+      setTimeout(()=>{ delete btn.dataset.justDragged; }, 80);
+    }
+  });
+})($('chatFab'), 'ra_fabpos');
+$('sheetClose').addEventListener('click', closeSheet);
+
+/* ---------------- Voices ---------------- */
+function naturalScore(v){
+  let s = 0;
+  if(/natural|neural/i.test(v.name)) s += 4;   // Edge's human-like neural voices
+  if(/google/i.test(v.name)) s += 2;           // Chrome's better voices
+  if(/online/i.test(v.name)) s += 1;
+  if(/en-in/i.test(v.lang)) s += 2;            // Indian English preferred
+  return s;
+}
+let voiceTipShown = false;
+/* voices that failed to speak in this browser — remembered so we never pick them again */
+const badVoices = new Set(JSON.parse(localStorage.getItem('ra_badVoices') || '[]'));
+function pickWorkingVoice(lang){
+  const cands = voices.filter(v=>!badVoices.has(v.name));
+  const pref = (lang || 'en').split('-')[0];
+  return cands.filter(v=>v.lang===lang).sort((a,b)=>naturalScore(b)-naturalScore(a))[0]
+      || cands.filter(v=>v.lang.split('-')[0]===pref).sort((a,b)=>naturalScore(b)-naturalScore(a))[0]
+      || cands[0] || null;
+}
+/* Called after a voice keeps failing: blacklist it, switch to a working one. Returns the new voice or null. */
+function markBadVoice(v){
+  if(!v || badVoices.has(v.name)) return null;
+  badVoices.add(v.name);
+  localStorage.setItem('ra_badVoices', JSON.stringify([...badVoices]));
+  const alt = pickWorkingVoice(v.lang);
+  if(alt){
+    $('voiceSel').value = alt.name;
+    localStorage.setItem('ra_voice', alt.name);
+    say(`⚠️ The voice you picked is not responding in this browser, so I switched to "${alt.name.replace(/^(Microsoft|Google) /,'').replace(/ - .*$/,'')}". Broken voices are now marked ⚠ in the list.`,'sys');
+    loadVoices();
+  }
+  return alt;
+}
+function loadVoices(){
+  voices = speechSynthesis.getVoices();
+  if(!voices.length) return;
+  const sel = $('voiceSel');
+  const keep = sel.value;
+  sel.innerHTML = '';
+  const sorted = [...voices].sort((a,b)=>
+    (badVoices.has(a.name)?1:0) - (badVoices.has(b.name)?1:0) ||
+    naturalScore(b) - naturalScore(a) || a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name));
+  sorted.forEach(v=>{
+    const o = document.createElement('option');
+    o.value = v.name;
+    const bad = badVoices.has(v.name);
+    const star = bad ? '⚠ ' : (/natural|neural/i.test(v.name) ? '⭐ ' : '');
+    o.textContent = star + `${v.name.replace(/^(Microsoft|Google) /,'').replace(/ - .*$/,'').replace(/\s*\(Natural\)\s*/i,'')} (${v.lang})`;
+    sel.appendChild(o);
+  });
+  if(keep && voices.find(v=>v.name===keep)) sel.value = keep;
+  const own = document.createElement('option');
+  own.disabled = true; own.textContent = '✨ Your Own Voice — coming soon';
+  sel.appendChild(own);
+  const saved = localStorage.getItem('ra_voice');
+  const ok = v => v && !badVoices.has(v.name);
+  const pref = (saved && !badVoices.has(saved) && voices.find(v=>v.name===saved))
+    /* preferred default: Neerja Online (en-IN) — the most natural Indian English voice */
+    || voices.find(v=> ok(v) && /neerja/i.test(v.name) && !/indic/i.test(v.name))
+    || voices.find(v=> ok(v) && /neerja/i.test(v.name))
+    /* otherwise: best working English (India) voice, then any working English one */
+    || sorted.find(v=> ok(v) && /^en-in$/i.test(v.lang))
+    || sorted.find(v=> ok(v) && /^en/i.test(v.lang))
+    || sorted.find(ok) || sorted[0];
+  if(pref) sel.value = pref.name;
+  /* nudge towards human-like voices when the browser has none */
+  if(!voiceTipShown && !voices.some(v=>/natural|neural/i.test(v.name))){
+    voiceTipShown = true;
+    setTimeout(()=> say('💡 Tip: open this app in Microsoft Edge to get free human-like "Natural" voices — they sound like a real person, not a machine.','sys'), 2500);
+  }
+  /* Edge users: some of its online voices are broken on Microsoft's side */
+  if(!voiceTipShown && /Edg\//.test(navigator.userAgent)){
+    voiceTipShown = true;
+    setTimeout(()=> say('💡 Tip for Edge: if the reading voice ever stays silent, just pick a different voice from the list — a few of Edge\'s online voices are broken on Microsoft\'s side. I mark those with ⚠ and switch to a working one automatically.','sys'), 2500);
+  }
+}
+speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+$('voiceSel').addEventListener('change', e=>{
+  localStorage.setItem('ra_voice', e.target.value);
+  if(playing){ cancelSpeech2(); speakLine(current); }
+});
+function currentVoice(){ return voices.find(v=>v.name===$('voiceSel').value) || null; }
+function rate(){ return parseFloat($('rateSel').value); }
+
+/* ---------------- Open PDF ---------------- */
+$('dropZone').addEventListener('click', ()=> $('fileInput').click());
+$('openBtn').addEventListener('click', ()=> $('fileInput').click());
+$('fileInput').addEventListener('change', e=>{
+  const files = [...e.target.files];
+  if(!files.length) return;
+  const allImages = files.length > 1 && files.every(f=>/^image\//.test(f.type) || /\.(png|jpe?g|webp|bmp)$/i.test(f.name));
+  if(allImages) openImagePages(`${files.length} photos`, files);   /* several photos = one multi-page document */
+  else openFile(files[0]);
+  e.target.value = '';
+});
+['dragover','dragleave','drop'].forEach(ev=>{
+  $('dropZone').addEventListener(ev, e=>{
+    e.preventDefault();
+    $('dropZone').classList.toggle('drag', ev==='dragover');
+    if(ev==='drop' && e.dataTransfer.files[0]) openFile(e.dataTransfer.files[0]);
+  });
+});
+
+/* ---------- File dispatcher: PDF, DOCX, TXT/MD, images ---------- */
+function openFile(file){
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if(ext === 'pdf' || file.type === 'application/pdf') return openPdf(file);
+  if(ext === 'docx') return openDocx(file);
+  if(ext === 'txt' || ext === 'md') return openTxt(file);
+  if(['png','jpg','jpeg','webp','bmp'].includes(ext)) return openImage(file);
+  say(`I cannot read .${ext} files yet. I understand PDF, Word (DOCX), text files, and images of pages.`);
+}
+
+async function openDocx(file){
+  say(`Opening "${file.name}" — one moment…`,'sys');
+  try{
+    const buf = await file.arrayBuffer();
+    /* keep the real look: headings, bold, lists, tables, embedded pictures */
+    try{
+      const rich = await mammoth.convertToHtml({arrayBuffer: buf});
+      if(rich.value && rich.value.replace(/<[^>]*>/g,'').trim()){
+        openRichText(file.name, rich.value);
+        return;
+      }
+    }catch(e){ console.warn('convertToHtml failed, falling back to plain text', e); }
+    const result = await mammoth.extractRawText({arrayBuffer: buf});
+    const text = (result.value || '').trim();
+    if(!text){ say('This Word file seems to be empty.'); return; }
+    openText(file.name, text);
+  }catch(e){ say('Sorry, I could not read that Word file ('+e.message+').'); }
+}
+
+async function openTxt(file){
+  say(`Opening "${file.name}" — one moment…`,'sys');
+  try{
+    const text = (await file.text()).trim();
+    if(!text){ say('This file seems to be empty.'); return; }
+    openText(file.name, text);
+  }catch(e){ say('Sorry, I could not read that file ('+e.message+').'); }
+}
+
+function openImage(file){ return openImagePages(file.name, [file]); }
+
+/* One or many photos of pages (upload or camera scan) — shown as real pages,
+   OCR page by page, reading starts after page 1 like a scanned PDF. */
+async function openImagePages(name, sources, isAppend){
+  if(location.protocol === 'file:'){ say('Reading photos needs the app to run from the launcher or website.'); return; }
+  docLabel = friendlyName(name, /^camera scan/i.test(name) ? 'scan' : 'photo');
+  say(isAppend
+    ? '📸 Got the new page! Adding it…'
+    : `Hey! ${docLabel === 'your scan' ? 'Your scan is in' : 'Your upload is done'} 🎉 — give me a moment to recognise the text, then we can read together. The buttons will wake up as soon as I'm ready.`,'sys');
+  try{
+    /* load all pictures first (they may be Files or captured data URLs) */
+    const imgs = [];
+    for(const s of sources){
+      const img = new Image();
+      const isFile = (typeof File !== 'undefined') && (s instanceof File);
+      img.src = isFile ? URL.createObjectURL(s) : (s.data || s);
+      await new Promise((res, rej)=>{ img.onload = res; img.onerror = ()=>rej(new Error('could not load an image')); });
+      imgs.push(img);
+    }
+    docName = name;
+    numPages = imgs.length;
+    lines = []; sentences = []; lineToSent = []; current = -1; chatHistory = []; pages = [];
+    stopSpeech(); hideMarker();
+    const viewer = $('viewer');
+    viewer.innerHTML = '';
+    viewer.appendChild(markerEl);
+    $('dropZone').style.display = 'none';
+    viewer.style.display = 'block';
+    $('playbar').style.display = 'flex';
+    $('pdfBtn').style.display = 'none'; $('wordBtn').style.display = 'none'; $('addPageBtn').style.display = 'none';
+
+    imgs.forEach((img, ix)=> pages.push({num:ix+1, w:img.naturalWidth, h:img.naturalHeight, rendered:true, isImage:true, spans:[], img, lineStart:0, lineEnd:0}));
+    computeFitScale();
+    pages.forEach(pg=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'pageWrap';
+      wrap.dataset.page = pg.num;
+      wrap.style.width  = (pg.w * fitScale) + 'px';
+      wrap.style.height = (pg.h * fitScale) + 'px';
+      pg.img.className = 'imgPage';
+      wrap.appendChild(pg.img);
+      const num = document.createElement('div');
+      num.className = 'pageNum'; num.textContent = pg.num;
+      wrap.appendChild(num);
+      viewer.appendChild(wrap);
+      pg.wrap = wrap;
+      wrap.addEventListener('click', e=> tapImagePage(pg, e));
+    });
+    buildPageOptions();
+    updateProgress();
+    $('pdfBtn').style.display = 'inline-block';       /* photo documents can be saved as PDF */
+    $('wordBtn').style.display = 'inline-block';      /* …or as a Word file of the recognised text */
+    $('addPageBtn').style.display = 'inline-block';   /* …and extended with more camera pages */
+    scanSession = sources;                            /* remember, so ➕ Page can append */
+    if(!isAppend) setDocBusy(true);                   /* lock controls until page 1 is readable */
+
+    /* OCR page by page — greet/start after page 1, keep converting behind.
+       Pages already recognised in this scan session are cached on the source. */
+    sayProgress('🔍 Recognising text…');
+    let worker = null;
+    ocrBusy = true;
+    let greeted = !!isAppend;   /* appending: don't greet again or restart reading */
+    for(let ix = 0; ix < pages.length; ix++){
+      const pg = pages[ix], src = sources[ix];
+      if(pages.length > 1) sayProgress(`🔍 Recognising page ${pg.num} of ${pages.length}…`);
+      try{
+        pg.lineStart = lines.length;
+        if(src && src.__ocrLines){
+          /* cached from a previous pass — reuse instantly */
+          src.__ocrLines.forEach(l=> lines.push({ text:l.text, page:pg.num, x:l.x, xEnd:l.xEnd, y:l.y, h:l.h, items:[] }));
+        }else{
+          if(!worker) worker = await Tesseract.createWorker('eng', 1, {
+            workerPath: new URL('lib/ocr/worker.min.js', location.href).href,
+            corePath:   new URL('lib/ocr', location.href).href,
+            langPath:   new URL('lib/lang', location.href).href
+          });
+          const res = await worker.recognize(pg.img, {}, {blocks:true, text:true});
+          const data = res.data || {};
+          const pushLine = (text, bbox)=>{
+            const t = (text||'').replace(/\s+/g,' ').trim();
+            if(t.length < 2 || !bbox) return;
+            lines.push({ text: t, page: pg.num, x: bbox.x0, xEnd: bbox.x1, y: pg.h - bbox.y1, h: bbox.y1 - bbox.y0, items: [] });
+          };
+          if(Array.isArray(data.blocks) && data.blocks.length){
+            data.blocks.forEach(b=> (b.paragraphs||[]).forEach(par=> (par.lines||[]).forEach(l=> pushLine(l.text, l.bbox))));
+          }else if(data.text){
+            (data.text||'').split('\n').forEach(t=> pushLine(t, {x0:10, x1:pg.w-10, y0:0, y1:24}));
+          }
+          if(src) src.__ocrLines = lines.slice(pg.lineStart).map(l=>({text:l.text, x:l.x, xEnd:l.xEnd, y:l.y, h:l.h}));
+        }
+        pg.lineEnd = lines.length;
+        buildSentencesChunk(pg.lineStart, pg.lineEnd);
+      }catch(e){ say(`Page ${pg.num}: could not read it (${e.message}). Skipping.`,'sys'); }
+      updateProgress();
+      if(!greeted && sentences.length){ greeted = true; removeProgress(); setDocBusy(false); afterDocOpen(); }
+      else if(waitingForMore && sentences.length > current+1){
+        waitingForMore = false;
+        playing = true; setPlayBtn(); speakLine(current+1);
+      }
+    }
+    ocrBusy = false;
+    if(worker){ try{ await worker.terminate(); }catch(e){} }
+    removeProgress();
+    setDocBusy(false);
+    if(!lines.length) say('I could not find readable text in the pictures — but you can still look at them here, and save them as a PDF with ⬇.');
+    else if(isAppend){
+      say(`✅ Page ${pages.length} added — say "read page ${pages.length}" or tap it to hear it.`,'sys');
+      const pg = pages[pages.length-1];
+      if(pg && pg.wrap) pg.wrap.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+    else if(pages.length > 1) say(`All ${pages.length} pages are ready. 📄 Tip: the ⬇ PDF button saves this scan as a real PDF file.`,'sys');
+    if(waitingForMore){ waitingForMore = false; finishDoc(); }
+  }catch(e){ removeProgress(); say('Sorry, I could not open those pictures ('+e.message+').'); }
+}
+function tapImagePage(pg, e){
+  if(docBusy) return;
+  const r = pg.wrap.getBoundingClientRect();
+  const px = (e.clientX - r.left) / fitScale;
+  const py = pg.h - (e.clientY - r.top) / fitScale;
+  let bestLi = -1, bestD = 1e12;
+  for(let li = pg.lineStart; li < pg.lineEnd; li++){
+    const ln = lines[li];
+    const inY = py >= ln.y - ln.h*0.3 && py <= ln.y + ln.h*1.3;
+    const d = Math.abs((ln.y + ln.h/2) - py) + (px < ln.x || px > ln.xEnd ? 1e6 : 0);
+    if(inY && d < bestD){ bestD = d; bestLi = li; }
+  }
+  if(bestLi >= 0){ const si = lineToSent[bestLi]; if(si !== undefined){ jumpTo(si); if(!playing) togglePlay(); } }
+}
+
+/* ================= Scan engine: paper detection · perspective fix · filters =================
+   All in plain canvas math — no heavy CV library, works offline, fast. */
+
+function imgToCanvas(img, maxDim){
+  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+  const sc = Math.min(1, maxDim / Math.max(w, h));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w*sc)); c.height = Math.max(1, Math.round(h*sc));
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+async function fileToCanvas(file, maxDim){
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  try{
+    await new Promise((res, rej)=>{ img.onload = res; img.onerror = ()=>rej(new Error('bad image')); img.src = url; });
+    return imgToCanvas(img, maxDim);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* Find the paper: the page is normally the big bright region. Otsu-threshold a
+   thumbnail, take the largest bright blob, and read its 4 extreme corners. */
+function detectQuad(c){
+  const inset = f => [
+    {x:c.width*f, y:c.height*f}, {x:c.width*(1-f), y:c.height*f},
+    {x:c.width*(1-f), y:c.height*(1-f)}, {x:c.width*f, y:c.height*(1-f)}
+  ];
+  try{
+    const DW = 240, sc = DW / c.width, DH = Math.max(24, Math.round(c.height*sc));
+    const t = document.createElement('canvas'); t.width = DW; t.height = DH;
+    const tctx = t.getContext('2d');
+    tctx.drawImage(c, 0, 0, DW, DH);
+    const d = tctx.getImageData(0, 0, DW, DH).data;
+    const N = DW*DH, g = new Uint8Array(N);
+    for(let i=0;i<N;i++) g[i] = (d[i*4]*3 + d[i*4+1]*6 + d[i*4+2])/10 | 0;
+    /* Otsu threshold */
+    const hist = new Array(256).fill(0);
+    for(let i=0;i<N;i++) hist[g[i]]++;
+    let sum=0; for(let i=0;i<256;i++) sum += i*hist[i];
+    let sumB=0, wB=0, best=0, thr=127;
+    for(let i=0;i<256;i++){
+      wB += hist[i]; if(!wB) continue;
+      const wF = N - wB; if(!wF) break;
+      sumB += i*hist[i];
+      const mB = sumB/wB, mF = (sum-sumB)/wF, between = wB*wF*(mB-mF)*(mB-mF);
+      if(between > best){ best = between; thr = i; }
+    }
+    const mask = new Uint8Array(N);
+    let brightN = 0;
+    for(let i=0;i<N;i++){ if(g[i] > thr){ mask[i]=1; brightN++; } }
+    if(brightN < N*0.10 || brightN > N*0.985) return inset(0.02);   /* no clear paper region */
+    /* largest bright connected blob (BFS) */
+    const lbl = new Int32Array(N).fill(-1);
+    let bestSize = 0, bestId = -1, id = 0;
+    const qx = new Int32Array(N);
+    for(let s=0;s<N;s++){
+      if(!mask[s] || lbl[s]>=0) continue;
+      let head=0, tail=0, size=0;
+      qx[tail++]=s; lbl[s]=id;
+      while(head<tail){
+        const p = qx[head++]; size++;
+        const px = p%DW, py = (p/DW)|0;
+        if(px>0 && mask[p-1] && lbl[p-1]<0){ lbl[p-1]=id; qx[tail++]=p-1; }
+        if(px<DW-1 && mask[p+1] && lbl[p+1]<0){ lbl[p+1]=id; qx[tail++]=p+1; }
+        if(py>0 && mask[p-DW] && lbl[p-DW]<0){ lbl[p-DW]=id; qx[tail++]=p-DW; }
+        if(py<DH-1 && mask[p+DW] && lbl[p+DW]<0){ lbl[p+DW]=id; qx[tail++]=p+DW; }
+      }
+      if(size > bestSize){ bestSize = size; bestId = id; }
+      id++;
+    }
+    if(bestSize < N*0.10) return inset(0.02);
+    /* extreme corners of the blob */
+    let tl=null, tr=null, br=null, bl=null, vtl=1e9, vtr=-1e9, vbr=-1e9, vbl=-1e9;
+    for(let p=0;p<N;p++){
+      if(lbl[p] !== bestId) continue;
+      const x = p%DW, y = (p/DW)|0;
+      if(x+y < vtl){ vtl = x+y; tl = {x,y}; }
+      if(x-y > vtr){ vtr = x-y; tr = {x,y}; }
+      if(x+y > vbr){ vbr = x+y; br = {x,y}; }
+      if(y-x > vbl){ vbl = y-x; bl = {x,y}; }
+    }
+    const up = p => ({x: Math.max(0, Math.min(c.width,  p.x/sc)), y: Math.max(0, Math.min(c.height, p.y/sc))});
+    const quad = [up(tl), up(tr), up(br), up(bl)];
+    /* sanity: reject degenerate quads */
+    const area = Math.abs(
+      (quad[1].x-quad[0].x)*(quad[3].y-quad[0].y) - (quad[3].x-quad[0].x)*(quad[1].y-quad[0].y)
+    );
+    if(area < c.width*c.height*0.12) return inset(0.02);
+    quad.found = true;      /* real page detected (fallback insets stay undefined) */
+    return quad;
+  }catch(e){ return inset(0.02); }
+}
+
+/* True perspective correction: homography from the unit square to the corner quad,
+   inverse-mapped with bilinear sampling → tilted pages come out flat and straight. */
+function warpPerspective(src, corners, maxOut){
+  const [p0,p1,p2,p3] = corners;             /* TL, TR, BR, BL */
+  const dist = (a,b)=>Math.hypot(a.x-b.x, a.y-b.y);
+  let W = Math.max(dist(p0,p1), dist(p3,p2));
+  let H = Math.max(dist(p0,p3), dist(p1,p2));
+  const s = Math.min(1, maxOut / Math.max(W,H));
+  W = Math.max(8, Math.round(W*s)); H = Math.max(8, Math.round(H*s));
+  const x0=p0.x,y0=p0.y, x1=p1.x,y1=p1.y, x2=p2.x,y2=p2.y, x3=p3.x,y3=p3.y;
+  const dx1=x1-x2, dx2=x3-x2, dy1=y1-y2, dy2=y3-y2;
+  const sx=x0-x1+x2-x3, sy=y0-y1+y2-y3;
+  const den=(dx1*dy2 - dx2*dy1) || 1e-9;
+  const g=(sx*dy2 - dx2*sy)/den, h=(dx1*sy - sx*dy1)/den;
+  const a=x1-x0+g*x1, b=x3-x0+h*x3, cc=x0;
+  const d2=y1-y0+g*y1, e=y3-y0+h*y3, f=y0;
+  const sw=src.width, sh=src.height;
+  const sd = src.getContext('2d').getImageData(0,0,sw,sh).data;
+  const out = document.createElement('canvas'); out.width=W; out.height=H;
+  const octx = out.getContext('2d');
+  const odata = octx.createImageData(W,H), od = odata.data;
+  for(let j=0;j<H;j++){
+    const v=j/H;
+    for(let i=0;i<W;i++){
+      const u=i/W, wq=g*u+h*v+1;
+      let px=(a*u+b*v+cc)/wq, py=(d2*u+e*v+f)/wq;
+      px = px<0?0:(px>sw-1.001?sw-1.001:px);
+      py = py<0?0:(py>sh-1.001?sh-1.001:py);
+      const xi=px|0, yi=py|0, fx=px-xi, fy=py-yi;
+      const i00=(yi*sw+xi)*4, i10=i00+4, i01=i00+sw*4, i11=i01+4;
+      const oi=(j*W+i)*4;
+      od[oi]  = sd[i00]*(1-fx)*(1-fy) + sd[i10]*fx*(1-fy) + sd[i01]*(1-fx)*fy + sd[i11]*fx*fy;
+      od[oi+1]= sd[i00+1]*(1-fx)*(1-fy) + sd[i10+1]*fx*(1-fy) + sd[i01+1]*(1-fx)*fy + sd[i11+1]*fx*fy;
+      od[oi+2]= sd[i00+2]*(1-fx)*(1-fy) + sd[i10+2]*fx*(1-fy) + sd[i01+2]*(1-fx)*fy + sd[i11+2]*fx*fy;
+      od[oi+3]=255;
+    }
+  }
+  octx.putImageData(odata,0,0);
+  return out;
+}
+
+/* Filters: Enhance = auto-levels (whiter paper, darker ink) · B&W = adaptive threshold scan look */
+function applyScanFilter(canvas, mode){
+  if(mode === 'original') return canvas;
+  const ctx = canvas.getContext('2d');
+  const im = ctx.getImageData(0,0,canvas.width,canvas.height), d = im.data;
+  const W = canvas.width, H = canvas.height, n = W*H;
+  if(mode === 'enhance'){
+    const hist = new Array(256).fill(0);
+    for(let i=0;i<n;i++) hist[(d[i*4]*3 + d[i*4+1]*6 + d[i*4+2])/10 | 0]++;
+    let acc=0, lo=0, hi=255;
+    const loT = n*0.02, hiT = n*0.99;
+    for(let i=0;i<256;i++){ acc += hist[i]; if(acc <= loT) lo = i; if(acc <= hiT) hi = i; }
+    const range = Math.max(24, hi-lo);
+    for(let i=0;i<n*4;i+=4){
+      d[i]   = Math.max(0, Math.min(255, (d[i]-lo)  *255/range));
+      d[i+1] = Math.max(0, Math.min(255, (d[i+1]-lo)*255/range));
+      d[i+2] = Math.max(0, Math.min(255, (d[i+2]-lo)*255/range));
+    }
+  }else if(mode === 'bw'){
+    const g = new Uint8Array(n);
+    for(let i=0;i<n;i++) g[i] = (d[i*4]*3 + d[i*4+1]*6 + d[i*4+2])/10;
+    const integ = new Float64Array((W+1)*(H+1));
+    for(let y=0;y<H;y++){
+      let rs = 0;
+      for(let x=0;x<W;x++){ rs += g[y*W+x]; integ[(y+1)*(W+1)+x+1] = integ[y*(W+1)+x+1] + rs; }
+    }
+    const win = Math.max(8, (Math.min(W,H)/16)|0);
+    for(let y=0;y<H;y++){
+      const y0=Math.max(0,y-win), y1=Math.min(H-1,y+win);
+      for(let x=0;x<W;x++){
+        const x0=Math.max(0,x-win), x1=Math.min(W-1,x+win);
+        const area=(x1-x0+1)*(y1-y0+1);
+        const s=integ[(y1+1)*(W+1)+x1+1]-integ[y0*(W+1)+x1+1]-integ[(y1+1)*(W+1)+x0]+integ[y0*(W+1)+x0];
+        const v = g[y*W+x]*area < s*0.90 ? 0 : 255;
+        const i4=(y*W+x)*4; d[i4]=d[i4+1]=d[i4+2]=v;
+      }
+    }
+  }
+  ctx.putImageData(im,0,0);
+  return canvas;
+}
+function rotate90(c){
+  const o = document.createElement('canvas');
+  o.width = c.height; o.height = c.width;
+  const ctx = o.getContext('2d');
+  ctx.translate(o.width, 0); ctx.rotate(Math.PI/2);
+  ctx.drawImage(c, 0, 0);
+  return o;
+}
+
+/* ---------- Review screen: adjust corners · rotate · pick filter · keep ---------- */
+let rev = null;
+function enterReview(srcCanvas, onDone, onCancel){
+  rev = { src: srcCanvas, corners: detectQuad(srcCanvas), filter: 'enhance', onDone, onCancel, drag: -1, preview: null };
+  $('camVideo').style.display = 'none';
+  $('camBar').style.display = 'none';
+  $('camHint').textContent = 'Drag the corners to the page edges · pick a look · ✓ Keep';
+  $('camHint').style.display = 'block';
+  $('revCanvas').style.display = 'block';
+  $('revBar').style.display = 'flex';
+  $('camModal').style.display = 'flex';
+  document.querySelectorAll('#revFilters button').forEach(b=> b.classList.toggle('on', b.dataset.f === rev.filter));
+  rebuildRevPreview();
+  drawReview();
+}
+function exitReview(toCapture){
+  rev = null;
+  $('revCanvas').style.display = 'none';
+  $('revBar').style.display = 'none';
+  if(toCapture && camStream){
+    $('camVideo').style.display = 'block';
+    $('camBar').style.display = 'flex';
+    $('camHint').textContent = camAutoOn
+      ? 'Point the camera at the next page — I snap automatically when it is steady'
+      : 'Auto-capture off — tap 📸 to snap each page';
+  }else{
+    $('camModal').style.display = 'none';
+    $('camBar').style.display = 'flex';
+    $('camVideo').style.display = 'block';
+  }
+}
+function rebuildRevPreview(){
+  if(!rev) return;
+  const stage = $('camStage');
+  const maxW = Math.max(200, stage.clientWidth - 8), maxH = Math.max(200, stage.clientHeight - 8);
+  const sc = Math.min(maxW/rev.src.width, maxH/rev.src.height, 1);
+  const c = $('revCanvas');
+  c.width = Math.round(rev.src.width*sc); c.height = Math.round(rev.src.height*sc);
+  rev.pscale = sc;
+  const p = document.createElement('canvas');
+  p.width = c.width; p.height = c.height;
+  p.getContext('2d').drawImage(rev.src, 0, 0, p.width, p.height);
+  applyScanFilter(p, rev.filter);
+  rev.preview = p;
+}
+function drawReview(){
+  if(!rev) return;
+  const c = $('revCanvas'), ctx = c.getContext('2d');
+  ctx.drawImage(rev.preview, 0, 0);
+  /* dim outside the quad */
+  const q = rev.corners.map(p=>({x:p.x*rev.pscale, y:p.y*rev.pscale}));
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  ctx.rect(0,0,c.width,c.height);
+  ctx.moveTo(q[0].x,q[0].y); ctx.lineTo(q[3].x,q[3].y); ctx.lineTo(q[2].x,q[2].y); ctx.lineTo(q[1].x,q[1].y); ctx.closePath();
+  ctx.fill('evenodd');
+  ctx.restore();
+  ctx.strokeStyle = '#6c8cff'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(q[0].x,q[0].y); q.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.closePath();
+  ctx.stroke();
+  q.forEach(p=>{
+    ctx.beginPath(); ctx.arc(p.x, p.y, 11, 0, 7);
+    ctx.fillStyle = 'rgba(108,140,255,.35)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, 5.5, 0, 7);
+    ctx.fillStyle = '#6c8cff'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+  });
+}
+(function(){
+  const c = $('revCanvas');
+  const pos = e => {
+    const r = c.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (c.width / r.width) / (rev ? rev.pscale : 1),
+             y: (e.clientY - r.top)  * (c.height / r.height) / (rev ? rev.pscale : 1) };
+  };
+  c.addEventListener('pointerdown', e=>{
+    if(!rev) return;
+    const p = pos(e);
+    let best = -1, bd = 1e9;
+    rev.corners.forEach((q,i)=>{ const d = Math.hypot(q.x-p.x, q.y-p.y); if(d < bd){ bd = d; best = i; } });
+    if(bd * rev.pscale < 34){ rev.drag = best; c.setPointerCapture(e.pointerId); }
+  });
+  c.addEventListener('pointermove', e=>{
+    if(!rev || rev.drag < 0) return;
+    const p = pos(e);
+    rev.corners[rev.drag] = {
+      x: Math.max(0, Math.min(rev.src.width,  p.x)),
+      y: Math.max(0, Math.min(rev.src.height, p.y))
+    };
+    drawReview();
+  });
+  ['pointerup','pointercancel'].forEach(ev=> c.addEventListener(ev, ()=>{ if(rev) rev.drag = -1; }));
+})();
+$('revRotate').addEventListener('click', ()=>{
+  if(!rev) return;
+  rev.src = rotate90(rev.src);
+  rev.corners = detectQuad(rev.src);
+  rebuildRevPreview(); drawReview();
+});
+document.querySelectorAll('#revFilters button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    if(!rev) return;
+    rev.filter = b.dataset.f;
+    document.querySelectorAll('#revFilters button').forEach(x=>x.classList.toggle('on', x===b));
+    rebuildRevPreview(); drawReview();
+  });
+});
+$('revKeep').addEventListener('click', ()=>{
+  if(!rev) return;
+  const r = rev; rev = null;
+  $('camHint').textContent = '✨ Straightening & enhancing…';
+  $('revBar').style.display = 'none';
+  setTimeout(()=>{
+    let out;
+    try{
+      out = warpPerspective(r.src, r.corners, 2200);   /* higher res → sharper text for OCR */
+      applyScanFilter(out, r.filter);
+    }catch(e){ out = r.src; }
+    const shot = { data: out.toDataURL('image/jpeg', .9), w: out.width, h: out.height };
+    r.onDone(shot);
+  }, 30);
+});
+$('revCancel').addEventListener('click', ()=>{
+  if(!rev) return;
+  const r = rev; rev = null;
+  r.onCancel();
+});
+
+/* ---------------- Camera scan (Adobe-Scan style) ---------------- */
+let camStream = null, camShots = [];
+let scanSession = null;    /* sources of the currently open photo document */
+let scanAppend = false;    /* next capture should be ADDED to the open scan */
+const isMobileDevice = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+$('scanBtn').addEventListener('click', ()=>{
+  /* in-app camera everywhere (live page detection + auto-capture, like Adobe Scan);
+     falls back to the native camera / file picker if the browser refuses */
+  scanAppend = false;
+  openCamera();
+});
+$('addPageBtn').addEventListener('click', ()=>{
+  if(!scanSession) return;
+  scanAppend = true;
+  openCamera();
+});
+$('camInput').addEventListener('change', async e=>{
+  const files = [...e.target.files];
+  e.target.value = '';
+  if(!files.length){ scanAppend = false; return; }
+  /* review each photo (auto-detect page → adjust → filter) before it becomes a page */
+  const shots = [];
+  for(const f of files){
+    try{
+      const c = await fileToCanvas(f, 2600);
+      const shot = await new Promise(res=> enterReview(c, s=>{ exitReview(false); res(s); }, ()=>{ exitReview(false); res(null); }));
+      if(shot) shots.push(shot);
+    }catch(err){ console.warn('scan review', err); }
+  }
+  closeCamera();
+  if(!shots.length){ scanAppend = false; return; }
+  if(scanAppend && scanSession){
+    scanAppend = false;
+    scanSession.push(...shots);
+    openImagePages(`Camera scan (${scanSession.length} pages)`, scanSession, true);
+  }else{
+    openImagePages(shots.length > 1 ? `Camera scan (${shots.length} pages)` : 'Camera scan', shots);
+  }
+});
+async function openCamera(keepShots){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ $('camInput').click(); return; }
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:'environment', width:{ideal:2560}, height:{ideal:1440} }, audio:false
+    });
+  }catch(e){ $('camInput').click(); return; }   /* no camera / permission denied → file picker */
+  if(!keepShots) camShots = [];
+  updateCamUI();
+  $('camVideo').srcObject = camStream;
+  $('camModal').style.display = 'flex';
+  startCamLoop();
+}
+function closeCamera(){
+  stopCamLoop();
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+  $('camVideo').srcObject = null;
+  $('camModal').style.display = 'none';
+}
+
+/* ---------- live paper detection on the preview + Adobe-style auto-capture ---------- */
+let camLoopInt = null, camAutoOn = true, camStable = 0, camPrevQuad = null, camCooldown = 0;
+const camDetC = document.createElement('canvas');
+function startCamLoop(){
+  stopCamLoop();
+  camStable = 0; camPrevQuad = null; camCooldown = Date.now() + 1200;
+  camLoopInt = setInterval(camLoopTick, 140);
+}
+function stopCamLoop(){
+  clearInterval(camLoopInt); camLoopInt = null;
+  const o = $('camOverlay');
+  if(o) o.getContext('2d').clearRect(0, 0, o.width, o.height);
+}
+function camLoopTick(){
+  const v = $('camVideo');
+  if(!camStream || !v.videoWidth || v.style.display === 'none') return;
+  /* detect on a small frame */
+  const SW = 320, SH = Math.max(24, Math.round(v.videoHeight * SW / v.videoWidth));
+  camDetC.width = SW; camDetC.height = SH;
+  camDetC.getContext('2d').drawImage(v, 0, 0, SW, SH);
+  const q = detectQuad(camDetC);
+  /* draw the live outline (map: detect-canvas → video px → displayed rect of object-fit:contain) */
+  const stage = $('camStage'), o = $('camOverlay');
+  if(o.width !== stage.clientWidth || o.height !== stage.clientHeight){ o.width = stage.clientWidth; o.height = stage.clientHeight; }
+  const ctx = o.getContext('2d');
+  ctx.clearRect(0, 0, o.width, o.height);
+  const vsc = Math.min(o.width / v.videoWidth, o.height / v.videoHeight);
+  const ox = (o.width - v.videoWidth * vsc) / 2, oy = (o.height - v.videoHeight * vsc) / 2;
+  const toDisp = p => ({ x: p.x * (v.videoWidth / SW) * vsc + ox, y: p.y * (v.videoWidth / SW) * vsc + oy });
+  if(q.found){
+    const d = q.map(toDisp);
+    ctx.strokeStyle = 'rgba(108,140,255,.95)'; ctx.lineWidth = 3;
+    ctx.fillStyle = 'rgba(108,140,255,.13)';
+    ctx.beginPath();
+    ctx.moveTo(d[0].x, d[0].y); d.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    d.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, 7); ctx.fillStyle = '#6c8cff'; ctx.fill(); });
+  }
+  /* auto-capture: page found and steady for ~1.2s */
+  if(!camAutoOn || !q.found || Date.now() < camCooldown){ camStable = 0; camPrevQuad = q.found ? q : null; return; }
+  if(camPrevQuad && camPrevQuad.found){
+    let move = 0;
+    for(let i = 0; i < 4; i++) move = Math.max(move, Math.hypot(q[i].x - camPrevQuad[i].x, q[i].y - camPrevQuad[i].y));
+    camStable = move < SW * 0.015 ? camStable + 1 : 0;
+  }
+  camPrevQuad = q;
+  /* countdown ring on the shutter */
+  if(camStable > 2) $('camShot').style.boxShadow = `0 0 0 ${camStable}px rgba(108,140,255,.4)`;
+  else $('camShot').style.boxShadow = '';
+  if(camStable >= 9){
+    camStable = 0; camCooldown = Date.now() + 3000;
+    $('camShot').style.boxShadow = '';
+    captureFrame();
+  }
+}
+$('camAuto').addEventListener('click', ()=>{
+  camAutoOn = !camAutoOn;
+  $('camAuto').classList.toggle('on', camAutoOn);
+  $('camHint').textContent = camAutoOn
+    ? 'Point the camera at the page — I snap automatically when it is steady'
+    : 'Auto-capture off — tap 📸 to snap each page';
+});
+function updateCamUI(){
+  $('camCount').textContent = camShots.length + (camShots.length === 1 ? ' page' : ' pages');
+  $('camUndo').disabled = !camShots.length;
+  $('camDone').disabled = !camShots.length;
+}
+function captureFrame(){
+  const v = $('camVideo');
+  if(!v.videoWidth) return;
+  const MAX = 2600;   /* more pixels → better OCR (Word export quality) */
+  const sc = Math.min(1, MAX / Math.max(v.videoWidth, v.videoHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  const f = $('camFlash'); f.style.opacity = .7; setTimeout(()=> f.style.opacity = 0, 120);
+  stopCamLoop();
+  /* Adobe-Scan style: review each shot — auto-detected corners, drag to adjust, filter, keep */
+  enterReview(c,
+    shot=>{ camShots.push(shot); updateCamUI(); exitReview(true); startCamLoop(); },
+    ()=>{ exitReview(true); startCamLoop(); });
+}
+$('camShot').addEventListener('click', captureFrame);
+$('camUndo').addEventListener('click', ()=>{ camShots.pop(); updateCamUI(); });
+$('camCancel').addEventListener('click', ()=>{ camShots = []; closeCamera(); });
+$('camDone').addEventListener('click', ()=>{
+  const shots = camShots.slice(); camShots = [];
+  closeCamera();
+  if(!shots.length){ scanAppend = false; return; }
+  if(scanAppend && scanSession){
+    scanAppend = false;
+    scanSession.push(...shots);
+    openImagePages(`Camera scan (${scanSession.length} pages)`, scanSession, true);
+  }else{
+    openImagePages(`Camera scan (${shots.length} ${shots.length===1?'page':'pages'})`, shots);
+  }
+});
+
+/* ---------------- Save photo pages as a real PDF ---------------- */
+async function ensureJsPDF(){
+  if(window.jspdf) return true;
+  try{
+    await new Promise((res, rej)=>{
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }catch(e){ return false; }
+  return !!window.jspdf;
+}
+$('pdfBtn').addEventListener('click', async ()=>{
+  const imgPages = pages.filter(p=>p.isImage && p.img);
+  if(!imgPages.length) return;
+  sayProgress('📄 Building your PDF…');
+  if(!(await ensureJsPDF())){ removeProgress(); say('Could not load the PDF maker — please check your internet connection.'); return; }
+  try{
+    const { jsPDF } = window.jspdf;
+    let doc = null;
+    imgPages.forEach(pg=>{
+      const pt = [pg.w * 0.75, pg.h * 0.75];              /* px → pt */
+      if(!doc) doc = new jsPDF({ unit:'pt', format:pt, orientation: pg.w > pg.h ? 'l' : 'p', compress:true });
+      else doc.addPage(pt, pg.w > pg.h ? 'l' : 'p');
+      const c = document.createElement('canvas');
+      c.width = pg.w; c.height = pg.h;
+      c.getContext('2d').drawImage(pg.img, 0, 0);
+      doc.addImage(c.toDataURL('image/jpeg', .88), 'JPEG', 0, 0, pt[0], pt[1]);
+    });
+    doc.save((docName.replace(/\.(png|jpe?g|webp|bmp)$/i,'') || 'Lexora scan') + '.pdf');
+    removeProgress();
+    say('✅ PDF saved to your downloads.');
+  }catch(e){ removeProgress(); say('Could not build the PDF ('+e.message+').'); }
+});
+
+/* ---------------- Save the recognised text as a REAL .docx ----------------
+   A .docx is a zip of XML parts. Built by hand (stored, CRC32) — no library,
+   opens everywhere: Word, Word mobile, Google Docs, LibreOffice. */
+function crc32(u8){
+  if(!crc32.T){
+    crc32.T = new Uint32Array(256);
+    for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320 ^ (c>>>1) : c>>>1; crc32.T[n]=c>>>0; }
+  }
+  let crc = 0xFFFFFFFF;
+  for(let i=0;i<u8.length;i++) crc = crc32.T[(crc ^ u8[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function makeZip(files, mime){
+  const enc = new TextEncoder();
+  const chunks = [], central = [];
+  let offset = 0;
+  files.forEach(f=>{
+    const nameB = enc.encode(f.name);
+    const data = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
+    const crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true);
+    lh.setUint16(4, 20, true);
+    lh.setUint16(6, 0x0800, true);           /* UTF-8 names */
+    lh.setUint16(8, 0, true);                /* stored, no compression */
+    lh.setUint32(14, crc, true);
+    lh.setUint32(18, data.length, true);
+    lh.setUint32(22, data.length, true);
+    lh.setUint16(26, nameB.length, true);
+    chunks.push(new Uint8Array(lh.buffer), nameB, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true);
+    ch.setUint16(4, 20, true); ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0x0800, true);
+    ch.setUint32(16, crc, true);
+    ch.setUint32(20, data.length, true);
+    ch.setUint32(24, data.length, true);
+    ch.setUint16(28, nameB.length, true);
+    ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), nameB);
+    offset += 30 + nameB.length + data.length;
+  });
+  let cdSize = 0;
+  central.forEach(c=> cdSize += c.length);
+  const eocd = new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0, 0x06054b50, true);
+  eocd.setUint16(8, files.length, true);
+  eocd.setUint16(10, files.length, true);
+  eocd.setUint32(12, cdSize, true);
+  eocd.setUint32(16, offset, true);
+  return new Blob([...chunks, ...central, new Uint8Array(eocd.buffer)], {type: mime});
+}
+function buildDocx(pagesArr){   /* [{title, text}] */
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); // --]/g,'');
+  let body = '';
+  pagesArr.forEach((pg, i)=>{
+    if(i > 0) body += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+    if(pg.title) body += `<w:p><w:pPr><w:spacing w:after="160"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t xml:space="preserve">${esc(pg.title)}</w:t></w:r></w:p>`;
+    pg.text.split(/\n+/).forEach(par=>{
+      if(par.trim()) body += `<w:p><w:pPr><w:spacing w:after="120" w:line="300" w:lineRule="auto"/></w:pPr><w:r><w:t xml:space="preserve">${esc(par.trim())}</w:t></w:r></w:p>`;
+    });
+  });
+  const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+    body + '<w:sectPr/></w:body></w:document>';
+  const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
+  const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+  return makeZip([
+    {name:'[Content_Types].xml', data: contentTypes},
+    {name:'_rels/.rels', data: rels},
+    {name:'word/document.xml', data: documentXml}
+  ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+$('wordBtn').addEventListener('click', ()=>{
+  if(docBusy){ say('🔍 One moment — still recognising the text.','sys'); return; }
+  if(!lines.length){ say('There is no recognised text to save yet.','sys'); return; }
+  const pagesArr = [];
+  for(let p=1; p<=numPages; p++){
+    const pl = lines.filter(l=>l.page===p);
+    if(pl.length) pagesArr.push({ title: numPages > 1 ? 'Page '+p : '', text: pl.map(l=>l.text).join(' ') });
+  }
+  const blob = buildDocx(pagesArr);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (docName.replace(/\.[a-z0-9]{2,5}$/i,'') || 'Lexora scan') + '.docx';
+  a.click();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 5000);
+  say('✅ Word file (.docx) saved to your downloads — opens on phone and computer.');
+});
+
+/* override of buildDocx — final clean version is defined below */
+function buildDocxOld2(pagesArr){   /* [{title, text}] */
+  const esc = s => String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); // --]/g,'');
+  let body = '';
+  pagesArr.forEach((pg, i)=>{
+    if(i > 0) body += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+    if(pg.title) body += `<w:p><w:pPr><w:spacing w:after="160"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t xml:space="preserve">${esc(pg.title)}</w:t></w:r></w:p>`;
+    String(pg.text).split(/\n+/).forEach(par=>{
+      if(par.trim()) body += `<w:p><w:pPr><w:spacing w:after="120" w:line="300" w:lineRule="auto"/></w:pPr><w:r><w:t xml:space="preserve">${esc(par.trim())}</w:t></w:r></w:p>`;
+    });
+  });
+  const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+    body + '<w:sectPr/></w:body></w:document>';
+  const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
+  const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+  return makeZip([
+    {name:'[Content_Types].xml', data: contentTypes},
+    {name:'_rels/.rels', data: rels},
+    {name:'word/document.xml', data: documentXml}
+  ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+
+/* Render plain text as a clean readable page with tappable sentences */
+function openText(name, rawText){
+  docName = name;
+  docLabel = friendlyName(name, 'doc');
+  numPages = 1;
+  lines = []; sentences = []; lineToSent = []; current = -1; chatHistory = []; pages = [];
+  stopSpeech(); hideMarker();
+  const viewer = $('viewer');
+  viewer.innerHTML = '';
+  viewer.appendChild(markerEl);
+  $('pageSel').innerHTML = '<option value="1">Page 1</option>';
+  $('dropZone').style.display = 'none';
+  viewer.style.display = 'block';
+  $('playbar').style.display = 'flex';
+    $('pdfBtn').style.display = 'none'; $('wordBtn').style.display = 'none'; $('addPageBtn').style.display = 'none';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'textWrap';
+  const paras = rawText.split(/\n\s*\n|\r\n\s*\r\n/).map(p=>p.replace(/\s+/g,' ').trim()).filter(p=>p);
+  const ABBR = /\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|vs|etc|approx|dept|govt|e\.g|i\.e|No|Fig|pp|Vol|Rev|Hon|Smt|Sri|Shri|[A-Z])\.$/;
+  paras.forEach(para=>{
+    const pEl = document.createElement('p');
+    const sents = [];
+    let a = 0;
+    const re = /[.!?]+["')\]]?(?=\s|$)/g;
+    let m;
+    while((m = re.exec(para))){
+      if(ABBR.test(para.slice(Math.max(0, m.index - 9), m.index + 1))) continue;
+      sents.push(para.slice(a, m.index + m[0].length).trim());
+      a = m.index + m[0].length;
+    }
+    const rest = para.slice(a).trim();
+    if(rest) sents.push(rest);
+    sents.forEach(st=>{
+      if(st.length < 2) return;
+      const span = document.createElement('span');
+      span.className = 'sentSpan';
+      span.textContent = st + ' ';
+      const idx = lines.length;
+      span.dataset.line = idx;
+      pEl.appendChild(span);
+      lines.push({text: st, page: 1, el: span});
+      sentences.push({text: st, page: 1, parts: [{line: idx, from: 0, to: st.length}]});
+      lineToSent[idx] = idx;
+    });
+    if(pEl.childNodes.length) wrap.appendChild(pEl);
+  });
+  viewer.appendChild(wrap);
+  wrap.addEventListener('click', e=>{
+    const sel = window.getSelection();
+    if(sel && sel.toString().trim()) return;
+    const li = e.target && e.target.dataset ? e.target.dataset.line : null;
+    if(li !== undefined && li !== null){ jumpTo(+li); if(!playing) togglePlay(); }
+  });
+  updateProgress();
+  afterDocOpen();
+}
+
+/* FINAL buildDocx — last declaration wins; earlier copies above are dead code. */
+function buildDocx(pagesArr){   /* [{title, text}] */
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let body = '';
+  pagesArr.forEach((pg, i)=>{
+    if(i > 0) body += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+    if(pg.title) body += `<w:p><w:pPr><w:spacing w:after="160"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t xml:space="preserve">${esc(pg.title)}</w:t></w:r></w:p>`;
+    String(pg.text).split(/\n+/).forEach(par=>{
+      if(par.trim()) body += `<w:p><w:pPr><w:spacing w:after="120" w:line="300" w:lineRule="auto"/></w:pPr><w:r><w:t xml:space="preserve">${esc(par.trim())}</w:t></w:r></w:p>`;
+    });
+  });
+  const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+    body + '<w:sectPr/></w:body></w:document>';
+  const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
+  const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+  return makeZip([
+    {name:'[Content_Types].xml', data: contentTypes},
+    {name:'_rels/.rels', data: rels},
+    {name:'word/document.xml', data: documentXml}
+  ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+
+/* ================= 🧰 TOOLS — all client-side, files never leave the device ================= */
+function pickFiles(accept, multiple){
+  return new Promise(res=>{
+    const i = document.createElement('input');
+    i.type = 'file'; i.accept = accept; i.multiple = !!multiple;
+    i.onchange = ()=> res([...i.files]);
+    i.click();
+  });
+}
+function downloadBlob(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 8000);
+}
+async function ensurePdfLib(){
+  if(window.PDFLib) return true;
+  try{
+    await new Promise((res, rej)=>{
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }catch(e){ return false; }
+  return !!window.PDFLib;
+}
+function ensurePdfjs(){
+  if(!pdfjsLib) pdfjsLib = window['pdfjs-dist/build/pdf'];
+  return !!pdfjsLib;
+}
+async function newOcrWorker(){
+  return Tesseract.createWorker('eng', 1, {
+    workerPath: new URL('lib/ocr/worker.min.js', location.href).href,
+    corePath:   new URL('lib/ocr', location.href).href,
+    langPath:   new URL('lib/lang', location.href).href
+  });
+}
+async function openPdfjs(file){
+  ensurePdfjs();
+  return pdfjsLib.getDocument({
+    data: await file.arrayBuffer(),
+    cMapUrl: new URL('lib/cmaps/', location.href).href, cMapPacked: true,
+    standardFontDataUrl: new URL('lib/standard_fonts/', location.href).href,
+    stopAtErrors: false
+  }).promise;
+}
+function parseRange(str, n){
+  const out = new Set();
+  String(str||'').split(',').forEach(part=>{
+    const m = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+    if(!m) return;
+    const a = Math.max(1, +m[1]), b = Math.min(n, +(m[2]||m[1]));
+    for(let i=a; i<=b; i++) out.add(i-1);
+  });
+  return [...out].sort((a,b)=>a-b);
+}
+function baseName(f){ return f.name.replace(/\.[a-z0-9]{2,5}$/i,''); }
+function toolBusy(msg, pct){
+  $('toolOpts').style.display = 'none';
+  $('toolStatus').style.display = 'block';
+  $('toolStatusTxt').textContent = msg;
+  $('toolBarFill').style.width = (pct==null ? 15 : Math.round(pct)) + '%';
+}
+function toolDone(msg, ok){
+  $('toolStatusTxt').textContent = (ok===false ? '⚠ ' : '✅ ') + msg;
+  $('toolBarFill').style.width = ok===false ? '0%' : '100%';
+}
+function toolOptions(html, onGo){
+  $('toolStatus').style.display = 'none';
+  const box = $('toolOpts');
+  box.innerHTML = html + '<button class="go" id="toolGo">Start</button>';
+  box.style.display = 'block';
+  $('toolGo').onclick = onGo;
+}
+async function runTool(fn){
+  try{ await fn(); }
+  catch(e){ console.warn('tool error', e); toolDone('Something went wrong: ' + e.message, false); }
+}
+
+/* --- text extraction (with automatic OCR fallback for scanned PDFs) --- */
+async function pdfPagesText(file, allowOcr){
+  const doc = await openPdfjs(file);
+  const pages = [];
+  let totalChars = 0;
+  for(let p=1; p<=doc.numPages; p++){
+    toolBusy(`Reading page ${p} of ${doc.numPages}…`, p/doc.numPages*70);
+    const page = await doc.getPage(p);
+    const tc = await page.getTextContent();
+    const rows = {};
+    tc.items.forEach(it=>{
+      if(!it.str || !it.str.trim()) return;
+      const y = Math.round(it.transform[5]);
+      const k = Object.keys(rows).find(r=>Math.abs(r-y)<=2) ?? y;
+      (rows[k] = rows[k] || []).push(it);
+    });
+    const text = Object.keys(rows).map(Number).sort((a,b)=>b-a)
+      .map(y=> rows[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(i=>i.str).join(' ').replace(/\s+/g,' ').trim())
+      .join('\n');
+    totalChars += text.length;
+    pages.push({ text, page });
+  }
+  if(totalChars < 60 && allowOcr){
+    /* scanned PDF — OCR each page */
+    const worker = await newOcrWorker();
+    for(let i=0; i<pages.length; i++){
+      toolBusy(`Scanned PDF — recognising page ${i+1} of ${pages.length}…`, 70 + (i+1)/pages.length*28);
+      const vp = pages[i].page.getViewport({scale:2});
+      const c = document.createElement('canvas');
+      c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+      await pages[i].page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+      const res = await worker.recognize(c);
+      pages[i].text = (res.data.text || '').trim();
+    }
+    await worker.terminate();
+  }
+  return { doc, pages };
+}
+
+/* --- the tools --- */
+const TOOLS = [
+  { ic:'🧩', name:'Merge PDFs', desc:'Combine several PDFs into one', run: async ()=>{
+      const files = await pickFiles('.pdf', true);
+      if(files.length < 2){ toolDone('Pick at least two PDF files.', false); return; }
+      if(!(await ensurePdfLib())){ toolDone('Could not load the PDF engine — check internet.', false); return; }
+      toolBusy('Merging…');
+      const out = await PDFLib.PDFDocument.create();
+      for(let i=0;i<files.length;i++){
+        toolBusy(`Adding "${files[i].name}"…`, (i+1)/files.length*95);
+        const src = await PDFLib.PDFDocument.load(await files[i].arrayBuffer(), {ignoreEncryption:true});
+        (await out.copyPages(src, src.getPageIndices())).forEach(pg=> out.addPage(pg));
+      }
+      downloadBlob(new Blob([await out.save()], {type:'application/pdf'}), 'merged.pdf');
+      toolDone(`Merged ${files.length} files → merged.pdf`);
+  }},
+  { ic:'✂️', name:'Split PDF', desc:'Extract chosen pages into a new PDF', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      if(!(await ensurePdfLib())) { toolDone('Could not load the PDF engine.', false); return; }
+      const src = await PDFLib.PDFDocument.load(await f.arrayBuffer(), {ignoreEncryption:true});
+      toolOptions(`<label>Pages to keep from "${f.name}" (${src.getPageCount()} pages) — e.g. 1-3,7</label>
+        <input id="optRange" placeholder="1-3,7">`, async ()=>{
+        const idx = parseRange($('optRange').value, src.getPageCount());
+        if(!idx.length){ toolDone('Enter which pages to keep, like 1-3,7', false); return; }
+        toolBusy('Extracting…');
+        const out = await PDFLib.PDFDocument.create();
+        (await out.copyPages(src, idx)).forEach(pg=> out.addPage(pg));
+        downloadBlob(new Blob([await out.save()], {type:'application/pdf'}), baseName(f)+' (pages).pdf');
+        toolDone(`Saved ${idx.length} pages.`);
+      });
+  }},
+  { ic:'🗑', name:'Remove pages', desc:'Delete chosen pages from a PDF', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      if(!(await ensurePdfLib())) { toolDone('Could not load the PDF engine.', false); return; }
+      const src = await PDFLib.PDFDocument.load(await f.arrayBuffer(), {ignoreEncryption:true});
+      toolOptions(`<label>Pages to REMOVE from "${f.name}" (${src.getPageCount()} pages) — e.g. 2,5-6</label>
+        <input id="optRange" placeholder="2,5-6">`, async ()=>{
+        const del = new Set(parseRange($('optRange').value, src.getPageCount()));
+        if(!del.size){ toolDone('Enter which pages to remove.', false); return; }
+        const keep = src.getPageIndices().filter(i=>!del.has(i));
+        if(!keep.length){ toolDone('That would remove every page!', false); return; }
+        toolBusy('Removing…');
+        const out = await PDFLib.PDFDocument.create();
+        (await out.copyPages(src, keep)).forEach(pg=> out.addPage(pg));
+        downloadBlob(new Blob([await out.save()], {type:'application/pdf'}), baseName(f)+' (edited).pdf');
+        toolDone(`Removed ${del.size} pages, kept ${keep.length}.`);
+      });
+  }},
+  { ic:'🔄', name:'Rotate PDF', desc:'Turn pages 90°, 180° or 270°', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      if(!(await ensurePdfLib())) { toolDone('Could not load the PDF engine.', false); return; }
+      toolOptions(`<label>Rotate all pages of "${f.name}" by</label>
+        <select id="optAngle"><option value="90">90° clockwise</option><option value="180">180°</option><option value="270">90° anti-clockwise</option></select>`, async ()=>{
+        toolBusy('Rotating…');
+        const src = await PDFLib.PDFDocument.load(await f.arrayBuffer(), {ignoreEncryption:true});
+        const ang = +$('optAngle').value;
+        src.getPages().forEach(pg=> pg.setRotation(PDFLib.degrees((pg.getRotation().angle + ang) % 360)));
+        downloadBlob(new Blob([await src.save()], {type:'application/pdf'}), baseName(f)+' (rotated).pdf');
+        toolDone('Rotated and saved.');
+      });
+  }},
+  { ic:'📉', name:'Compress PDF', desc:'Shrink a big PDF (pages become images)', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      toolOptions(`<label>Compression for "${f.name}" (${(f.size/1048576).toFixed(1)} MB)</label>
+        <select id="optQ"><option value="0.72">Balanced — good quality</option><option value="0.5">Strong — smallest file</option></select>
+        <label style="margin-top:4px">Note: the result is image-based (text can't be selected). Use "Make searchable" after, if needed.</label>`, async ()=>{
+        if(!(await ensureJsPDF())){ toolDone('Could not load the PDF maker.', false); return; }
+        const q = +$('optQ').value;
+        const doc = await openPdfjs(f);
+        const { jsPDF } = window.jspdf;
+        let out = null;
+        for(let p=1; p<=doc.numPages; p++){
+          toolBusy(`Compressing page ${p} of ${doc.numPages}…`, p/doc.numPages*95);
+          const page = await doc.getPage(p);
+          const vp = page.getViewport({scale:1.5});
+          const c = document.createElement('canvas');
+          c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+          await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+          const pt = [c.width*0.5, c.height*0.5];
+          if(!out) out = new jsPDF({unit:'pt', format:pt, orientation: pt[0]>pt[1]?'l':'p', compress:true});
+          else out.addPage(pt, pt[0]>pt[1]?'l':'p');
+          out.addImage(c.toDataURL('image/jpeg', q), 'JPEG', 0, 0, pt[0], pt[1]);
+        }
+        const blob = out.output('blob');
+        downloadBlob(blob, baseName(f)+' (compressed).pdf');
+        toolDone(`${(f.size/1048576).toFixed(1)} MB → ${(blob.size/1048576).toFixed(1)} MB`);
+      });
+  }},
+  { ic:'🖼', name:'PDF → Images', desc:'Every page as a JPG picture', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      const doc = await openPdfjs(f);
+      const imgs = [];
+      for(let p=1; p<=doc.numPages; p++){
+        toolBusy(`Rendering page ${p} of ${doc.numPages}…`, p/doc.numPages*90);
+        const page = await doc.getPage(p);
+        const vp = page.getViewport({scale:2});
+        const c = document.createElement('canvas');
+        c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+        await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+        const blob = await new Promise(res=> c.toBlob(res, 'image/jpeg', .9));
+        imgs.push({ name: `page-${String(p).padStart(2,'0')}.jpg`, data: new Uint8Array(await blob.arrayBuffer()) });
+      }
+      if(imgs.length === 1) downloadBlob(new Blob([imgs[0].data], {type:'image/jpeg'}), baseName(f)+'.jpg');
+      else downloadBlob(makeZip(imgs, 'application/zip'), baseName(f)+' (images).zip');
+      toolDone(imgs.length === 1 ? 'Image saved.' : `${imgs.length} images saved as a ZIP.`);
+  }},
+  { ic:'📄', name:'Images → PDF', desc:'Photos or pictures into one PDF', run: async ()=>{
+      const files = await pickFiles('image/*', true);
+      if(!files.length) return;
+      if(!(await ensureJsPDF())){ toolDone('Could not load the PDF maker.', false); return; }
+      const { jsPDF } = window.jspdf;
+      let out = null;
+      for(let i=0;i<files.length;i++){
+        toolBusy(`Adding picture ${i+1} of ${files.length}…`, (i+1)/files.length*95);
+        const c = await fileToCanvas(files[i], 2200);
+        const pt = [c.width*0.75, c.height*0.75];
+        if(!out) out = new jsPDF({unit:'pt', format:pt, orientation: pt[0]>pt[1]?'l':'p', compress:true});
+        else out.addPage(pt, pt[0]>pt[1]?'l':'p');
+        out.addImage(c.toDataURL('image/jpeg', .88), 'JPEG', 0, 0, pt[0], pt[1]);
+      }
+      out.save((files.length===1 ? baseName(files[0]) : 'pictures')+'.pdf');
+      toolDone('PDF saved to downloads.');
+  }},
+  { ic:'📝', name:'PDF → Word', desc:'Editable .docx (OCR for scans)', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      const { pages } = await pdfPagesText(f, true);
+      toolBusy('Building the Word file…', 98);
+      const pagesArr = pages.map((pg,i)=>({ title: pages.length>1 ? 'Page '+(i+1) : '', text: pg.text || '' })).filter(p=>p.text.trim());
+      if(!pagesArr.length){ toolDone('No readable text found in this PDF.', false); return; }
+      downloadBlob(buildDocx(pagesArr), baseName(f)+'.docx');
+      toolDone('Word file saved — opens on phone and computer.');
+  }},
+  { ic:'🔤', name:'PDF → Text', desc:'Plain text file of everything', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      const { pages } = await pdfPagesText(f, true);
+      const txt = pages.map((pg,i)=> (pages.length>1 ? `\n===== Page ${i+1} =====\n` : '') + pg.text).join('\n').trim();
+      if(!txt){ toolDone('No readable text found.', false); return; }
+      downloadBlob(new Blob([txt], {type:'text/plain;charset=utf-8'}), baseName(f)+'.txt');
+      toolDone('Text file saved.');
+  }},
+  { ic:'📃', name:'Word → PDF', desc:'A .docx as a clean PDF', run: async ()=>{
+      const [f] = await pickFiles('.docx'); if(!f) return;
+      if(!(await ensureJsPDF())){ toolDone('Could not load the PDF maker.', false); return; }
+      toolBusy('Converting…');
+      const html = (await mammoth.convertToHtml({arrayBuffer: await f.arrayBuffer()})).value;
+      const div = document.createElement('div'); div.innerHTML = html;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({unit:'pt', format:'a4'});
+      const W = 515, M = 40; let y = M + 14;
+      const put = (text, size, bold)=>{
+        doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(size);
+        doc.splitTextToSize(text, W).forEach(ln=>{
+          if(y > 800){ doc.addPage(); y = M + 14; }
+          doc.text(ln, M, y); y += size * 1.45;
+        });
+        y += size * 0.5;
+      };
+      div.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li').forEach(el=>{
+        if(el.querySelector('p,li')) return;   /* container — its children are handled separately */
+        const t = el.textContent.replace(/\s+/g,' ').trim();
+        if(!t) return;
+        const tag = el.tagName.toLowerCase();
+        if(tag[0] === 'h') put(t, tag==='h1'?19:tag==='h2'?15.5:13, true);
+        else put((tag==='li' ? '•  ' : '') + t, 11.5, false);
+      });
+      doc.save(baseName(f)+'.pdf');
+      toolDone('PDF saved to downloads.');
+  }},
+  { ic:'🔍', name:'Make PDF searchable', desc:'OCR a scanned PDF — select & search its text', run: async ()=>{
+      const [f] = await pickFiles('.pdf'); if(!f) return;
+      if(!(await ensureJsPDF())){ toolDone('Could not load the PDF maker.', false); return; }
+      const doc = await openPdfjs(f);
+      const worker = await newOcrWorker();
+      const { jsPDF } = window.jspdf;
+      let out = null;
+      for(let p=1; p<=doc.numPages; p++){
+        toolBusy(`Recognising page ${p} of ${doc.numPages}… (this takes a moment)`, p/doc.numPages*95);
+        const page = await doc.getPage(p);
+        const vp = page.getViewport({scale:2});
+        const c = document.createElement('canvas');
+        c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+        await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+        const pt = [c.width*0.375, c.height*0.375];
+        if(!out) out = new jsPDF({unit:'pt', format:pt, orientation: pt[0]>pt[1]?'l':'p', compress:true});
+        else out.addPage(pt, pt[0]>pt[1]?'l':'p');
+        out.addImage(c.toDataURL('image/jpeg', .85), 'JPEG', 0, 0, pt[0], pt[1]);
+        try{
+          const res = await worker.recognize(c, {}, {blocks:true});
+          (res.data.blocks||[]).forEach(b=> (b.paragraphs||[]).forEach(par=> (par.lines||[]).forEach(l=>{
+            const t = (l.text||'').trim();
+            if(!t || !l.bbox) return;
+            const h = (l.bbox.y1 - l.bbox.y0) * 0.375;
+            out.setFontSize(Math.max(4, h * 0.9));
+            out.text(t, l.bbox.x0 * 0.375, l.bbox.y1 * 0.375, { renderingMode: 'invisible' });
+          })));
+        }catch(e){ console.warn('ocr page', p, e); }
+      }
+      try{ await worker.terminate(); }catch(e){}
+      out.save(baseName(f)+' (searchable).pdf');
+      toolDone('Searchable PDF saved — the text is now selectable and findable.');
+  }}
+];
+
+/* build the grid + open/close */
+(function(){
+  const grid = $('toolGrid');
+  TOOLS.forEach(t=>{
+    const b = document.createElement('button');
+    b.className = 'toolCard';
+    b.innerHTML = `<span class="tIc">${t.ic}</span><b>${t.name}</b><small>${t.desc}</small>`;
+    b.addEventListener('click', ()=> runTool(t.run));
+    grid.appendChild(b);
+  });
+})();
+function openTools(){ $('tools').style.display = 'block'; }
+function closeTools(){ $('tools').style.display = 'none'; $('toolOpts').style.display='none'; $('toolStatus').style.display='none'; }
+$('toolsBtn').addEventListener('click', openTools);
+$('toolsClose').addEventListener('click', closeTools);
+$('tools').addEventListener('click', e=>{ if(e.target === $('tools')) closeTools(); });
+/* deep links: lexoraai.online/#tools and tools.lexoraai.online both open the panel */
+if(location.hash === '#tools' || /^tools\./i.test(location.hostname)) setTimeout(openTools, 400);
+
+/* ---------- Rich text (Word) rendering: keep formatting + images,
+     wrap each sentence in a tappable span for read-along highlighting ---------- */
+const RICH_ABBR = /\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|vs|etc|approx|dept|govt|e\.g|i\.e|No|Fig|pp|Vol|Rev|Hon|Smt|Sri|Shri|[A-Z])\.$/;
+const RICH_BLOCK = 'p,h1,h2,h3,h4,h5,h6,li,td,th,blockquote,figcaption';
+
+/* Wrap the sentences of ONE block element in .sentSpan spans, preserving any
+   bold/italic/links inside them. Works from the end backwards so earlier
+   character offsets stay valid while the DOM is being split. */
+function wrapBlockSentences(block){
+  const tw = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.parentElement && n.parentElement.closest(RICH_BLOCK) === block)
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; let full = '';
+  while(tw.nextNode()){ nodes.push({n: tw.currentNode, start: full.length}); full += tw.currentNode.nodeValue; }
+  if(!full.trim()) return;
+
+  const bounds = [];
+  let a = 0, m;
+  const re = /[.!?]+["')\]]?(?=\s|$)/g;
+  while((m = re.exec(full))){
+    if(RICH_ABBR.test(full.slice(Math.max(0, m.index - 9), m.index + 1))) continue;
+    bounds.push([a, m.index + m[0].length]);
+    a = m.index + m[0].length;
+  }
+  if(full.slice(a).trim()) bounds.push([a, full.length]);
+
+  const locate = off => {
+    for(let i = nodes.length - 1; i >= 0; i--){
+      if(off >= nodes[i].start) return {node: nodes[i].n, off: off - nodes[i].start};
+    }
+    return null;
+  };
+  for(let i = bounds.length - 1; i >= 0; i--){
+    let [s, e] = bounds[i];
+    while(s < e && /\s/.test(full[s])) s++;
+    while(e > s && /\s/.test(full[e-1])) e--;
+    if(e - s < 2) continue;
+    const S = locate(s), E = locate(e);
+    if(!S || !E) continue;
+    try{
+      const r = document.createRange();
+      r.setStart(S.node, Math.min(S.off, S.node.nodeValue.length));
+      r.setEnd(E.node, Math.min(E.off, E.node.nodeValue.length));
+      const span = document.createElement('span');
+      span.className = 'sentSpan';
+      span.appendChild(r.extractContents());
+      r.insertNode(span);
+    }catch(err){ /* odd structure — that sentence just stays unwrapped */ }
+  }
+}
+
+/* Render mammoth HTML (Word) as a real-looking document page */
+function openRichText(name, html){
+  docName = name;
+  docLabel = friendlyName(name, 'doc');
+  numPages = 1;
+  lines = []; sentences = []; lineToSent = []; current = -1; chatHistory = []; pages = [];
+  stopSpeech(); hideMarker();
+  const viewer = $('viewer');
+  viewer.innerHTML = '';
+  viewer.appendChild(markerEl);
+  $('pageSel').innerHTML = '<option value="1">Page 1</option>';
+  $('dropZone').style.display = 'none';
+  viewer.style.display = 'block';
+  $('playbar').style.display = 'flex';
+    $('pdfBtn').style.display = 'none'; $('wordBtn').style.display = 'none'; $('addPageBtn').style.display = 'none';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'textWrap richDoc';
+  wrap.innerHTML = html;
+  viewer.appendChild(wrap);
+
+  wrap.querySelectorAll(RICH_BLOCK).forEach(b => wrapBlockSentences(b));
+
+  /* index the sentence spans in reading (DOM) order */
+  wrap.querySelectorAll('.sentSpan').forEach(span => {
+    const st = span.textContent.replace(/\s+/g,' ').trim();
+    if(st.length < 2){ span.classList.remove('sentSpan'); return; }
+    const idx = lines.length;
+    span.dataset.line = idx;
+    lines.push({text: st, page: 1, el: span});
+    sentences.push({text: st, page: 1, parts: [{line: idx, from: 0, to: st.length}]});
+    lineToSent[idx] = idx;
+  });
+  if(!lines.length){ say('This Word file seems to have no readable text.'); return; }
+
+  wrap.addEventListener('click', e => {
+    const sel = window.getSelection();
+    if(sel && sel.toString().trim()) return;
+    const spanEl = e.target && e.target.closest ? e.target.closest('.sentSpan') : null;
+    if(spanEl && spanEl.dataset.line !== undefined){ jumpTo(+spanEl.dataset.line); if(!playing) togglePlay(); }
+  });
+  updateProgress();
+  afterDocOpen();
+}
+
+function afterDocOpen(){
+  const label = docLabel || `"${docName}"`;
+  if(companionAvailable()){
+    awaitingStart = true;
+    const greet = `Yep, all done — ${label} is ready! 🎉 Do you want me to read it to you, or do you have any doubts first? Ask me about a specific topic, line, or page — or just press ▶ Play and I will start from the beginning.`;
+    say(greet); speakText(greet);
+  }else{
+    say(`${label.charAt(0).toUpperCase()+label.slice(1)} is ready. Starting now! Tap any sentence to read from there.`);
+    playing = true; setPlayBtn(); speakLine(0);
+  }
+}
+
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(en=>{ if(en.isIntersecting) renderPage(+en.target.dataset.page); });
+}, {root: null, rootMargin: '900px 0px'});
+
+async function openPdf(file){
+  if(!/pdf$/i.test(file.name) && file.type!=='application/pdf'){ say('That does not look like a PDF file.'); return; }
+  if(!pdfjsLib) pdfjsLib = window['pdfjs-dist/build/pdf'];
+  if(!pdfjsLib){ say('⚠️ My PDF engine did not load. Refresh with Ctrl+F5.'); return; }
+  docName = file.name;
+  docLabel = friendlyName(file.name, 'doc');
+  say(`Opening ${docLabel} — one moment…`,'sys');
+  try{
+    const buf = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({
+      data: buf,
+      cMapUrl: new URL('lib/cmaps/', location.href).href,
+      cMapPacked: true,
+      standardFontDataUrl: new URL('lib/standard_fonts/', location.href).href,
+      stopAtErrors: false
+    });
+    /* password-protected PDFs: ask, decrypt locally — password never leaves this device */
+    loadingTask.onPassword = (giveBack, reason)=>{
+      const p = window.prompt(reason === 2
+        ? 'Wrong password. Please try again:'
+        : 'This PDF is password protected. Enter the password (it stays on your device):');
+      if(p === null){ say('Okay, cancelled — the PDF stays locked.'); throw new Error('Password entry cancelled'); }
+      giveBack(p);
+    };
+    pdfDoc = await loadingTask.promise;
+    numPages = pdfDoc.numPages;
+    lines = []; sentences = []; lineToSent = []; current = -1; chatHistory = []; pages = [];
+    stopSpeech(); hideMarker();
+    const viewer = $('viewer');
+    viewer.innerHTML = '';
+    viewer.appendChild(markerEl);
+    $('pageSel').innerHTML = '';
+    $('dropZone').style.display='none';
+    viewer.style.display='block';
+    $('playbar').style.display='flex';
+    $('pdfBtn').style.display='none'; $('wordBtn').style.display='none'; $('addPageBtn').style.display='none';
+
+    computeFitScale();
+
+    let skipped = 0;
+    for(let p=1; p<=numPages; p++){
+      if(numPages > 8) sayProgress(`📖 Preparing page ${p} of ${numPages}…`);
+      try{
+        const page = await pdfDoc.getPage(p);
+        const vp1 = page.getViewport({scale:1});
+        const pg = {num:p, page, w:vp1.width, h:vp1.height, rendered:false, spans:[], textContent:null, lineStart:lines.length};
+        buildPageShell(pg);
+        pages.push(pg);
+        const tc = await page.getTextContent();
+        pg.textContent = tc;
+        extractLines(pg, tc);
+        pg.lineEnd = lines.length;
+        buildSentencesChunk(pg.lineStart, pg.lineEnd);
+      }catch(e){ console.warn('page '+p, e); skipped++; }
+    }
+    removeProgress();
+    if(skipped) say(`Note: ${skipped} page${skipped>1?'s':''} could not be read.`,'sys');
+    buildPageOptions();
+    updateProgress();
+
+    if(lines.length === 0){ await ocrAll(); if(!lines.length) return; }
+
+    if(companionAvailable()){
+      awaitingStart = true;
+      const greet = `Lovely — "${file.name}" is open: ${numPages} page${numPages>1?'s':''}. Where shall we start? Say "from the first page", a page number, or a topic and I will find it. You can also select any text on the page to get it explained.`;
+      say(greet); speakText(greet);
+    }else{
+      say(`"${file.name}" — ${numPages} page${numPages>1?'s':''}. Starting now! Tap any sentence to read from there.`);
+      playing = true; setPlayBtn(); speakLine(0);
+    }
+  }catch(err){
+    console.error(err);
+    removeProgress();
+    say(`Sorry, I could not read that PDF. Technical reason: "${err && err.message ? err.message : err}".`);
+  }
+}
+
+function computeFitScale(){
+  const vw = $('viewer').clientWidth || window.innerWidth;
+  const margin = window.innerWidth <= 900 ? 10 : 48;
+  const baseW = pages.length ? pages[0].w : 612;
+  fitScale = Math.min(2.5, Math.max(0.05, (vw - margin) / baseW));   /* .05 floor: camera photos are 3000+px wide */
+}
+
+function buildPageShell(pg){
+  const wrap = document.createElement('div');
+  wrap.className = 'pageWrap';
+  wrap.dataset.page = pg.num;
+  wrap.style.width = (pg.w * fitScale) + 'px';
+  wrap.style.height = (pg.h * fitScale) + 'px';
+  const load = document.createElement('div');
+  load.className = 'pageLoading';
+  load.textContent = 'Page ' + pg.num;
+  wrap.appendChild(load);
+  const num = document.createElement('div');
+  num.className = 'pageNum'; num.textContent = pg.num;
+  wrap.appendChild(num);
+  $('viewer').appendChild(wrap);
+  pg.wrap = wrap;
+  observer.observe(wrap);
+}
+
+/* group text items into visual lines, keeping geometry.
+   Handles multi-column layouts (e.g. left question label + right answer block):
+   the column gutter is detected from the alignment of the right column, each row
+   is split at that gutter, and lines are re-ordered so every left label reads
+   before its own answer block — instead of being stitched into one line with the
+   answer text sitting beside it. */
+function buildSeg(group, rowY, col, out){
+  if(!group.length) return;
+  const text = group.map(o=>o.it.str).join(' ').replace(/\s+/g,' ').trim();
+  if(!text) return;
+  let x=1e9, xEnd=-1e9, h=0, yBase=1e9;
+  group.forEach(o=>{
+    const tr = o.it.transform;
+    const fh = Math.hypot(tr[2],tr[3]) || Math.hypot(tr[0],tr[1]) || 10;
+    x = Math.min(x, tr[4]);
+    xEnd = Math.max(xEnd, tr[4] + (o.it.width || 0));
+    h = Math.max(h, fh);
+    yBase = Math.min(yBase, tr[5]);
+  });
+  out.push({text, x, xEnd, y:yBase, h, items:group.map(o=>o.idx), rowY, col});
+}
+
+function extractLines(pg, tc){
+  const rows = {};
+  tc.items.forEach((it, idx)=>{
+    if(!it.str || !it.str.trim()) return;
+    const y = Math.round(it.transform[5]);
+    let key = Object.keys(rows).find(k=>Math.abs(k-y)<=2);
+    if(key===undefined){ key=y; rows[key]=[]; }
+    rows[key].push({it, idx});
+  });
+  const rowKeys = Object.keys(rows).map(Number).sort((a,b)=>b-a);
+
+  /* 1) detect a two-column gutter from where the right column consistently starts */
+  let leftMargin = 1e9;
+  tc.items.forEach(it=>{ if(it.str && it.str.trim()) leftMargin = Math.min(leftMargin, it.transform[4]); });
+  const buckets = {};
+  tc.items.forEach(it=>{ if(!it.str||!it.str.trim()) return; const b = Math.round(it.transform[4]/10)*10; buckets[b] = (buckets[b]||0)+1; });
+  let colX = null, best = 0;
+  Object.keys(buckets).map(Number).forEach(b=>{
+    if(b > leftMargin + 40 && buckets[b] > best){ best = buckets[b]; colX = b; }   // strongest right-of-margin start cluster
+  });
+  let margin = 0;
+  if(colX !== null){
+    margin = Math.max(6, (colX - leftMargin) * 0.15);
+    let straddle = 0;   // rows with content on BOTH sides = real two-column layout
+    rowKeys.forEach(y=>{
+      const xs = rows[y].map(o=>o.it.transform[4]);
+      if(xs.some(x=>x < colX-margin) && xs.some(x=>x >= colX-margin)) straddle++;
+    });
+    if(straddle < 2) colX = null;
+  }
+
+  /* 2) build segments (split at the gutter when two-column) */
+  const segs = [];
+  rowKeys.forEach(y=>{
+    const arr = rows[y].sort((a,b)=>a.it.transform[4]-b.it.transform[4]);
+    if(colX === null){
+      buildSeg(arr, y, 0, segs);
+    }else{
+      const L = arr.filter(o=>o.it.transform[4] <  colX-margin);
+      const R = arr.filter(o=>o.it.transform[4] >= colX-margin);
+      buildSeg(L, y, 0, segs);
+      buildSeg(R, y, 1, segs);
+    }
+  });
+
+  /* 3) order into reading order — for two-column, read each left label then its
+        answer block (a "band"): a band starts when a left run begins after rows
+        that had no left content, and includes the right rows beneath it. */
+  let ordered;
+  if(colX !== null){
+    const byRow = {};
+    segs.forEach(s=>{ (byRow[s.rowY] = byRow[s.rowY] || []).push(s); });
+    ordered = [];
+    let bandLeft = [], bandRight = [], prevHadLeft = false;
+    const closeBand = ()=>{
+      bandLeft.forEach((s,i)=>{ if(i===0) s.brk = true; ordered.push(s); });
+      bandRight.forEach((s,i)=>{ if(i===0) s.brk = true; ordered.push(s); });
+      bandLeft = []; bandRight = [];
+    };
+    Object.keys(byRow).map(Number).sort((a,b)=>b-a).forEach(ry=>{
+      const list = byRow[ry].sort((a,b)=>a.x-b.x);
+      const hasLeft = list.some(s=>s.col===0);
+      if(hasLeft && !prevHadLeft && (bandLeft.length || bandRight.length)) closeBand();
+      list.forEach(s=>{ (s.col===0 ? bandLeft : bandRight).push(s); });
+      prevHadLeft = hasLeft;
+    });
+    closeBand();
+  } else {
+    ordered = segs;  // single column: already top-to-bottom, left-to-right
+  }
+
+  ordered.forEach(s=>{
+    lines.push({text:s.text, page:pg.num, x:s.x, xEnd:s.xEnd, y:s.y, h:s.h, items:s.items, brk:!!s.brk});
+  });
+}
+
+function buildPageOptions(){
+  const sel = $('pageSel');
+  sel.innerHTML = '';
+  for(let p=1; p<=numPages; p++){
+    const o = document.createElement('option');
+    o.value = p; o.textContent = 'Page ' + p;
+    sel.appendChild(o);
+  }
+}
+
+/* ---------------- Lazy page rendering ---------------- */
+const renderedSet = new Set();
+async function renderPage(n){
+  const pg = pages[n-1];
+  if(!pg || pg.isImage || pg.rendered || pg.rendering) return;
+  pg.rendering = true;
+  try{
+    const vp = pg.page.getViewport({scale: fitScale});
+    const D = dpr();
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(vp.width * D);
+    canvas.height = Math.ceil(vp.height * D);
+    canvas.style.width = vp.width + 'px';
+    canvas.style.height = vp.height + 'px';
+    const ctx = canvas.getContext('2d');
+    await pg.page.render({canvasContext: ctx, viewport: vp, transform: D!==1 ? [D,0,0,D,0,0] : undefined}).promise;
+    if(pg.canvas) pg.canvas.remove();
+    pg.wrap.insertBefore(canvas, pg.wrap.firstChild);
+    pg.canvas = canvas;
+    const ld = pg.wrap.querySelector('.pageLoading');
+    if(ld) ld.style.display = 'none';
+
+    /* text layer for Adobe-like selection */
+    if(pg.textContent && pg.textContent.items.length){
+      if(pg.textLayer) pg.textLayer.remove();
+      const tl = document.createElement('div');
+      tl.className = 'textLayer';
+      tl.style.setProperty('--scale-factor', vp.scale);
+      tl.style.width = vp.width + 'px';
+      tl.style.height = vp.height + 'px';
+      pg.wrap.appendChild(tl);
+      pg.textLayer = tl;
+      const textDivs = [];
+      try{
+        const task = pdfjsLib.renderTextLayer({
+          textContentSource: pg.textContent,
+          textContent: pg.textContent,
+          container: tl,
+          viewport: vp,
+          textDivs
+        });
+        if(task && task.promise) await task.promise;
+      }catch(e){ console.warn('textLayer', e); }
+      pg.spans = textDivs;
+      /* tag spans with their line index for tap-to-read and selection mapping */
+      for(let li = pg.lineStart; li < pg.lineEnd; li++){
+        lines[li].items.forEach(idx=>{ if(textDivs[idx]) textDivs[idx].dataset.line = li; });
+      }
+      tl.addEventListener('click', e=>{
+        const sel = window.getSelection();
+        if(sel && sel.toString().trim()) return; /* selecting, not tapping */
+        const li = e.target && e.target.dataset ? e.target.dataset.line : null;
+        if(li !== undefined && li !== null){
+          const si = lineToSent[+li];
+          if(si !== undefined){ jumpTo(si); if(!playing) togglePlay(); }
+        }
+      });
+    }
+    pg.rendered = true;
+    renderedSet.add(n);
+    if(current >= 0 && sentences[current] && sentences[current].page === n) positionMarker(lines[sentences[current].parts[0].line]);
+    /* memory: keep at most 14 rendered pages */
+    if(renderedSet.size > 14){
+      let far = null, farDist = -1;
+      const curPg = current>=0 && sentences[current] ? sentences[current].page : n;
+      renderedSet.forEach(m=>{ const d = Math.abs(m-curPg); if(d>farDist){ farDist=d; far=m; } });
+      if(far && far!==n) unrenderPage(far);
+    }
+  }catch(e){ console.warn('render '+n, e); }
+  pg.rendering = false;
+}
+function unrenderPage(n){
+  const pg = pages[n-1];
+  if(!pg || pg.isImage || !pg.rendered) return;
+  if(pg.canvas){ pg.canvas.remove(); pg.canvas = null; }
+  if(pg.textLayer){ pg.textLayer.remove(); pg.textLayer = null; }
+  pg.spans = [];
+  pg.rendered = false;
+  renderedSet.delete(n);
+  const ld = pg.wrap.querySelector('.pageLoading');
+  if(ld) ld.style.display = 'flex';
+}
+
+let resizeT = null;
+window.addEventListener('resize', ()=>{
+  if(!pages.length) return;
+  clearTimeout(resizeT);
+  resizeT = setTimeout(()=>{
+    computeFitScale();
+    pages.forEach(pg=>{
+      pg.wrap.style.width = (pg.w * fitScale) + 'px';
+      pg.wrap.style.height = (pg.h * fitScale) + 'px';
+      if(pg.rendered) unrenderPage(pg.num);
+      /* re-observe so pages already on screen redraw immediately */
+      observer.unobserve(pg.wrap);
+      observer.observe(pg.wrap);
+    });
+    if(current>=0 && sentences[current]) positionMarker(lines[sentences[current].parts[0].line]);
+  }, 250);
+});
+
+/* ---------------- Karaoke marker ---------------- */
+const markerEl = document.createElement('div');
+markerEl.id = 'marker';
+function positionMarker(ln){
+  if(ln && ln.el){ /* text-document mode: highlight the sentence span */
+    document.querySelectorAll('.sentSpan.active').forEach(x=>x.classList.remove('active'));
+    ln.el.classList.add('active');
+    hideMarker();
+    return;
+  }
+  const pg = pages[ln.page-1];
+  if(!pg) return;
+  if(markerEl.parentElement !== pg.wrap) pg.wrap.appendChild(markerEl);
+  const pad = 2;
+  markerEl.style.display = 'block';
+  markerEl.style.left = (ln.x * fitScale - pad) + 'px';
+  markerEl.style.top = ((pg.h - ln.y - ln.h) * fitScale - pad) + 'px';
+  markerEl.style.width = ((ln.xEnd - ln.x) * fitScale + pad*2) + 'px';
+  markerEl.style.height = (ln.h * 1.3 * fitScale + pad*2) + 'px';
+}
+function hideMarker(){ markerEl.style.display = 'none'; }
+function scrollToLine(ln){
+  if(ln && ln.el){ ln.el.scrollIntoView({block:'center', behavior:'smooth'}); return; }
+  const pg = pages[ln.page-1];
+  if(!pg) return;
+  const viewer = $('viewer');
+  const top = pg.wrap.offsetTop + (pg.h - ln.y - ln.h) * fitScale;
+  viewer.scrollTo({top: top - viewer.clientHeight * 0.38, behavior:'smooth'});
+}
+
+/* ---------------- Sentence building ----------------
+   Merge visual lines into natural sentences (a person reads sentence to
+   sentence, not printed-line to printed-line). Paragraph gaps and headings
+   force breaks. Each sentence remembers which lines it covers, and where. */
+function buildSentencesChunk(from, to){
+  if(to <= from) return;
+  let stream = '';
+  const linePos = [];
+  const forced = new Set();
+  for(let i=from; i<to; i++){
+    const start = stream.length ? stream.length + 1 : 0;
+    stream += (stream ? ' ' : '') + lines[i].text;
+    linePos.push({line:i, start, end: stream.length});
+    const nxt = i+1 < to ? lines[i+1] : null;
+    if(nxt){
+      const gap = lines[i].y - nxt.y - nxt.h;                 // vertical space to next line
+      const para = gap > Math.max(lines[i].h, nxt.h) * 1.4;   // paragraph break
+      const heading = lines[i].text.length < 60 && !/[.,;:]$/.test(lines[i].text) && !/[.!?]$/.test(lines[i].text);
+      if(para || heading || nxt.brk) forced.add(stream.length);   // nxt.brk = column/band boundary
+    }
+  }
+  const ends = [];
+  const re = /[.!?]+["')\]]?(?=\s|$)/g;
+  const ABBR = /\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|vs|etc|approx|dept|govt|e\.g|i\.e|No|Fig|pp|Vol|Rev|Hon|Smt|Sri|Shri|[A-Z])\.$/;
+  let m;
+  while((m = re.exec(stream))){
+    if(ABBR.test(stream.slice(Math.max(0, m.index - 9), m.index + 1))) continue;
+    ends.push(m.index + m[0].length);
+  }
+  forced.forEach(b=> ends.push(b));
+  ends.push(stream.length);
+  const uniq = [...new Set(ends)].sort((a,b)=>a-b);
+  let a = 0;
+  uniq.forEach(b=>{
+    const raw = stream.slice(a, b);
+    const text = raw.trim();
+    if(text.length > 1){
+      const lead = raw.length - raw.replace(/^\s+/,'').length;
+      const parts = [];
+      linePos.forEach(lp=>{
+        const s = Math.max(a, lp.start), e = Math.min(b, lp.end);
+        if(e > s) parts.push({line: lp.line, from: Math.max(0, s - a - lead), to: Math.max(0, e - a - lead)});
+      });
+      if(parts.length){
+        const idx = sentences.length;
+        sentences.push({text, page: lines[parts[0].line].page, parts});
+        parts.forEach(p=>{ if(lineToSent[p.line] === undefined) lineToSent[p.line] = idx; });
+      }
+    }
+    a = b;
+  });
+}
+
+/* ---------------- Speech ---------------- */
+let activeUtter = null;   /* keep a live reference — browsers may GC a speaking utterance */
+let lastCancel = 0;
+const CANCEL_COOLDOWN = 300; /* Edge Natural (online) voices fail if speak() comes too soon after cancel() */
+function cancelSpeech2(){ lastCancel = Date.now(); try{ speechSynthesis.cancel(); }catch(e){} }
+function safeSpeak(u){
+  activeUtter = u;
+  let tries = 0;
+  const attempt = ()=>{
+    if(activeUtter !== u) return;               /* a newer utterance replaced this one */
+    if(speechSynthesis.speaking || speechSynthesis.pending){
+      cancelSpeech2();
+      if(++tries < 12) setTimeout(attempt, 150);
+      return;
+    }
+    const since = Date.now() - lastCancel;
+    if(since < CANCEL_COOLDOWN){ setTimeout(attempt, CANCEL_COOLDOWN - since + 30); return; }
+    try{ speechSynthesis.resume(); }catch(e){}  /* Edge can be stuck "paused" after cancel */
+    speechSynthesis.speak(u);
+  };
+  attempt();
+}
+function speakText(text, onend, attempt){
+  /* strip emojis — Edge Natural voices can fail on them, and hearing "folded hands" is odd anyway */
+  text = text.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, ' ').replace(/\s+/g,' ').trim();
+  if(!text){ if(onend) onend(); return; }
+  const u = new SpeechSynthesisUtterance(text);
+  const v = currentVoice();
+  if(v){ u.voice = v; u.lang = v.lang; }
+  u.rate = rate();
+  if(onend) u.onend = onend;
+  u.onerror = e=>{
+    if(e.error==='canceled' || e.error==='interrupted') return;   /* our own cancel — not a problem */
+    console.warn('speech error:', e.error);
+    const at = attempt || 0;
+    /* Edge Natural voices sometimes fail to synthesize — retry, then switch voice, then give up */
+    if(at < 2) setTimeout(()=> speakText(text, onend, at+1), 350);
+    else if(e.error==='synthesis-failed' && markBadVoice(v)) setTimeout(()=> speakText(text, onend, 0), 350);
+    else if(onend) onend();
+  };
+  safeSpeak(u);
+}
+function speakLine(i, attempt){ /* speaks SENTENCE i; the visual marker follows line by line */
+  if(i<0 || i>=sentences.length){ finishDoc(); return; }
+  current = i;
+  const sen = sentences[i];
+  let curLi = sen.parts[0].line;
+  positionMarker(lines[curLi]);
+  scrollToLine(lines[curLi]);
+  renderPage(sen.page);
+  const u = new SpeechSynthesisUtterance(sen.text);
+  const v = currentVoice();
+  if(v){ u.voice = v; u.lang = v.lang; }
+  u.rate = rate();
+  /* audio pointer: the sentence · visual pointer: synced by word boundaries */
+  u.onboundary = e=>{
+    if(typeof e.charIndex !== 'number') return;
+    let p = sen.parts.find(pt=> e.charIndex >= pt.from && e.charIndex < pt.to);
+    if(!p){ for(let k = sen.parts.length-1; k >= 0; k--){ if(e.charIndex >= sen.parts[k].from){ p = sen.parts[k]; break; } } }
+    if(p && p.line !== curLi){
+      curLi = p.line;
+      positionMarker(lines[curLi]);
+      scrollToLine(lines[curLi]);
+    }
+  };
+  u.onend = ()=>{ if(playing) speakLine(i+1); };
+  u.onerror = e=>{
+    if(e.error==='canceled' || e.error==='interrupted') return;   /* our own cancel — not a problem */
+    console.warn('speech error:', e.error, '(sentence '+i+')');
+    if(!playing) return;
+    const at = attempt || 0;
+    if(at < 2) setTimeout(()=>{ if(playing && current===i) speakLine(i, at+1); }, 350);        /* retry this sentence */
+    else if(e.error==='synthesis-failed' && markBadVoice(v))
+               setTimeout(()=>{ if(playing && current===i) speakLine(i, 0); }, 350);           /* voice was broken — same sentence, new voice */
+    else       setTimeout(()=>{ if(playing && current===i) speakLine(i+1); }, 150);            /* skip it, keep reading */
+  };
+  safeSpeak(u);
+  updateProgress();
+}
+function togglePlay(){
+  if(docBusy){ say('🔍 One moment — I am still recognising the text. I will be ready in a few seconds!','sys'); return; }
+  if(!sentences.length) return;
+  if(playing){ playing=false; cancelSpeech2(); }
+  else{ playing=true; awaitingStart=false; speakLine(current<0?0:current); }
+  setPlayBtn();
+}
+function setPlayBtn(){
+  const mob = window.innerWidth <= 900;
+  $('playBtn').textContent = playing ? (mob ? '⏸' : '⏸ Pause') : (mob ? '▶' : '▶ Play');
+}
+function stopSpeech(){ playing=false; cancelSpeech2(); setPlayBtn(); }
+function jumpTo(i){
+  if(!sentences.length) return;
+  current = Math.max(0, Math.min(i, sentences.length-1));
+  const ln = lines[sentences[current].parts[0].line];
+  positionMarker(ln);
+  scrollToLine(ln);
+  if(playing) speakLine(current);
+  updateProgress();
+}
+function finishDoc(){
+  playing=false; setPlayBtn();
+  if(ocrBusy){ waitingForMore = true; say('One moment — still converting the next page. I will continue automatically.'); return; }
+  const msg = `That's the end of "${docName}". Want me to repeat something, or shall we discuss what we read?`;
+  say(msg);
+  if(companionAvailable()) speakText(msg);
+}
+function updateProgress(){
+  $('progressText').textContent = sentences.length ? `Sentence ${Math.max(current,0)+1} / ${sentences.length} · Page ${sentences[Math.max(current,0)]?.page||1} of ${numPages}` : '';
+  $('readProgFill').style.width = sentences.length ? Math.round((Math.max(current,0)+1) / sentences.length * 100) + '%' : '0%';
+  const pg = sentences[Math.max(current,0)]?.page;
+  if(pg && $('pageSel').value != pg) $('pageSel').value = pg;
+}
+function goPage(p){
+  if(p<1 || p>numPages) return false;
+  const idx = sentences.findIndex(s=>s.page===p);
+  if(idx < 0){
+    const pg = pages[p-1];
+    if(pg) $('viewer').scrollTo({top: pg.wrap.offsetTop - 10, behavior:'smooth'});
+    return true;
+  }
+  awaitingStart = false;
+  playing = true; setPlayBtn();
+  speakLine(idx);
+  return true;
+}
+
+$('playBtn').addEventListener('click', togglePlay);
+$('prevBtn').addEventListener('click', ()=> jumpTo(current-1));
+$('nextBtn').addEventListener('click', ()=> jumpTo(current+1));
+$('pageSel').addEventListener('change', e=> goPage(+e.target.value));
+$('pgPrev').addEventListener('click', ()=> goPage((sentences[Math.max(current,0)]?.page || 1) - 1));
+$('pgNext').addEventListener('click', ()=> goPage((sentences[Math.max(current,0)]?.page || 1) + 1));
+$('rateSel').addEventListener('change', ()=>{ if(playing) speakLine(current); });
+document.addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+  if(e.code==='ArrowRight') jumpTo(current+1);
+  if(e.code==='ArrowLeft') jumpTo(current-1);
+});
+
+/* ---------------- Text selection → toolbar ---------------- */
+let selText = '', selLine = -1;
+function refreshSelBar(){
+  const sel = window.getSelection();
+  const t = sel ? sel.toString().trim() : '';
+  if(!t || t.length < 2 || !$('viewer').contains(sel.anchorNode)){ $('selBar').style.display='none'; return; }
+  selText = t.slice(0, 1500);
+  let node = sel.anchorNode;
+  if(node && node.nodeType===3) node = node.parentElement;
+  selLine = node && node.dataset && node.dataset.line !== undefined ? +node.dataset.line : -1;
+  const r = sel.getRangeAt(0).getBoundingClientRect();
+  const bar = $('selBar');
+  bar.style.display = 'flex';
+  const bw = 230;
+  bar.style.left = Math.max(8, Math.min(window.innerWidth - bw, r.left + r.width/2 - bw/2)) + 'px';
+  bar.style.top = Math.max(8, r.top - 52) + 'px';
+}
+document.addEventListener('mouseup', ()=> setTimeout(refreshSelBar, 10));
+document.addEventListener('touchend', ()=> setTimeout(refreshSelBar, 300));
+document.addEventListener('selectionchange', ()=>{
+  const sel = window.getSelection();
+  if(!sel || !sel.toString().trim()) $('selBar').style.display='none';
+});
+$('selRead').addEventListener('click', ()=>{
+  $('selBar').style.display='none';
+  window.getSelection().removeAllRanges();
+  const si = selLine >= 0 ? lineToSent[selLine] : undefined;
+  if(si !== undefined){ awaitingStart=false; playing = true; setPlayBtn(); speakLine(si); }
+  else say('Tap directly on a sentence to read from there.');
+});
+$('selExplain').addEventListener('click', async ()=>{
+  $('selBar').style.display='none';
+  const t = selText;
+  window.getSelection().removeAllRanges();
+  if(!companionAvailable()){ say(session ? 'Turn the 🤖 companion on first.' : 'Login to unlock explanations.'); if(window.innerWidth<=900) openSheet(); return; }
+  if(selLine >= 0){ current = Math.max(current, 0); positionMarker(lines[selLine]); }
+  const wasPlaying = playing;
+  if(playing) togglePlay();
+  say('Explain: "'+t.slice(0,90)+(t.length>90?'…':'')+'"','user');
+  if(window.innerWidth<=900) openSheet();
+  sayProgress('Thinking…');
+  try{
+    const ans = await askAI('Explain this selected passage simply: "'+t+'"', buildContext(t));
+    removeProgress();
+    say(ans);
+    speakText(ans, ()=>{ if(wasPlaying){ playing=true; setPlayBtn(); speakLine(current+1); } });
+  }catch(e){ removeProgress(); say('Could not get an explanation ('+e.message+').'); }
+});
+
+/* ---------------- OCR for scanned PDFs ---------------- */
+async function ocrAll(){
+  say(`${(docLabel||'this PDF').replace(/^y/,'Y')} is a scanned PDF — pictures of text. Switching on text recognition. I will start reading as soon as page 1 is ready!`);
+  setDocBusy(true);
+  let worker;
+  try{
+    sayProgress('Starting OCR engine…');
+    worker = await Tesseract.createWorker('eng', 1, {
+      workerPath: new URL('lib/ocr/worker.min.js', location.href).href,
+      corePath:   new URL('lib/ocr', location.href).href,
+      langPath:   new URL('lib/lang', location.href).href
+    });
+  }catch(e){ removeProgress(); say('I could not start the OCR engine ('+e.message+').'); return; }
+  ocrBusy = true;
+  let started = false;
+  for(let p=1; p<=numPages; p++){
+    sayProgress(`🔍 Recognising page ${p} of ${numPages}…`);
+    try{
+      const pg = pages[p-1];
+      const S = 2;
+      const vp = pg.page.getViewport({scale: S});
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
+      await pg.page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise;
+      const res = await worker.recognize(canvas, {}, {blocks:true, text:true});
+      const data = res.data || {};
+      pg.lineStart = lines.length;
+      const pushLine = (text, bbox)=>{
+        const t = (text||'').replace(/\s+/g,' ').trim();
+        if(t.length < 2 || !bbox) return;
+        lines.push({
+          text: t, page: p,
+          x: bbox.x0 / S, xEnd: bbox.x1 / S,
+          y: pg.h - bbox.y1 / S,
+          h: (bbox.y1 - bbox.y0) / S,
+          items: []
+        });
+      };
+      if(Array.isArray(data.blocks) && data.blocks.length){
+        data.blocks.forEach(b=> (b.paragraphs||[]).forEach(par=> (par.lines||[]).forEach(l=> pushLine(l.text, l.bbox))));
+      }else if(data.text){
+        data.text.split('\n').forEach(t=> pushLine(t, {x0:40, x1:pg.w*2-40, y0:0, y1:0}));
+      }
+      pg.lineEnd = lines.length;
+      buildSentencesChunk(pg.lineStart, pg.lineEnd);
+    }catch(e){ say(`Page ${p}: OCR problem (${e.message}). Skipping.`,'sys'); }
+    updateProgress();
+    if(!started && sentences.length){
+      started = true;
+      setDocBusy(false);
+      say('Page 1 is ready — reading while I convert the rest in the background.');
+      playing = true; setPlayBtn(); speakLine(0);
+    } else if(waitingForMore && sentences.length > current+1){
+      waitingForMore = false;
+      playing = true; setPlayBtn(); speakLine(current+1);
+    }
+  }
+  ocrBusy = false;
+  try{ await worker.terminate(); }catch(e){}
+  removeProgress();
+  setDocBusy(false);
+  if(!lines.length){ say('Sorry — I could not recognise any text in this scan.'); return; }
+  buildPageOptions();
+  say(`Done! All ${numPages} pages converted.`);
+  if(waitingForMore){ waitingForMore = false; finishDoc(); }
+}
+
+/* ---------------- AI backend ---------------- */
+function companionLang(){
+  const v = currentVoice();
+  const code = v ? v.lang : 'en';
+  if(/^en/i.test(code)) return 'English';
+  try{ return new Intl.DisplayNames(['en'], {type:'language'}).of(code.split('-')[0]) || 'English'; }
+  catch(e){ return 'English'; }
+}
+/* Build the best possible document context for a question.
+   Small docs: send everything. Big docs: current area + parts matching the question. */
+function buildContext(question){
+  const full = lines.map(l=>`[p${l.page}] ${l.text}`).join('\n');
+  if(full.length <= 8000) return full;
+  const parts = [];
+  parts.push('DOCUMENT START:\n' + full.slice(0, 500));
+  if(current >= 0 && sentences.length){
+    parts.push('CURRENT READING POSITION:\n' + sentences.slice(Math.max(0,current-2), current+3).map(s=>`[p${s.page}] ${s.text}`).join('\n'));
+  }
+  const words = (question||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>3);
+  if(words.length){
+    const scored = [];
+    lines.forEach((l,i)=>{
+      const t = l.text.toLowerCase();
+      const score = words.reduce((n,w)=> n + (t.includes(w)?1:0), 0);
+      if(score>0) scored.push({i, score});
+    });
+    scored.sort((a,b)=>b.score-a.score);
+    const picked = new Set();
+    scored.slice(0,12).forEach(s=>{ for(let k=Math.max(0,s.i-1); k<=Math.min(lines.length-1,s.i+1); k++) picked.add(k); });
+    if(picked.size){
+      const rel = [...picked].sort((a,b)=>a-b).map(i=>`[p${lines[i].page}] ${lines[i].text}`).join('\n');
+      parts.push('RELEVANT PARTS FOUND FOR THIS QUESTION:\n' + rel);
+    }
+  }
+  parts.push('DOCUMENT END:\n' + full.slice(-500));
+  return parts.join('\n\n').slice(0, 8500);
+}
+
+/* Fresh access token; forceRefresh asks Supabase for a new one (stale-token fix, e.g. Brave) */
+async function authToken(forceRefresh){
+  if(!sb) return null;
+  try{
+    if(forceRefresh){
+      const {data} = await sb.auth.refreshSession();
+      if(data && data.session) return data.session.access_token;
+    }
+    const {data:{session:s}} = await sb.auth.getSession();
+    return s ? s.access_token : null;
+  }catch(e){ return null; }
+}
+async function askAI(question, context){
+  let token = await authToken();
+  if(!token) throw new Error('Not logged in');
+  const call = t => fetch(CONFIG.API_URL, {
+    method:'POST',
+    headers:{'content-type':'application/json', 'authorization':'Bearer '+t},
+    body: JSON.stringify({question, context, docName, history: chatHistory.slice(-6), lang: companionLang(),
+      tier: aiTier, optimize: aiSaver})
+  });
+  let res = await call(token);
+  if(res.status === 401){                     /* stale token — refresh once and retry */
+    token = await authToken(true);
+    if(token) res = await call(token);
+  }
+  if(!res.ok){
+    let msg = 'server '+res.status;
+    try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
+    if(res.status === 401) msg = 'Your login session has expired — tap 🔑 in the top bar and login again.';
+    throw new Error(msg);
+  }
+  const d = await res.json();
+  chatHistory.push({role:'user', content:question});
+  chatHistory.push({role:'assistant', content:d.answer});
+  updateBalance(d.tokens_left);
+  return d.answer;
+}
+
+/* ---------------- Companion conversation ---------------- */
+function localTopicSearch(q){
+  const needle = q.toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  if(needle.length < 3) return -1;
+  let idx = sentences.findIndex(s=>s.text.toLowerCase().includes(needle));
+  if(idx >= 0) return idx;
+  const words = needle.split(' ').filter(w=>w.length>3);
+  if(!words.length) return -1;
+  let best = -1, bestScore = 0;
+  sentences.forEach((s,i)=>{
+    const t = s.text.toLowerCase();
+    const score = words.reduce((n,w)=> n + (t.includes(w)?1:0), 0);
+    if(score > bestScore){ bestScore = score; best = i; }
+  });
+  return bestScore >= Math.max(1, Math.ceil(words.length/2)) ? best : -1;
+}
+function handleStartReply(t){
+  const s = t.toLowerCase().trim();
+  /* only treat as "from the beginning" when the message is really just that */
+  if(/^(from\s+)?(the\s+)?(first\s+page|beginning|top|start|start from the beginning|from the start)\.?$/.test(s)){
+    awaitingStart=false; say('From the top it is!'); playing=true; setPlayBtn(); speakLine(0); return true;
+  }
+  const isQuestion = /\?/.test(t)
+    || /^(what|which|who|why|how|when|where|can|could|would|should|do|does|did|is|are|explain|tell|summari|translate)\b/i.test(t.trim())
+    || t.trim().split(/\s+/).length > 5;
+  if(!isQuestion){
+    const idx = localTopicSearch(t);
+    if(idx >= 0){
+      awaitingStart = false;
+      const found = `Found it — "${t}" appears on page ${sentences[idx].page}. Starting there.`;
+      say(found); speakText(found, ()=>{ playing=true; setPlayBtn(); speakLine(idx); });
+      return true;
+    }
+    if(!companionAvailable()){
+      say(`I could not find "${t}". Try another topic, a page number, or say "from the first page".`);
+      return true;
+    }
+  }
+  return false;
+}
+async function explainPage(p){
+  const sents = sentences.filter(x=>x.page===p);
+  if(!sents.length){ say(`Page ${p} has no readable text.`); return; }
+  if(!companionAvailable()){ say(session ? 'Turn the 🤖 companion on first.' : 'Login to unlock explanations.'); return; }
+  const wasPlaying = playing;
+  if(playing) togglePlay();
+  const idx = sentences.findIndex(x=>x.page===p);
+  if(idx>=0){ current = idx; positionMarker(lines[sentences[idx].parts[0].line]); scrollToLine(lines[sentences[idx].parts[0].line]); updateProgress(); }
+  sayProgress('Thinking…');
+  try{
+    const txt = sents.map(x=>x.text).join(' ').slice(0, 7000);
+    const ans = await askAI(`Explain page ${p} of the document simply and briefly.`, txt);
+    removeProgress();
+    say(ans);
+    speakText(ans, ()=>{ if(wasPlaying){ playing=true; setPlayBtn(); speakLine(current); } });
+  }catch(e){ removeProgress(); say('Could not explain ('+e.message+').'); }
+}
+
+let lastFoundIdx = -1;
+function searchAndRead(q){
+  const idx = localTopicSearch(q);
+  if(idx >= 0){
+    awaitingStart = false;
+    lastFoundIdx = idx;
+    say(`Found it on page ${sentences[idx].page} — reading from there.`);
+    playing = true; setPlayBtn(); speakLine(idx);
+  }else{
+    lastFoundIdx = -1;
+    say(`I could not find "${q}" in the document.`);
+    speakText(`I could not find ${q} in the document.`);
+  }
+  return true;
+}
+
+function handleCommand(t){
+  const s = t.toLowerCase().trim();
+  /* "read from there" / "start from there / that" — use the last found spot */
+  if(/\b(from|at)\s+(there|that|here|it)\b/.test(s) || /^(read|start|continue|go|begin)\s+(it|on|reading)?\s*$/.test(s)){
+    if(lastFoundIdx >= 0){ awaitingStart=false; say('Reading from there.'); playing=true; setPlayBtn(); speakLine(lastFoundIdx); return true; }
+  }
+  /* explain / summarize a page (either word order: "page 5 and explain" or "explain page 5") */
+  const pgEx = s.match(/page\s+(\d+)\s+and\s+(?:explain|summari[sz]e)/) || s.match(/(?:explain|summari[sz]e)\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+page/) || s.match(/(?:explain|summari[sz]e)\s+page\s+(\d+)/);
+  if(pgEx){ explainPage(parseInt(pgEx[1])); return true; }
+  if(/^(?:explain|summari[sz]e)\s+(?:this\s+)?page$/.test(s)){
+    explainPage(sentences[Math.max(current,0)]?.page || 1); return true;
+  }
+  /* page number: "page 17", "page number 17", "pg 17", "17 page", "17th page" */
+  const pageM = s.match(/(?:page|pg)\.?\s*(?:number\s*|no\.?\s*|#\s*)?(\d+)/) || s.match(/\b(\d+)(?:st|nd|rd|th)?\s+page\b/);
+  if(pageM){
+    const p = parseInt(pageM[1]);
+    /* if they also named a topic, jump to that topic (searching whole doc) */
+    const topic = s.replace(/\b(read|reading|go|going|to|start|starting|begin|from|at|the|page|pg|number|no|st|nd|rd|th|can|could|we|you|i|please|part|section|on|of)\b/g,' ')
+                    .replace(/\d+/g,' ').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+    if(topic.length > 3){
+      const idx = localTopicSearch(topic);
+      if(idx >= 0){ lastFoundIdx = idx; awaitingStart=false; say(`Found "${topic}" on page ${sentences[idx].page} — reading from there.`); playing=true; setPlayBtn(); speakLine(idx); return true; }
+      say(`I couldn't find "${topic}", so I'll start at page ${p}.`);
+    }
+    if(!goPage(p)) say(`I don't see a page ${p} — this document has ${numPages} pages.`);
+    else { lastFoundIdx = sentences.findIndex(x=>x.page===p); awaitingStart=false; if(topic.length<=3) say(`Reading from page ${p}.`); playing=true; setPlayBtn(); const si=sentences.findIndex(x=>x.page===p); if(si>=0) speakLine(si); }
+    return true;
+  }
+  const searchM = s.match(/^(?:search|find|look)(?:\s+for)?\s+(.+)$/);
+  if(searchM) return searchAndRead(searchM[1]);
+  /* "start/read from <topic>", "can we start from the red blood cells section" */
+  const fromM = s.match(/(?:can (?:we|you) )?(?:start|read|begin|go|jump)\s+(?:reading\s+)?(?:from|at|to)\s+(?:the\s+)?(.+?)(?:\s+section|\s+part|\s+chapter)?$/);
+  if(fromM && fromM[1].length > 3 && !/^(there|here|that|it|first|top|beginning|start)$/.test(fromM[1].trim())){
+    return searchAndRead(fromM[1].trim());
+  }
+  const goM = s.match(/^go to\s+(.+)$/);
+  if(goM) return searchAndRead(goM[1].replace(/^the\s+/,''));
+  if(/^(play|start|read|resume|continue)$/.test(s)){ if(!playing) togglePlay(); say('Reading.'); return true; }
+  if(/^(pause|stop|wait|halt)$/.test(s)){ if(playing) togglePlay(); say('Paused. Say "play" when you are ready.'); return true; }
+  if(/^(slower|slow down)$/.test(s)){ const o=$('rateSel'); o.selectedIndex=Math.max(0,o.selectedIndex-1); if(playing) speakLine(current); say(`chd: ${o.value}×.`); return true; }
+  if(/^(faster|speed up)$/.test(s)){ const o=$('rateSel'); o.selectedIndex=Math.min(o.options.length-1,o.selectedIndex+1); if(playing) speakLine(current); say(`Speed: ${o.value}×.`); return true; }
+  if(/^(next|skip)$/.test(s)){ jumpTo(current+1); if(!playing) togglePlay(); return true; }
+  if(/^(back|previous|repeat|again)$/.test(s)){ jumpTo(/repeat|again/.test(s)?current:current-1); if(!playing) togglePlay(); return true; }
+  if(/^explain( this| that)?$/.test(s)){ if(current>=0 && sentences[current]){ selText=sentences[current].text; selLine=sentences[current].parts[0].line; $('selExplain').click(); } else say('Start reading first, then ask me to explain.'); return true; }
+  return false;
+}
+async function sendChat(){
+  const t = $('chatInput').value.trim();
+  if(!t) return;
+  $('chatInput').value='';
+  say(t,'user');
+  if(handleCommand(t)) return;
+  if(awaitingStart && lines.length){ if(handleStartReply(t)) return; }
+  if(companionAvailable()){
+    const wasPlaying = playing;
+    if(playing) togglePlay();
+    sayProgress('Thinking…');
+    try{
+      const ans = await askAI(t, buildContext(t));
+      removeProgress();
+      say(ans);
+      speakText(ans, ()=>{ if(wasPlaying){ playing=true; setPlayBtn(); speakLine(current+1); } });
+    }catch(e){
+      removeProgress();
+      say('I could not reach my brain ('+e.message+').');
+    }
+  }else{
+    say(session
+      ? 'Companion is off — toggle 🤖 in the top bar to chat. Commands: play, pause, slower, faster, next, back, read page N.'
+      : 'Login to chat with me! Without login I understand: play, pause, slower, faster, next, back, read page N.');
+  }
+}
+$('sendBtn').addEventListener('click', sendChat);
+$('chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter') sendChat(); });
+
+/* ---------------- Mic — hybrid speech recognition ----------------
+   1) Browser SpeechRecognition (Chrome/Edge): free and instant.
+   2) If unsupported (Brave, Firefox…) or it fails with an unrecoverable
+      error, fall back automatically to recording the mic and transcribing
+      on the server (Cloudflare Worker → OpenAI), no user action needed. */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false, srBroken = !SR;
+let mediaRec = null, mediaChunks = [], mediaStream = null, mediaTimer = null;
+if(SR){
+  rec = new SR();
+  rec.lang = 'en-IN';
+  rec.interimResults = false;
+  rec.maxAlternatives = 1;
+  rec.onresult = e=>{ $('chatInput').value = e.results[0][0].transcript; sendChat(); };
+  rec.onend = ()=> setListening(false);
+  rec.onerror = e=>{
+    setListening(false);
+    if(e.error === 'not-allowed'){ say('Please allow microphone access in your browser to talk to me.','sys'); return; }
+    if(e.error === 'no-speech' || e.error === 'aborted') return;
+    /* network / service-not-allowed / audio-capture etc. → this browser cannot do it natively */
+    console.warn('SpeechRecognition failed:', e.error, '→ switching to cloud transcription');
+    srBroken = true;
+    startServerSTT();   /* take over seamlessly */
+  };
+}
+function setListening(on){
+  listening = on;
+  $('micBtn').classList.toggle('listening', on);
+  $('micBar').classList.toggle('listening', on);
+}
+function startListening(){
+  if(listening){ stopAnyListening(); return; }
+  if(playing) togglePlay();
+  cancelSpeech2();
+  if(rec && !srBroken){
+    setListening(true);
+    try{ rec.start(); }catch(e){ srBroken = true; setListening(false); startServerSTT(); }
+  }else{
+    startServerSTT();
+  }
+}
+function stopAnyListening(){
+  if(mediaRec && mediaRec.state === 'recording'){ clearTimeout(mediaTimer); mediaRec.stop(); return; }
+  if(rec){ try{ rec.stop(); }catch(e){} }
+  setListening(false);
+}
+async function startServerSTT(){
+  if(!session || !configured){ say('This browser needs cloud voice recognition — please login first, then the 🎤 will work.','sys'); return; }
+  if(!navigator.mediaDevices || !window.MediaRecorder){ say('Microphone recording is not available in this browser.','sys'); return; }
+  try{ mediaStream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ say('Please allow microphone access in your browser to talk to me.','sys'); return; }
+  mediaChunks = [];
+  const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+             : MediaRecorder.isTypeSupported('audio/mp4')  ? 'audio/mp4' : '';
+  try{ mediaRec = new MediaRecorder(mediaStream, mime ? {mimeType:mime} : undefined); }
+  catch(e){ mediaStream.getTracks().forEach(t=>t.stop()); say('Recording is not supported here.','sys'); return; }
+  mediaRec.ondataavailable = e=>{ if(e.data && e.data.size) mediaChunks.push(e.data); };
+  mediaRec.onstop = async ()=>{
+    if(mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream = null; }
+    setListening(false);
+    const blob = new Blob(mediaChunks, {type: mime || 'audio/webm'});
+    mediaChunks = [];
+    if(blob.size < 1500) return;              /* too short to contain speech */
+    sayProgress('👂 Understanding…');
+    try{
+      const call = t => fetch(CONFIG.API_URL + '/stt', {
+        method:'POST',
+        headers:{ authorization:'Bearer '+t, 'content-type': blob.type },
+        body: blob
+      });
+      let token = await authToken();
+      let r = token ? await call(token) : null;
+      if(!r || r.status === 401){             /* stale token — refresh once and retry */
+        token = await authToken(true);
+        if(token) r = await call(token);
+      }
+      const j = r ? await r.json().catch(()=>null) : null;
+      removeProgress();
+      if(r && r.ok && j && j.text){ $('chatInput').value = j.text; sendChat(); }
+      else if(r && r.status === 401) say('Your login session has expired — tap 🔑 in the top bar and login again, then the mic will work.','sys');
+      else say((j && j.error) || 'I could not hear that clearly — please try again.','sys');
+    }catch(e){ removeProgress(); say('Voice transcription failed ('+e.message+').','sys'); }
+  };
+  setListening(true);
+  say('🎙 Listening… tap the mic again when you finish speaking.','sys');
+  mediaRec.start();
+  clearTimeout(mediaTimer);
+  mediaTimer = setTimeout(()=>{ if(mediaRec && mediaRec.state === 'recording') mediaRec.stop(); }, 20000);
+}
+$('micBtn').addEventListener('click', startListening);
+$('micBar').addEventListener('click', startListening);
+$('moreBtn').addEventListener('click', ()=> $('playbar').classList.toggle('expanded'));
+
+/* ---------------- Wallet & plans ---------------- */
+let me = null;
+function fmtTokens(n){ return n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1000 ? Math.round(n/1000)+'k' : String(n); }
+async function fetchMe(){
+  if(!session || !configured) return;
+  try{
+    const token = await authToken();
+    if(!token) return;
+    const r = await fetch(CONFIG.API_URL + '/me', {headers:{authorization:'Bearer '+token}});
+    if(r.ok){ me = await r.json(); renderWallet(); }
+  }catch(e){}
+}
+const PLAN_SIZES = { sub_openai_49: 500000, sub_claude_99: 120000 };
+const PLAN_INR = { sub_openai_49: 49, sub_claude_99: 99 };
+const RATE_INR = { openai: 49/500000, anthropic: 99/120000 };
+/* live plan config from the payments worker — env-configured prices, no redeploy drift */
+(async ()=>{
+  try{
+    if(!configured || CONFIG.PAY_URL.startsWith('PASTE')) return;
+    const r = await fetch(CONFIG.PAY_URL + '/config');
+    if(!r.ok) return;
+    const c = await r.json();
+    if(!c || !c.plans) return;
+    for(const k of ['sub_openai_49','sub_claude_99']){
+      const p = c.plans[k];
+      if(!p || !p.inr || !p.tokens) continue;
+      PLAN_SIZES[k] = p.tokens;
+      PLAN_INR[k] = p.inr;
+      RATE_INR[k === 'sub_claude_99' ? 'anthropic' : 'openai'] = p.inr / p.tokens;
+    }
+  }catch(e){ /* fall back to the built-in defaults */ }
+})();
+/* user-facing engine names — provider ids never appear in the UI */
+const ENGINE = { openai: 'Swift', anthropic: 'Sage', free: 'Spark', bedrock: 'Spark' };
+const TIER_LABEL = { core: 'Core', plus: 'Plus', ultra: 'Ultra' };
+let aiTier = localStorage.getItem('ra_tier') || 'core';
+let aiSaver = localStorage.getItem('ra_saver') === '1';
+function renderWallet(){
+  if(!me){ $('wallet').style.display='none'; return; }
+  if(me.effective === 'paid'){
+    $('wallet').style.display='block';
+    const max = Math.max(me.tokens_balance + (me.tokens_used || 0), 1);
+    const pct = Math.max(0, Math.min(100, Math.round(me.tokens_balance / max * 100)));
+    const tierTag = me.plan === 'doc' ? 'this document' : TIER_LABEL[aiTier] || 'Core';
+    const label = (ENGINE[me.provider] || 'Swift') + ' · ' + tierTag + ' · ' + pct + '% left';
+    $('walletLabel').textContent = label;
+    $('walletLabel').title = fmtTokens(me.tokens_balance) + ' of ' + fmtTokens(max) + ' tokens';
+    $('walletFill').style.width = pct + '%';
+    $('planStatus').textContent = 'Current: ' + label + '.';
+  }else{
+    $('wallet').style.display='block';
+    $('walletLabel').textContent = 'Free plan · Spark engine';
+    $('walletFill').style.width = '100%';
+    $('planStatus').textContent = 'You are on the Free plan (Spark engine).';
+  }
+}
+function updateBalance(left){
+  if(me && typeof left === 'number'){ me.tokens_balance = left; if(left <= 0){ me.effective='free'; say('Your token pack is finished — you are back on the Free plan. Tap ⭐ to top up.','sys'); } renderWallet(); }
+}
+
+function openPlans(){
+  if(!session){ say('Login first to upgrade.'); return; }
+  /* label cards by current state: top-up vs switch */
+  const curProv = (me && me.effective==='paid') ? me.provider : null;
+  document.querySelectorAll('.planCard[data-plan^="sub_"]').forEach(c=>{
+    const prov = c.dataset.plan==='sub_claude_99' ? 'anthropic' : 'openai';
+    const price = c.querySelector('.price');
+    const base = '₹' + (PLAN_INR[c.dataset.plan] || (c.dataset.plan==='sub_claude_99' ? 99 : 49));
+    if(!curProv) price.textContent = base;
+    else if(prov === curProv) price.innerHTML = base + '<br><small style="font-weight:400">top up</small>';
+    else price.innerHTML = base + '<br><small style="font-weight:400">switch + buy</small>';
+  });
+  /* free switch card: active SUBSCRIPTION balance, both directions (doc packs are Swift-locked) */
+  if(curProv && me.tokens_balance > 0 && me.plan !== 'doc'){
+    const toSage = curProv === 'openai';
+    const conv = Math.floor(me.tokens_balance * RATE_INR[curProv] / RATE_INR[toSage ? 'anthropic' : 'openai']);
+    $('convertCard').querySelector('b').textContent = toSage ? 'Switch to Sage — free' : 'Switch to Swift — free';
+    $('convertDesc').textContent = `${fmtTokens(me.tokens_balance)} ${toSage?'Swift':'Sage'} tokens → ~${fmtTokens(conv)} ${toSage?'Sage':'Swift'} tokens. Same money value.`;
+    $('convertCard').style.display = 'flex';
+  }else{
+    $('convertCard').style.display = 'none';
+  }
+  /* pay-per-document: only for users WITHOUT an active paid balance */
+  const onFree = !me || me.effective !== 'paid';
+  if(onFree && lines.length && numPages){
+    $('docPlanCard').style.display='flex';
+    $('docPlanDesc').textContent = `One-time unlock for ${docLabel || 'this document'} (${numPages} pages) on Swift`;
+    const tokens = numPages*800*4 + 50000;
+    $('docPlanPrice').textContent = '₹' + Math.max(19, Math.ceil((tokens/1e6)*30*2.5));
+  }else{
+    $('docPlanCard').style.display='none';
+  }
+  /* custom top-up: active subscribers keep their engine; others pick */
+  if(curProv && me.plan !== 'doc'){
+    $('customProv').value = curProv;
+    $('customProv').disabled = true;
+  }else{
+    $('customProv').disabled = false;
+  }
+  customPreview();
+  /* engine power + Token Saver: subscribers only (doc packs run Core, no options) */
+  const isSub = me && me.effective === 'paid' && me.plan !== 'doc';
+  $('tierBox').style.display = isSub ? 'block' : 'none';
+  if(isSub){
+    document.querySelectorAll('.tierBtn').forEach(b=> b.classList.toggle('on', b.dataset.tier === aiTier));
+    $('saverToggle').checked = aiSaver;
+  }
+  renderWallet();
+  $('plans').style.display='flex';
+}
+document.querySelectorAll('.tierBtn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const t = b.dataset.tier;
+    if(t === 'ultra' && aiTier !== 'ultra'){
+      if(!confirm('⚠ Ultra uses the most powerful engine — it gives the best answers but uses your balance much faster (up to 25× per question). Continue?')) return;
+    }
+    aiTier = t;
+    localStorage.setItem('ra_tier', t);
+    document.querySelectorAll('.tierBtn').forEach(x=> x.classList.toggle('on', x === b));
+    renderWallet();
+    say(`Engine power set to ${TIER_LABEL[t]}.` + (t==='ultra' ? ' ⚠ This burns tokens much faster.' : ''), 'sys');
+  });
+});
+$('saverToggle').addEventListener('change', e=>{
+  aiSaver = e.target.checked;
+  localStorage.setItem('ra_saver', aiSaver ? '1' : '0');
+  say(aiSaver ? '🪄 Token Saver is ON — I will compress what I send to the engine to stretch your balance.'
+              : 'Token Saver is off.', 'sys');
+});
+$('upgradeBtn').addEventListener('click', openPlans);
+$('plansClose').addEventListener('click', ()=> $('plans').style.display='none');
+$('plans').addEventListener('click', e=>{ if(e.target===$('plans')) $('plans').style.display='none'; });
+
+function loadRzp(){
+  return new Promise((res, rej)=>{
+    if(window.Razorpay) return res();
+    const sc = document.createElement('script');
+    sc.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    sc.onload = res; sc.onerror = ()=>rej(new Error('Could not load payment window'));
+    document.head.appendChild(sc);
+  });
+}
+async function doFreeUpgrade(){
+  $('plans').style.display='none';
+  sayProgress('Switching your plan…');
+  try{
+    const {data:{session:s}} = await sb.auth.getSession();
+    const r = await fetch(CONFIG.PAY_URL + '/switch', {
+      method:'POST',
+      headers:{'content-type':'application/json', authorization:'Bearer '+s.access_token},
+      body:'{}'
+    });
+    const v = await r.json();
+    removeProgress();
+    if(v.ok){ say(`🔁 Done! You are now on the ${ENGINE[v.provider]||'Swift'} plan with ${fmtTokens(v.tokens_balance)} tokens.`); await fetchMe(); }
+    else say('Switch failed: ' + (v.error||'unknown'));
+  }catch(e){ removeProgress(); say('Switch error: '+e.message); }
+}
+
+/* custom top-up: live token preview + provider lock for active subscribers */
+function customPreview(){
+  const amt = parseInt($('customAmt').value) || 0;
+  const prov = $('customProv').value;
+  $('customTok').textContent = (amt >= 49 && amt <= 5000)
+    ? '≈ ' + fmtTokens(Math.floor(amt / RATE_INR[prov])) + ' tokens'
+    : 'min ₹49';
+}
+$('customAmt').addEventListener('input', customPreview);
+$('customProv').addEventListener('change', customPreview);
+$('customBuy').addEventListener('click', ()=>{
+  const amt = parseInt($('customAmt').value) || 0;
+  if(amt < 49){ $('customTok').textContent = 'min ₹49'; $('customAmt').focus(); return; }
+  if(amt > 5000){ $('customTok').textContent = 'max ₹5000'; $('customAmt').focus(); return; }
+  buy('topup', { inr: amt, provider: $('customProv').value });
+});
+
+async function buy(planKey, extra){
+  if(CONFIG.PAY_URL.startsWith('PASTE')){ say('Payments are not set up yet.','sys'); return; }
+  $('plans').style.display='none';
+  sayProgress('Preparing payment…');
+  try{
+    await loadRzp();
+    const {data:{session:s}} = await sb.auth.getSession();
+    const or = await fetch(CONFIG.PAY_URL + '/order', {
+      method:'POST',
+      headers:{'content-type':'application/json', authorization:'Bearer '+s.access_token},
+      body: JSON.stringify(Object.assign({plan: planKey, pages: numPages || 1}, extra || {}))
+    });
+    if(!or.ok){ const j = await or.json().catch(()=>({})); throw new Error(j.error||'order failed'); }
+    const order = await or.json();
+    removeProgress();
+    const rz = new Razorpay({
+      key: order.key_id,
+      order_id: order.order_id,
+      amount: order.amount,
+      currency: 'INR',
+      name: 'Lexora AI',
+      description: order.label,
+      prefill: { email: session.user.email },
+      theme: { color: '#ffb347' },
+      handler: async (resp)=>{
+        sayProgress('Confirming payment…');
+        try{
+          const vr = await fetch(CONFIG.PAY_URL + '/verify', {
+            method:'POST',
+            headers:{'content-type':'application/json', authorization:'Bearer '+s.access_token},
+            body: JSON.stringify(resp)
+          });
+          const v = await vr.json();
+          removeProgress();
+          if(v.ok){
+            say(`🎉 Payment successful! ${fmtTokens(v.tokens_balance)} tokens in your wallet. Enjoy!`);
+            await fetchMe();
+          }else say('Payment verification failed: ' + (v.error||'unknown') + '. If money was deducted, contact support.');
+        }catch(e){ removeProgress(); say('Payment verification error: '+e.message); }
+      }
+    });
+    rz.open();
+  }catch(e){ removeProgress(); say('Payment could not start ('+e.message+').'); }
+}
+document.querySelectorAll('.planCard[data-plan]').forEach(c=> c.addEventListener('click', ()=> buy(c.dataset.plan)));
+$('convertCard').addEventListener('click', doFreeUpgrade);
+
+/* ---------------- Theme ---------------- */
+$('themeBtn').addEventListener('click', ()=>{
+  document.body.classList.toggle('light');
+  localStorage.setItem('ra_theme', document.body.classList.contains('light')?'light':'dark');
+});
+if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');
+
+/* ---------------- Boot ---------------- */
+initAuth();
+updateMode();
+</script>
+<script src="scripts/nav.js"></script>
+<button id="compReopen">💬 Companion</button>
+</body>
+</html>

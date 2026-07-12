@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Log in — Lexora AI</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="styles/app.css">
+<link rel="stylesheet" href="styles/theme.css">
+<style>
+  /* standalone page: no app behind the overlay */
+  body{overflow:hidden}
+  #sideNav, header{display:none!important}
+</style>
+</head>
+<body>
+<script>if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');</script>
+
+<div id="login">
+  <div class="card">
+    <div class="logo2">L</div>
+    <h2>Log in to Lexora <span>AI</span></h2>
+    <p><b style="color:var(--text)">Your AI Companion for Every Document.</b><br>No account needed — one is created automatically the first time you log in.</p>
+    <button id="googleBtn">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.7 1.22 9.2 3.6l6.85-6.85C35.9 2.4 30.5 0 24 0 14.6 0 6.5 5.4 2.55 13.3l7.98 6.2C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.55c0-1.57-.15-3.09-.4-4.55H24v9.02h12.4c-.55 2.9-2.17 5.35-4.6 7l7.5 5.85C43.9 37.6 46.1 31.65 46.1 24.55z"/><path fill="#FBBC05" d="M10.53 28.5c-.48-1.45-.76-2.96-.76-4.5s.28-3.05.76-4.5l-7.98-6.2C.92 16.46 0 20.12 0 24s.92 7.54 2.55 10.7l7.98-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.15 15.85-5.85l-7.5-5.85c-2.1 1.4-4.8 2.25-8.35 2.25-6.3 0-11.6-4.1-13.47-9.75l-7.98 6.2C6.5 42.6 14.6 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <button id="appleBtn">
+      <svg viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+      Continue with Apple
+    </button>
+    <div class="divider">or</div>
+    <div id="loginMsg"></div>
+    <div style="display:flex; justify-content:space-between; align-items:baseline">
+      <label class="fieldLabel" for="emailInput">Email</label>
+      <button id="emailEdit" style="display:none; background:none; border:none; color:var(--accent); font-size:12.5px; cursor:pointer; padding:0 2px 6px">✏️ Change</button>
+    </div>
+    <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
+    <button id="loginBtn">Continue with email</button>
+    <div id="otpRow" style="display:none; margin-top:12px">
+      <label class="fieldLabel" for="otpInput">6-digit code from the email</label>
+      <input id="otpInput" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code">
+      <button id="otpBtn">Login with code</button>
+    </div>
+    <button id="guestBtn">Continue without login (reader only) →</button>
+    <p class="foot">By continuing, you agree to our <a href="privacy.html" target="_blank">Terms &amp; Privacy Policy</a>.<br>No ads · no tracking · your documents never leave your device.</p>
+  </div>
+</div>
+
+<script>
+'use strict';
+const CONFIG = {
+  SUPABASE_URL: 'https://lgwqqytjqoenozhjhbkr.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_lK4DQ5LVguBYO-4afNbbVw_J_WLNlWv'
+};
+const $ = id => document.getElementById(id);
+const APP_URL = new URL('index.html', location.href).href;   /* where every successful login lands */
+const configured = !CONFIG.SUPABASE_URL.startsWith('PASTE');
+const sb = (configured && window.supabase) ? supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
+
+/* already logged in? straight into the app */
+(async ()=>{
+  if(!sb){
+    $('loginMsg').style.color = 'var(--warn)';
+    $('loginMsg').textContent = 'Backend not set up yet — reader mode only.';
+    $('emailInput').style.display = 'none';
+    $('loginBtn').style.display = 'none';
+    return;
+  }
+  const {data:{session:s}} = await sb.auth.getSession();
+  if(s){ location.replace(APP_URL); return; }
+  sb.auth.onAuthStateChange((ev, s2)=>{ if(s2) location.replace(APP_URL); });
+})();
+
+/* after sending: lock the email, turn the button into a resend countdown */
+let resendInt = null, resendLeft = 0;
+function startCooldown(secs){
+  clearInterval(resendInt);
+  resendLeft = Math.max(1, secs|0);
+  $('loginBtn').disabled = true;
+  $('loginBtn').textContent = `Resend in ${resendLeft}s`;
+  resendInt = setInterval(()=>{
+    resendLeft--;
+    if(resendLeft <= 0){ clearInterval(resendInt); $('loginBtn').disabled = false; $('loginBtn').textContent = 'Resend link & code'; }
+    else $('loginBtn').textContent = `Resend in ${resendLeft}s`;
+  }, 1000);
+}
+function lockEmail(){ $('emailInput').readOnly = true; $('emailInput').style.opacity = .65; $('emailEdit').style.display = 'inline-block'; }
+function unlockEmail(){
+  $('emailInput').readOnly = false; $('emailInput').style.opacity = 1; $('emailEdit').style.display = 'none';
+  clearInterval(resendInt);
+  $('loginBtn').disabled = false; $('loginBtn').textContent = 'Continue with email';
+  $('otpRow').style.display = 'none'; $('loginMsg').textContent = '';
+  $('emailInput').focus();
+}
+$('emailEdit').addEventListener('click', unlockEmail);
+$('loginBtn').addEventListener('click', async ()=>{
+  const email = $('emailInput').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){ $('loginMsg').style.color='var(--warn)'; $('loginMsg').textContent='Please enter a valid email.'; return; }
+  $('loginBtn').disabled = true;
+  const {error} = await sb.auth.signInWithOtp({email, options:{emailRedirectTo: APP_URL}});
+  $('loginMsg').style.color = error ? 'var(--warn)' : 'var(--ok)';
+  if(error){
+    const wait = (error.message.match(/after (\d+) seconds/) || [])[1];
+    if(wait){                       /* asked too soon — lock and count down exactly that long */
+      lockEmail(); startCooldown(+wait);
+      $('loginMsg').textContent = `Please wait — you can resend in ${wait} seconds.`;
+    }else{
+      $('loginBtn').disabled = false;
+      $('loginMsg').textContent = /rate limit/i.test(error.message)
+        ? 'Too many login emails were sent in the last hour — please try again later, or continue as guest below.'
+        : error.message;
+    }
+    return;
+  }
+  $('loginMsg').textContent = '✓ Sent! Check your email — click the link, or type the 6-digit code below.';
+  $('otpRow').style.display = 'block';
+  lockEmail();
+  startCooldown(50);
+  $('otpInput').focus();
+});
+$('otpBtn').addEventListener('click', async ()=>{
+  const email = $('emailInput').value.trim();
+  const code = $('otpInput').value.trim();
+  if(!/^\d{6}$/.test(code)){ $('loginMsg').style.color='var(--warn)'; $('loginMsg').textContent='The code is the 6-digit number from the email.'; return; }
+  $('otpBtn').disabled = true;
+  const {data, error} = await sb.auth.verifyOtp({ email, token: code, type: 'email' });
+  $('otpBtn').disabled = false;
+  if(error){ $('loginMsg').style.color='var(--warn)'; $('loginMsg').textContent = 'That code did not work — check it or request a new link.'; return; }
+  if(data && data.session) location.replace(APP_URL);
+});
+$('guestBtn').addEventListener('click', ()=>{ location.href = 'index.html#guest'; });
+$('googleBtn').addEventListener('click', async ()=>{
+  if(!sb) return;
+  const {error} = await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: APP_URL } });
+  if(error){
+    $('loginMsg').style.color = 'var(--warn)';
+    $('loginMsg').textContent = /provider is not enabled/i.test(error.message)
+      ? 'Google login is being set up — please use email for now.'
+      : error.message;
+  }
+});
+$('appleBtn').addEventListener('click', async ()=>{
+  if(!sb) return;
+  const {error} = await sb.auth.signInWithOAuth({ provider:'apple', options:{ redirectTo: APP_URL } });
+  if(error){
+    $('loginMsg').style.color = 'var(--warn)';
+    $('loginMsg').textContent = /provider is not enabled/i.test(error.message)
+      ? 'Apple login is coming soon — please use Google or email for now.'
+      : error.message;
+  }
+});
+</script>
+</body>
+</html>

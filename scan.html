@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Scan — Lexora AI</title>
+<script src="lib/ocr/tesseract.min.js"></script>
+<link rel="stylesheet" href="styles/theme.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body>
+<script>if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');</script>
+
+<aside id="sideNav">
+  <div class="brand"><span class="mark">L</span>Lexora <span>AI</span></div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="tools.html">Tools</a>
+    <a href="scan.html" class="active">Scan</a>
+    <a href="index.html#plans">Plans &amp; wallet</a>
+    <a href="settings.html">Settings</a>
+    <div class="navSep"></div>
+    <a href="privacy.html" target="_blank">Privacy</a>
+    <a href="terms.html" target="_blank">Terms</a>
+  </nav>
+  <div class="account">
+    <button id="acctTheme">Switch theme</button>
+    <button onclick="location.href='index.html'">Back to the reader</button>
+  </div>
+</aside>
+
+<div id="navVeil"></div>
+<div class="pageTop">
+  <button class="hambBtn" id="hambBtn" title="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+  <b>Scan · Lexora <span>AI</span></b>
+  <span class="spacer"></span>
+  <button class="btn ghost" id="topTheme" style="padding:6px 12px; font-size:12.5px">Theme</button>
+</div>
+
+<main><div class="wrap" style="max-width:640px">
+  <h1 class="pageTitle">📷 Scan a <span>paper</span></h1>
+  <p class="pageSub">Point at the page — I find the paper edges, straighten it and clean it up. Everything stays on your device.</p>
+
+  <div id="camWrap">
+    <video id="camVideo" autoplay playsinline muted></video>
+    <canvas id="camOverlay"></canvas>
+    <div id="camMsg">Starting the camera…</div>
+  </div>
+
+  <div id="camCtrls">
+    <select id="filterSel" style="width:auto">
+      <option value="enhance">✨ Enhance</option>
+      <option value="original">Original</option>
+      <option value="bw">B&amp;W scan</option>
+    </select>
+    <button id="shotBtn" title="Capture">📸</button>
+    <label class="btn ghost" style="cursor:pointer">📁 Photo
+      <input type="file" id="camInput" accept="image/*" capture="environment" multiple style="display:none">
+    </label>
+  </div>
+
+  <div id="shots"></div>
+
+  <div class="card" id="exportCard" style="display:none">
+    <h3 id="shotCount">1 page scanned</h3>
+    <p class="hint">Save your scan — or open the PDF in the reader to have it read aloud and explained.</p>
+    <div class="exportRow">
+      <button class="btn" id="expPdf">⬇ Save as PDF</button>
+      <button class="btn ghost" id="expWord">⬇ Word (.docx, OCR)</button>
+      <button class="btn ghost" id="expImgs">⬇ Images</button>
+    </div>
+    <p class="hint" id="expMsg" style="margin-top:10px"></p>
+  </div>
+</div></main>
+
+<script src="scripts/shared.js"></script>
+<script src="scripts/scan-engine.js"></script>
+<script src="scripts/scan-page.js"></script>
+</body>
+</html>

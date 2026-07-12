@@ -23,8 +23,20 @@
   .hr{border:none; border-top:1px solid #262b45; margin:44px 0}
   strong{color:#fff}
 </style>
+<link rel="stylesheet" href="styles/theme.css">
+<style>
+  /* Phase 2 restyle: Claude palette from theme.css, no gradients */
+  h1, h2{font-family:Georgia,'Times New Roman',serif; font-weight:600}
+  h2{color:var(--text); border-bottom:1px solid var(--line); padding-bottom:8px}
+  .logo{background:var(--accent) !important}
+  .card{background:var(--panel); border-color:var(--line)}
+  .hr{border-top-color:var(--line)}
+  strong{color:var(--text)}
+  .back:hover{color:var(--accent)}
+</style>
 </head>
 <body>
+<script>if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');</script>
 <div class="wrap">
   <a class="back" href="index.html">← Back to Lexora AI</a>
   <div class="logo" style="width:52px;height:52px;border-radius:13px;font-size:26px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent2))">L</div>
