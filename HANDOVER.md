@@ -319,6 +319,14 @@ Wallet: **universal ₹ wallet** — schema + worker-payments + frontend.
 
 ## 11. PHASE 4 — LIVE PROGRESS (update this as you go)
 
+▶ **START HERE NEXT:** Step 5 → build **Crop PDF** (first remaining free client tool — drag
+a rectangle over the rendered page → pdf-lib `setCropBox`, reusing the Sign/Edit editor
+infra). Then Redact, Forms-fill, Compare, Edit Word (all free client), then the ★ server
+tools (PDF→Excel, HTML→PDF, Translate). Mark each ⏳ IN PROGRESS before starting, ✅ DONE
+after. Steps 1–4 are DONE; PDF→PowerPoint (in Step 5) is DONE. Deploys pending: see §8 +
+the "Left to deploy" list. Standing rule: our own engines only, never a paid API.
+
+
 Phase 3 is DONE and TESTED (KRK confirmed Protect PDF + the ₹ wallet work). Phase 4
 started 12 July 2026 (evening). Order of attack (do the buildable-now pieces first;
 the conversion SERVER itself is external infra KRK must provision):
@@ -436,7 +444,48 @@ the conversion SERVER itself is external infra KRK must provision):
   `.fromWallet` styled in app.css. Re-deploy worker-payments.js + re-serve the frontend.
   STILL OPEN (optional): a fully dedicated wallet VIEW (currently the ₹ wallet lives at
   the top of the Plans modal, which is fine now that plans are bought from it).
-- **Step 5 — Own Voice TTS / PWA / Capacitor:** ⬜ later.
+- **Step 5 — Remaining "Soon" tools — engine-decided build plan** (KRK: use the best
+  engine per tool, NO paid API; our-own proprietary engine is a *later* upgrade only for
+  the complex ones). Rule of thumb: if it can run in the browser → FREE client tool (no
+  consent); if it needs the server → ★ premium (consent modal + free 50 pages/day cap +
+  ₹0.10/pg over cap, exactly like the existing premium flow). Progress:
+
+  - **PDF→PowerPoint (`pdf2ppt`)** ✅ DONE — now a **FREE client tool**: pdf.js renders each
+    page → **PptxGenJS** (lazy `ensurePptx`, cdnjs) builds a .pptx, one page-image per slide.
+    Reclassified from ★premium to free (removed premium/ptool/soon). Slides are images (not
+    editable text) — that's the honest open-source ceiling; true editable pptx = future own engine.
+
+  FREE client-side (build in tools-page.js, reuse the Sign/Edit editor infra — render pages,
+  drag items, save via pdf-lib; NO server/consent):
+  - **Crop (`crop`)** → interactive drag-rectangle over the rendered page → pdf-lib
+    `page.setCropBox(x,y,w,h)` (convert display px → pt like Sign/Edit). `preview:'crop'`.
+  - **Redact (`redact`)** → like Edit-PDF white-out but BLACK boxes, then **flatten** each
+    affected page: re-render that page to an image (pdf.js) with the black box baked in and
+    rebuild the PDF from images, so the covered text is truly removed (not just hidden).
+  - **PDF Forms — fill (`forms`)** → pdf-lib `doc.getForm()`, enumerate `getFields()`, render
+    an input per field, `field.setText()/check()`, optional `form.flatten()`. (Creating new
+    forms = defer.)
+  - **Compare (`compare`)** → two file inputs; render both with pdf.js; per page either a
+    pixel diff (draw both to canvas, XOR/overlay highlight) or a text diff (getTextContent).
+    Side-by-side view. `T.multiple` / two-file intake.
+  - **Edit Word (`editword`)** → mammoth (docx→html) into a `contenteditable`, let the user
+    edit, re-export .docx via the existing `buildDocx`/OOXML in shared.js. Basic formatting only.
+
+  ★ PREMIUM server (add our-own OSS engines to `convert-server/`; wire like the other
+  premium tools — remove `soon:true`, keep `premium:true` + `ptool`):
+  - **PDF→Excel (`pdf2excel`)** → server: **camelot-py** (`pip install camelot-py[cv]`) →
+    export xlsx (pandas/openpyxl). Add to Dockerfile + a `pdf2excel` handler. Only good on
+    ruled/lattice tables — note it.
+  - **HTML→PDF (`html2pdf`)** → server: **headless Chromium via Puppeteer** (real webpage
+    render, unlike LibreOffice). Add chromium + puppeteer to the image; the FRONTEND needs a
+    **URL input** (not a file upload) — a special tool flow (opts with a text input; send the
+    URL to the server, not a file). Its current LibreOffice handler is a weak placeholder.
+  - **Translate (`translate`)** → **LibreTranslate** (self-hosted OSS, NO paid API — matches
+    "our own"). Run it as its own service; `convert-server` extracts text (pdf.js/pdftotext),
+    translates, and overlays/rebuilds. Layout-preserving translate is the hardest — MVP can be
+    "translated text as a new PDF" first, layout-preserving later.
+
+- **Step 6 — Own Voice TTS / PWA / Capacitor:** ⬜ later.
 
 ### The conversion-server contract (what KRK's server must implement)
 `worker-convert.js` forwards to `CONVERT_SERVER_URL/convert` as `multipart/form-data`

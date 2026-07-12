@@ -66,6 +66,18 @@ async function ensureCantoo(){
   return cantooLib;
 }
 
+/* PptxGenJS — build .pptx in the browser (PDF -> PowerPoint, page-per-slide images). */
+async function ensurePptx(){
+  if(window.PptxGenJS) return true;
+  await new Promise((res, rej)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js';
+    s.onload = res; s.onerror = ()=> rej(new Error('could not load the PowerPoint maker'));
+    document.head.appendChild(s);
+  });
+  return !!window.PptxGenJS;
+}
+
 const KIT = [
  {id:'merge', cat:'org', ic:'🧩', name:'Merge PDF', desc:'Combine PDFs in the order you want with the easiest PDF merger available.',
   accept:'.pdf', multiple:true, min:2, preview:'files', action:'Merge PDF',
@@ -553,7 +565,31 @@ const KIT = [
  {id:'forms',     cat:'edit', ic:'🧾', name:'PDF Forms', desc:'Create and fill interactive PDF forms.', soon:true},
  {id:'redact',    cat:'sec', ic:'⬛', name:'Redact PDF', desc:'Permanently remove sensitive information.', soon:true},
  {id:'compare',   cat:'sec', ic:'🆚', name:'Compare PDF', desc:'Side-by-side comparison of two versions.', soon:true},
- {id:'pdf2ppt',   cat:'from', ic:'📽', name:'PDF to PowerPoint', desc:'Turn PDFs into editable PPTX slides.', soon:true, premium:true, ptool:'pdf2ppt'},
+ {id:'pdf2ppt', cat:'from', ic:'📽', name:'PDF to PowerPoint', desc:'Turn each PDF page into a slide — on your device, free.',
+  accept:'.pdf', preview:'files', action:'Convert to PowerPoint',
+  run: async (files)=>{
+    if(!ensurePdfjs()) throw new Error('the PDF engine did not load — refresh and try again');
+    if(!(await ensurePptx())) throw new Error('could not load the PowerPoint maker');
+    const doc = await openPdfjs(files[0].file);
+    const base = (await doc.getPage(1)).getViewport({scale:1});
+    const pptx = new PptxGenJS();
+    const wIn = base.width / 72, hIn = base.height / 72;   /* pt -> inches */
+    pptx.defineLayout({ name: 'LX', width: wIn, height: hIn });
+    pptx.layout = 'LX';
+    const n = doc.numPages;
+    for(let i = 1; i <= n; i++){
+      setProg(`Slide ${i} of ${n}…`, i / n * 90);
+      const page = await doc.getPage(i);
+      const vp = page.getViewport({ scale: 2 });
+      const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+      await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+      pptx.addSlide().addImage({ data: c.toDataURL('image/jpeg', 0.9), x: 0, y: 0, w: wIn, h: hIn });
+    }
+    setProg('Building the presentation…', 95);
+    const blob = await pptx.write({ outputType: 'blob' });
+    saveOut(blob, baseName(files[0].file) + '.pptx');
+    return `Made a ${n}-slide presentation.`;
+  }},
  {id:'pdf2excel', cat:'from', ic:'📊', name:'PDF to Excel', desc:'Pull tables from PDFs into spreadsheets.', soon:true, premium:true, ptool:'pdf2excel'},
  {id:'pdfa',      cat:'from', ic:'🗄', name:'PDF to PDF/A', desc:'ISO archive format for long-term storage.',
   accept:'.pdf', preview:'files', action:'Convert to PDF/A', premium:true, ptool:'pdfa'},
