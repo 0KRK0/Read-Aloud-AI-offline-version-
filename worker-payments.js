@@ -343,7 +343,9 @@ export default {
       if (res.code === 'duplicate') {
         // webhook already credited this payment — that's a success for the user
         const cur = await getProfile();
-        return json({ ok: true, tokens_balance: cur ? cur.tokens_balance : null, plan: notes.plan, provider: notes.provider, model: notes.model, already: true }, 200, cors);
+        // wallet top-ups report the ₹ balance; everything else reports the token balance
+        const bal = notes.wallet === '1' ? (cur ? cur.wallet_paise : null) : (cur ? cur.tokens_balance : null);
+        return json({ ok: true, tokens_balance: bal, wallet: notes.wallet === '1', plan: notes.plan, provider: notes.provider, model: notes.model, already: true }, 200, cors);
       }
       return json({ ok: true, tokens_balance: res.bal, plan: notes.plan, provider: notes.provider, model: notes.model }, 200, cors);
     }

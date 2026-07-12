@@ -226,8 +226,8 @@ async function buy(planKey, extra){
           removeProgress();
           if(v.ok){
             if(planKey === 'wallet'){
-              walletPaise = v.tokens_balance; renderWalletMoney();
-              say(`🎉 Added to your ₹ wallet! Balance: ${fmtRs(v.tokens_balance)}.`);
+              await fetchWallet();   /* authoritative ₹ balance from Supabase, not the verify payload */
+              say(`🎉 Added to your ₹ wallet! Balance: ${fmtRs(walletPaise)}.`);
             }else{
               say(`🎉 Payment successful! ${fmtTokens(v.tokens_balance)} tokens in your wallet. Enjoy!`);
               await fetchMe();
