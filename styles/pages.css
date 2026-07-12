@@ -196,12 +196,16 @@ section.setSec{scroll-margin-top:80px; margin-bottom:26px}
   font-size:16.5px; font-weight:700; padding:15px 12px; font-family:inherit; margin-top:6px}
 .goBig:hover{filter:brightness(1.08)}
 @media (max-width:900px){
-  /* stack instead of overlaying: file previews first, then the options + action
-     panel as a normal block below — nothing hides behind a fixed sheet */
-  #tvWork{display:flex; flex-direction:column; gap:16px}
+  /* JS sets an inline display:grid on #tvWork, so we can't switch it to flex here
+     (inline wins). Instead collapse the grid to ONE column and reorder: file
+     previews on top, the options + action panel as a full-width block below. */
+  #tvWork{grid-template-columns:1fr; gap:16px}
   #tvMain{order:1; padding-bottom:0; min-height:0}
-  #tvSide{order:2; position:static; top:auto; max-height:none; overflow:visible;
-    box-shadow:none; border-radius:12px}
+  /* options + action stick to the bottom of the screen so the button is always
+     reachable while scrolling the previews, then settle in place at the very end */
+  #tvSide{order:2; position:sticky; bottom:12px; top:auto; z-index:5;
+    max-height:80vh; overflow-y:auto; border-radius:14px;
+    box-shadow:0 -6px 22px rgba(0,0,0,.32)}
   .hero .pageTitle{font-size:24px}
 }
 

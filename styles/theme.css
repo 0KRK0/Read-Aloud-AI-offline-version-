@@ -315,3 +315,27 @@ header .icon-btn:hover{background:var(--panel2) !important}
   opacity:0; pointer-events:none; max-width:calc(100vw - 32px);
   transition:opacity .25s, transform .25s}
 #lxToast.show{opacity:1; transform:translate(-50%,0)}
+
+/* ---- themed dropdowns (custom, replaces the OS-blue native <select> list) ---- */
+.lxsel{position:relative; display:block; width:100%}
+.lxsel > select{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; margin:0; padding:0; border:0}
+.lxsel-btn{
+  display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;
+  background:var(--panel2); border:1px solid var(--line); color:var(--text);
+  border-radius:9px; padding:11px 12px; font-size:14px; font-family:inherit; cursor:pointer; text-align:left;
+  transition:border-color .12s}
+.lxsel-btn:hover{border-color:var(--accent)}
+.lxsel.open .lxsel-btn{border-color:var(--accent)}
+.lxsel-btn:disabled{opacity:.55; cursor:default}
+.lxsel-label{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.lxsel-arrow{width:16px; height:16px; flex:none; color:var(--muted); transition:transform .18s}
+.lxsel.open .lxsel-arrow{transform:rotate(180deg)}
+.lxsel-list{
+  position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:210;
+  background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
+  padding:6px; max-height:260px; overflow-y:auto; display:none}
+.lxsel.open .lxsel-list{display:block}
+.lxsel.up .lxsel-list{top:auto; bottom:calc(100% + 6px)}
+.lxsel-opt{padding:10px 12px; border-radius:8px; font-size:14px; color:var(--text); cursor:pointer; white-space:nowrap}
+.lxsel-opt:hover{background:var(--panel2)}
+.lxsel-opt.sel{background:var(--accent); color:#fff}

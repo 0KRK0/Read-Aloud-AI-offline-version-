@@ -28,9 +28,11 @@
     if(nm) nm.textContent = email ? niceName(email) : 'Guest';
     if(sub) sub.textContent = email || 'Not signed in';
     if(a) a.textContent = email ? email[0].toUpperCase() : '👤';
+    /* use 'flex' (not 'block') so the inline style doesn't override the menu's
+       flex layout — otherwise the icon and label lose their gap and touch */
     const lo = $$('acctLogout'), li = $$('acctLogin');
-    if(lo) lo.style.display = email ? 'block' : 'none';
-    if(li) li.style.display = email ? 'none' : 'block';
+    if(lo) lo.style.display = email ? 'flex' : 'none';
+    if(li) li.style.display = email ? 'none' : 'flex';
   }
   setInterval(syncAccount, 1500);
   syncAccount();
