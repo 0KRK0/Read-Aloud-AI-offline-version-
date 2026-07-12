@@ -57,15 +57,22 @@ async function pdf2docx(inPath, outDir) {
   ], { timeout: 240000 });
   return out;
 }
+// OCR a scanned PDF into a searchable/selectable PDF (ocrmypdf → Tesseract). --skip-text
+// leaves pages that already have text alone, so it won't error on mixed documents.
+async function ocrmypdf(inPath, outDir) {
+  const out = path.join(outDir, 'out.pdf');
+  await run('ocrmypdf', ['--skip-text', inPath, out], { timeout: 240000 });
+  return out;
+}
 
-/* tool id (must match the KIT `ptool` ids the gateway sends) -> handler(inputPath, workDir) => outputPath.
-   Swap pdf2word_hd for a commercial engine later for true HD fidelity. */
+/* tool id (must match the KIT `ptool` ids the gateway sends) -> handler(inputPath, workDir) => outputPath. */
 const HANDLERS = {
   word2pdf_hd:  (i, o) => soffice(i, o, 'pdf'),
   ppt2pdf:      (i, o) => soffice(i, o, 'pdf'),
   excel2pdf:    (i, o) => soffice(i, o, 'pdf'),
   html2pdf:     (i, o) => soffice(i, o, 'pdf'),
-  pdf2word_hd:  (i, o) => soffice(i, o, 'docx:MS Word 2007 XML'), // best-effort via LibreOffice; upgrade later
+  pdf2word_hd:  (i, o) => pdf2docx(i, o),   // real PDF->Word (LibreOffice can't)
+  ocr_hd:       (i, o) => ocrmypdf(i, o),   // searchable-PDF OCR
   compress_hd:  (i, o) => ghostscript(i, o, '/ebook'),
   compress_max: (i, o) => ghostscript(i, o, '/screen'),
   compress_web: (i, o) => ghostscript(i, o, '/screen'),

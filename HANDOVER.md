@@ -412,10 +412,12 @@ the conversion SERVER itself is external infra KRK must provision):
   `CONVERT_SERVER_URL` env (with `https://`, no trailing slash — it's the RAILWAY url, NOT
   the workers.dev gateway url), same `CONVERT_SERVER_KEY` on both.
   DEPLOYED (Railway): `https://clever-cat-production-b852.up.railway.app`.
-  NOTE: `pdf2word_hd` now uses the **`pdf2docx`** Python engine (LibreOffice can't do
-  PDF→Word — it returns "conversion produced no output"). The Dockerfile installs
-  python3 + pdf2docx (PyMuPDF/OpenCV) — first build ~5–10 min. Other tools (compress_*,
-  word2pdf_hd, ppt2pdf, excel2pdf, html2pdf) are LibreOffice/Ghostscript and work as-is.
+  NOTE: `pdf2word_hd` uses the **`pdf2docx`** Python engine (LibreOffice can't do PDF→Word
+  — returns "conversion produced no output") and `ocr_hd` uses **`ocrmypdf`** (Tesseract,
+  makes scanned PDFs searchable). The Dockerfile installs python3 + pdf2docx + ocrmypdf +
+  tesseract-ocr — first build ~5–10 min. The rest (compress_*, word2pdf_hd, ppt2pdf,
+  excel2pdf, html2pdf) are LibreOffice/Ghostscript. Supported ptools now: word2pdf_hd,
+  ppt2pdf, excel2pdf, html2pdf, pdf2word_hd, ocr_hd, compress_hd/max/web/light.
 - **Step 4 — Buy plans from wallet (`/wallet/buysub`):** ✅ DONE (built + verified).
   `worker-payments.js` endpoint `POST /wallet/buysub {plan}` (also `{plan:'topup',inr,
   provider}`): `deduct_wallet` the price → `credit_tokens` (value-converts on provider

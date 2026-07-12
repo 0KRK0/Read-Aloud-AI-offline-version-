@@ -6,9 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libreoffice-writer libreoffice-impress libreoffice-calc \
       ghostscript qpdf \
       python3 python3-pip \
+      tesseract-ocr \
       libgl1 libglib2.0-0 \
       fonts-dejavu fonts-liberation fonts-noto-core \
-    && pip3 install --no-cache-dir --break-system-packages pdf2docx \
+    && pip3 install --no-cache-dir --break-system-packages pdf2docx ocrmypdf \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
