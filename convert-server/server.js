@@ -64,15 +64,25 @@ async function ocrmypdf(inPath, outDir) {
   await run('ocrmypdf', ['--skip-text', inPath, out], { timeout: 240000 });
   return out;
 }
+// PDF -> PDF/A archival format via Ghostscript (our own, no third-party API).
+async function pdfaGs(inPath, outDir) {
+  const out = path.join(outDir, 'out.pdf');
+  await run('gs', ['-dPDFA=2', '-dBATCH', '-dNOPAUSE', '-sColorConversionStrategy=RGB',
+    '-sDEVICE=pdfwrite', '-dPDFACompatibilityPolicy=1', '-sOutputFile=' + out, inPath]);
+  return out;
+}
 
-/* tool id (must match the KIT `ptool` ids the gateway sends) -> handler(inputPath, workDir) => outputPath. */
+/* tool id (must match the KIT `ptool` ids the gateway sends) -> handler(inputPath, workDir) => outputPath.
+   ALL our own engines (open-source, no third-party conversion API). Long-term goal: the
+   proprietary "Lexora Layout Engine" for true iLovePDF-beating PDF->Office fidelity. */
 const HANDLERS = {
   word2pdf_hd:  (i, o) => soffice(i, o, 'pdf'),
   ppt2pdf:      (i, o) => soffice(i, o, 'pdf'),
   excel2pdf:    (i, o) => soffice(i, o, 'pdf'),
   html2pdf:     (i, o) => soffice(i, o, 'pdf'),
-  pdf2word_hd:  (i, o) => pdf2docx(i, o),   // real PDF->Word (LibreOffice can't)
-  ocr_hd:       (i, o) => ocrmypdf(i, o),   // searchable-PDF OCR
+  pdf2word_hd:  (i, o) => pdf2docx(i, o),   // pdf2docx — our layout-parsing engine
+  ocr_hd:       (i, o) => ocrmypdf(i, o),   // searchable-PDF OCR (Tesseract)
+  pdfa:         (i, o) => pdfaGs(i, o),
   compress_hd:  (i, o) => ghostscript(i, o, '/ebook'),
   compress_max: (i, o) => ghostscript(i, o, '/screen'),
   compress_web: (i, o) => ghostscript(i, o, '/screen'),

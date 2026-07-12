@@ -412,12 +412,20 @@ the conversion SERVER itself is external infra KRK must provision):
   `CONVERT_SERVER_URL` env (with `https://`, no trailing slash — it's the RAILWAY url, NOT
   the workers.dev gateway url), same `CONVERT_SERVER_KEY` on both.
   DEPLOYED (Railway): `https://clever-cat-production-b852.up.railway.app`.
-  NOTE: `pdf2word_hd` uses the **`pdf2docx`** Python engine (LibreOffice can't do PDF→Word
-  — returns "conversion produced no output") and `ocr_hd` uses **`ocrmypdf`** (Tesseract,
-  makes scanned PDFs searchable). The Dockerfile installs python3 + pdf2docx + ocrmypdf +
-  tesseract-ocr — first build ~5–10 min. The rest (compress_*, word2pdf_hd, ppt2pdf,
-  excel2pdf, html2pdf) are LibreOffice/Ghostscript. Supported ptools now: word2pdf_hd,
-  ppt2pdf, excel2pdf, html2pdf, pdf2word_hd, ocr_hd, compress_hd/max/web/light.
+  ENGINE POLICY (KRK's firm rule): **we build our OWN — do NOT wire any paid/third-party
+  conversion API or buy a license.** Keep the open-source engines as they are. Upgrade in
+  future by building our own engines, and only for the *complex* ones that need it (not all)
+  — long-term this becomes the proprietary "Lexora Layout Engine". Current engines (all
+  open-source, self-hosted): `pdf2word_hd` → **pdf2docx** (layout-parsing; good, and the one
+  to eventually replace with our own for iLovePDF-beating quality); `ocr_hd` → **ocrmypdf**
+  (Tesseract, searchable PDF); `pdfa` → **Ghostscript** PDF/A; word2pdf_hd / ppt2pdf /
+  excel2pdf / html2pdf → **LibreOffice**; compress_* → **Ghostscript**. Dockerfile installs
+  libreoffice + ghostscript + qpdf + tesseract-ocr + python3 (pdf2docx, ocrmypdf) — first
+  build ~5–10 min. **Supported ptools:** word2pdf_hd, ppt2pdf, excel2pdf, html2pdf,
+  pdf2word_hd, ocr_hd, pdfa, compress_hd/max/web/light.
+  STILL "Soon" (build our own later — never a paid API): pdf2ppt, pdf2excel, translate,
+  editword, and true content-edit "Premium Edit PDF". To show the `pdfa` card in the UI,
+  remove `soon:true` from its KIT entry in tools-page.js (small, careful edit).
 - **Step 4 — Buy plans from wallet (`/wallet/buysub`):** ✅ DONE (built + verified).
   `worker-payments.js` endpoint `POST /wallet/buysub {plan}` (also `{plan:'topup',inr,
   provider}`): `deduct_wallet` the price → `credit_tokens` (value-converts on provider
