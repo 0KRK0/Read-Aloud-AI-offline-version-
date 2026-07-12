@@ -49,6 +49,14 @@ async function ghostscript(inPath, outDir, preset) {
     '-dNOPAUSE', '-dQUIET', '-dBATCH', '-dDetectDuplicateImages=true', '-sOutputFile=' + out, inPath]);
   return out;
 }
+// PDF -> Word via the pdf2docx Python engine (real layout parsing; LibreOffice can't do this).
+async function pdf2docx(inPath, outDir) {
+  const out = path.join(outDir, 'out.docx');
+  await run('python3', ['-c',
+    'from pdf2docx import Converter; cv=Converter(' + JSON.stringify(inPath) + '); cv.convert(' + JSON.stringify(out) + '); cv.close()'
+  ], { timeout: 240000 });
+  return out;
+}
 
 /* tool id (must match the KIT `ptool` ids the gateway sends) -> handler(inputPath, workDir) => outputPath.
    Swap pdf2word_hd for a commercial engine later for true HD fidelity. */

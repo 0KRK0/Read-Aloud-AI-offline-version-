@@ -409,8 +409,13 @@ the conversion SERVER itself is external infra KRK must provision):
   (word2pdf_hd/ppt2pdf/excel2pdf/html2pdf/pdf2word_hd), Ghostscript
   (compress_hd/max/web/light), qpdf (trim to `maxPages`). Extend via the `HANDLERS` map.
   TODO to go live: `docker`-deploy the folder to a host → copy its URL into the gateway's
-  `CONVERT_SERVER_URL` env (same `CONVERT_SERVER_KEY` on both). `pdf2word_hd` is
-  LibreOffice best-effort — swap for a commercial SDK later for true HD.
+  `CONVERT_SERVER_URL` env (with `https://`, no trailing slash — it's the RAILWAY url, NOT
+  the workers.dev gateway url), same `CONVERT_SERVER_KEY` on both.
+  DEPLOYED (Railway): `https://clever-cat-production-b852.up.railway.app`.
+  NOTE: `pdf2word_hd` now uses the **`pdf2docx`** Python engine (LibreOffice can't do
+  PDF→Word — it returns "conversion produced no output"). The Dockerfile installs
+  python3 + pdf2docx (PyMuPDF/OpenCV) — first build ~5–10 min. Other tools (compress_*,
+  word2pdf_hd, ppt2pdf, excel2pdf, html2pdf) are LibreOffice/Ghostscript and work as-is.
 - **Step 4 — Buy plans from wallet (`/wallet/buysub`):** ✅ DONE (built + verified).
   `worker-payments.js` endpoint `POST /wallet/buysub {plan}` (also `{plan:'topup',inr,
   provider}`): `deduct_wallet` the price → `credit_tokens` (value-converts on provider
