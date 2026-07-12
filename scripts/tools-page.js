@@ -430,7 +430,37 @@ const KIT = [
  {id:'summarize', cat:'ai', ic:'🤖', name:'AI Summarizer', desc:'Open any document in the reader and ask the companion to summarize or explain it.', href:'index.html'},
  /* coming soon (Phase 3 / conversion server) */
  {id:'edit',      cat:'edit', ic:'✏️', name:'Edit PDF', desc:'Add text, images, shapes or annotations to a PDF.', soon:true},
- {id:'sign',      cat:'sec', ic:'✍️', name:'Sign PDF', desc:'Draw or type your signature and place it on the page.', soon:true},
+ {id:'sign', cat:'sec', ic:'✍️', name:'Sign PDF', desc:'Draw or type your signature and place it on the page.',
+  accept:'.pdf', preview:'files', action:'Sign PDF',
+  opts:()=>`<label class="f">Your signature</label>
+    <div class="sigTabs"><button type="button" class="sigTab on" data-m="draw">✍ Draw</button><button type="button" class="sigTab" data-m="type">⌨ Type</button></div>
+    <div id="sigDrawWrap"><canvas id="sigPad" width="520" height="200"></canvas><button type="button" id="sigClear" class="sigClear">Clear</button></div>
+    <div id="sigTypeWrap" style="display:none"><input type="text" id="sigText" placeholder="Your name" maxlength="40"><div id="sigPreview" class="sigPreview">Your name</div></div>
+    <label class="f">Put it on</label><select id="oSigPage"><option value="last">Last page</option><option value="first">First page</option><option value="all">Every page</option></select>
+    <label class="f">Position</label><select id="oSigPos"><option value="br">Bottom right</option><option value="bc">Bottom center</option><option value="bl">Bottom left</option><option value="tr">Top right</option><option value="tl">Top left</option></select>
+    <label class="f">Size</label><select id="oSigSize"><option value="200">Medium</option><option value="150">Small</option><option value="280">Large</option></select>
+    <p class="sHint">Everything happens on your device — your file never leaves it.</p>`,
+  init:()=> initSignPad(),
+  run: async (files)=>{
+    if(!(await ensurePdfLib())) throw new Error('could not load the PDF engine');
+    setProg('Preparing your signature…', 20);
+    const sig = await getSignaturePng();
+    const src = await PDFLib.PDFDocument.load(await files[0].file.arrayBuffer(), {ignoreEncryption:true});
+    const png = await src.embedPng(sig.bytes);
+    const pages = src.getPages();
+    const which = $('oSigPage').value;
+    const targets = which === 'all' ? pages.map((_,i)=>i) : which === 'first' ? [0] : [pages.length - 1];
+    const pos = $('oSigPos').value, wPt = +$('oSigSize').value, hPt = wPt * (sig.h / sig.w), M = 36;
+    targets.forEach(idx=>{
+      const p = pages[idx], sz = p.getSize();
+      let x = pos.indexOf('r') > 0 ? sz.width - wPt - M : pos.indexOf('c') > 0 ? (sz.width - wPt)/2 : M;
+      let y = pos[0] === 't' ? sz.height - hPt - M : M;
+      p.drawImage(png, { x, y, width: wPt, height: hPt });
+    });
+    setProg('Saving…', 90);
+    saveOut(new Blob([await src.save()], {type:'application/pdf'}), baseName(files[0].file) + ' (signed).pdf');
+    return `Signature added to ${targets.length > 1 ? targets.length + ' pages' : 'the ' + which + ' page'}.`;
+  }},
  {id:'protect',   cat:'sec', ic:'🔒', name:'Protect PDF', desc:'Encrypt your PDF with a password.', soon:true},
  {id:'crop',      cat:'edit', ic:'✂', name:'Crop PDF', desc:'Crop margins or select an area of the pages.', soon:true},
  {id:'forms',     cat:'edit', ic:'🧾', name:'PDF Forms', desc:'Create and fill interactive PDF forms.', soon:true},
@@ -484,6 +514,70 @@ document.querySelectorAll('.catChip').forEach(ch=>{
   });
 });
 
+/* ---------- Sign PDF: signature pad + typed signature ---------- */
+let sigMode = 'draw', sigDrawn = false;
+function initSignPad(){
+  sigMode = 'draw'; sigDrawn = false;
+  const pad = document.getElementById('sigPad');
+  if(!pad) return;
+  const ctx = pad.getContext('2d');
+  ctx.clearRect(0, 0, pad.width, pad.height);
+  ctx.lineWidth = 3.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111';
+  let drawing = false, lx = 0, ly = 0;
+  function at(e){
+    const r = pad.getBoundingClientRect();
+    return { x:(e.clientX - r.left) * (pad.width / r.width), y:(e.clientY - r.top) * (pad.height / r.height) };
+  }
+  pad.addEventListener('pointerdown', e=>{ e.preventDefault(); drawing = true; const p = at(e); lx = p.x; ly = p.y; if(pad.setPointerCapture) try{ pad.setPointerCapture(e.pointerId); }catch(_){} });
+  pad.addEventListener('pointermove', e=>{ if(!drawing) return; e.preventDefault(); const p = at(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke(); lx = p.x; ly = p.y; sigDrawn = true; });
+  window.addEventListener('pointerup', ()=>{ drawing = false; });
+  const clr = document.getElementById('sigClear');
+  if(clr) clr.addEventListener('click', ()=>{ ctx.clearRect(0, 0, pad.width, pad.height); sigDrawn = false; });
+  document.querySelectorAll('.sigTab').forEach(b=> b.addEventListener('click', ()=>{
+    document.querySelectorAll('.sigTab').forEach(x=> x.classList.toggle('on', x === b));
+    sigMode = b.dataset.m;
+    document.getElementById('sigDrawWrap').style.display = sigMode === 'draw' ? 'block' : 'none';
+    document.getElementById('sigTypeWrap').style.display = sigMode === 'type' ? 'block' : 'none';
+  }));
+  const txt = document.getElementById('sigText'), prev = document.getElementById('sigPreview');
+  if(txt) txt.addEventListener('input', ()=>{ prev.textContent = txt.value || 'Your name'; });
+}
+/* returns {bytes,w,h} — a transparent PNG of the signature (dark strokes) */
+async function getSignaturePng(){
+  let canvas;
+  if(sigMode === 'type'){
+    const text = (document.getElementById('sigText').value || '').trim();
+    if(!text) throw new Error('type your name for the signature');
+    const font = 'italic 72px "Segoe Script","Brush Script MT","Snell Roundhand",cursive';
+    const meas = document.createElement('canvas').getContext('2d');
+    meas.font = font;
+    canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(meas.measureText(text).width) + 44;
+    canvas.height = 120;
+    const c = canvas.getContext('2d');
+    c.font = font; c.fillStyle = '#111'; c.textBaseline = 'middle';
+    c.fillText(text, 22, 64);
+  }else{
+    const pad = document.getElementById('sigPad');
+    if(!pad || !sigDrawn) throw new Error('draw your signature first');
+    canvas = trimCanvas(pad);
+  }
+  const blob = await new Promise(r=> canvas.toBlob(r, 'image/png'));
+  return { bytes: new Uint8Array(await blob.arrayBuffer()), w: canvas.width, h: canvas.height };
+}
+function trimCanvas(src){
+  const w = src.width, h = src.height, d = src.getContext('2d').getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = 0, y1 = 0, found = false;
+  for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){ if(d[(y*w + x)*4 + 3] > 8){ found = true; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } }
+  if(!found) return src;
+  const pad = 12;
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+  const ow = x1 - x0 + 1, oh = y1 - y0 + 1;
+  const out = document.createElement('canvas'); out.width = ow; out.height = oh;
+  out.getContext('2d').drawImage(src, x0, y0, ow, oh, 0, 0, ow, oh);
+  return out;
+}
+
 /* ---------- tool view ---------- */
 function openTool(id){
   const t = KIT.find(x=> x.id === id);
@@ -494,6 +588,7 @@ function openTool(id){
   $('tvDesc').textContent = t.desc;
   $('pickBtn').textContent = 'Select ' + (t.accept === 'image/*' ? 'images' : t.accept === '.docx' ? 'Word file' : 'PDF file' + (t.multiple ? 's' : ''));
   $('tvSideOpts').innerHTML = (t.opts ? t.opts() : '');
+  if(t.init) t.init();                 /* wire interactive options (e.g. the signature pad) */
   $('goBtn').textContent = t.action + ' →';
   $('fileIn').accept = t.accept || '';
   $('fileIn').multiple = !!t.multiple;

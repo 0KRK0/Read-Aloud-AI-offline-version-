@@ -82,8 +82,9 @@ async function initAuth(){
   }
   const {data:{session:s}} = await sb.auth.getSession();
   if(s) enterApp(s);
-  else if(!guest && !/access_token|refresh_token|error|type=/.test(location.hash)){
-    /* not logged in, not a guest, no auth tokens being processed → dedicated login page */
+  else if(!guest && !/^(tools|scan)\./i.test(location.hostname) && !/access_token|refresh_token|error|type=/.test(location.hash)){
+    /* not logged in, not a guest, no auth tokens, and not on the tools/scan
+       subdomains (those go straight to their tool page — no login needed) → login page */
     location.replace('login.html');
     return;
   }

@@ -245,7 +245,17 @@ section.setSec{scroll-margin-top:80px; margin-bottom:26px}
 .tierBtn b{font-size:13.5px; display:block}
 .tierBtn small{display:block; font-size:10.5px; color:var(--muted); margin-top:2px}
 .tierBtn.on{border-color:var(--accent); box-shadow:0 0 0 2px rgba(224,122,63,.18)}
-.tierBtn[data-tier="ultra"].on{border-color:#ff9d5c; box-shadow:0 0 0 2px rgba(255,157,92,.2)}
-.saverRow{display:flex; align-items:flex-start; gap:9px; font-size:13px; color:var(--muted); c
-/* tools: preview loading state */
-.tvLoad{display:flex; flex-direction:column; align-items:center; gap:14px; padding:48px 0; color:var(--muted); font-size:13.5px}
+.tierBtn[data-tier="ultra"].on{border-color:#ff9d5c; box-shadow:0
+/* ---- Sign PDF: signature pad ---- */
+.sigTabs{display:flex; gap:6px; margin:0 0 8px}
+.sigTab{flex:1; background:var(--panel); border:1px solid var(--line); color:var(--muted);
+  border-radius:8px; padding:7px; font-size:12.5px; cursor:pointer; font-family:inherit; transition:border-color .12s}
+.sigTab.on{border-color:var(--accent); color:var(--text)}
+#sigPad{width:100%; height:160px; background:#fff; border:1px solid var(--line); border-radius:10px;
+  touch-action:none; cursor:crosshair; display:block}
+.sigClear{margin-top:6px; background:var(--panel); border:1px solid var(--line); color:var(--muted);
+  border-radius:8px; padding:5px 12px; font-size:12px; cursor:pointer; font-family:inherit}
+.sigClear:hover{border-color:var(--accent); color:var(--text)}
+.sigPreview{background:#fff; color:#111; border:1px solid var(--line); border-radius:10px; padding:14px;
+  font-family:"Segoe Script","Brush Script MT","Snell Roundhand",cursive; font-style:italic; font-size:30px;
+  text-align:center; margin-top:8px; min-height:58px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}

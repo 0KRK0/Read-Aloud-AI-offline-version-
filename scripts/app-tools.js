@@ -738,7 +738,18 @@ function closeTools(){ $('tools').style.display = 'none'; $('toolOpts').style.di
 $('toolsBtn').addEventListener('click', openTools);
 $('toolsClose').addEventListener('click', closeTools);
 $('tools').addEventListener('click', e=>{ if(e.target === $('tools')) closeTools(); });
-/* deep links: lexoraai.online/#tools and tools.lexoraai.online → dedicated tools page */
-if((location.hash === '#tools' || /^tools\./i.test(location.hostname)) && !/tools\.html$/i.test(location.pathname))
-  location.replace('tools.html');
+/* deep links: tools.lexoraai.online → tools page, scan.lexoraai.online → scan page,
+   plus lexoraai.online/#tools and /#scan.
+   IMPORTANT: Cloudflare Pages serves CLEAN urls (/tools, /scan) and 301-redirects
+   /tools.html → /tools. So the "already there?" guard must accept BOTH "/tools" and
+   "/tools.html" — otherwise on the clean url we replace('tools.html'), Pages sends us
+   back to /tools, and we loop forever. */
+(function(){
+  var host = location.hostname, path = location.pathname;
+  if((location.hash === '#tools' || /^tools\./i.test(host)) && !/\/tools(\.html)?$/i.test(path)){
+    location.replace('tools.html');
+  }else if((location.hash === '#scan' || /^scan\./i.test(host)) && !/\/scan(\.html)?$/i.test(path)){
+    location.replace('scan.html');
+  }
+})();
 
