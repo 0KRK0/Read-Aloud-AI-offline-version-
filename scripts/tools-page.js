@@ -22,6 +22,25 @@ const TYPE = { merge:'pdf', split:'pdf', remove:'pdf', organize:'pdf', rotate:'p
   word2pdf:'word', word2txt:'word', word2md:'word', editword:'word', ppt2pdf:'word', excel2pdf:'word',
   jpg2pdf:'img', imgcompress:'img', imgresize:'img', img2text:'img',
   scan:'ai', summarize:'ai', translate:'ai' };
+/* @cantoo/pdf-lib — a pdf-lib fork that adds AES password encryption (Protect PDF).
+   Loaded lazily and captured into its own variable so it never disturbs the app's
+   main PDFLib global (they share the same API surface). */
+let cantooLib = null;
+async function ensureCantoo(){
+  if(cantooLib) return cantooLib;
+  const prev = window.PDFLib;
+  await new Promise((res, rej)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@cantoo/pdf-lib@2.7.1/dist/pdf-lib.min.js';
+    s.onload = res;
+    s.onerror = ()=> rej(new Error('could not load the encryption engine — check your connection'));
+    document.head.appendChild(s);
+  });
+  cantooLib = window.PDFLib;
+  if(prev) window.PDFLib = prev;   /* restore the app's original pdf-lib */
+  return cantooLib;
+}
+
 const KIT = [
  {id:'merge', cat:'org', ic:'🧩', name:'Merge PDF', desc:'Combine PDFs in the order you want with the easiest PDF merger available.',
   accept:'.pdf', multiple:true, min:2, preview:'files', action:'Merge PDF',
@@ -480,7 +499,31 @@ const KIT = [
   opts:()=> signOptsHtml(),
   init:()=> initSignPanel(),
   run: async (files)=> runSign(files)},
- {id:'protect',   cat:'sec', ic:'🔒', name:'Protect PDF', desc:'Encrypt your PDF with a password.', soon:true},
+ {id:'protect', cat:'sec', ic:'🔒', name:'Protect PDF', desc:'Add a password so only people with it can open your PDF.',
+  accept:'.pdf', preview:'files', action:'Protect PDF',
+  opts:()=>`<label class="f">Password to open the PDF</label>
+    <input type="password" id="oPPw" placeholder="Choose a password" autocomplete="new-password" style="width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:11px 12px; font-size:14px; font-family:inherit; outline:none; margin-bottom:10px">
+    <label class="f">Confirm password</label>
+    <input type="password" id="oPPw2" placeholder="Type it again" autocomplete="new-password" style="width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:11px 12px; font-size:14px; font-family:inherit; outline:none">
+    <label class="sCheck" style="margin-top:10px"><input type="checkbox" id="oPPrint" checked> Allow printing</label>
+    <label class="sCheck"><input type="checkbox" id="oPCopy" checked> Allow copying text</label>
+    <p class="sHint">Anyone opening this PDF will be asked for the password. Keep it safe — it can't be recovered. Encryption runs entirely on your device.</p>`,
+  run: async (files)=>{
+    const pw = ($('oPPw') && $('oPPw').value) || '';
+    if(pw.length < 3) throw new Error('choose a password of at least 3 characters');
+    if(pw !== (($('oPPw2') && $('oPPw2').value) || '')) throw new Error('the two passwords do not match');
+    setProg('Loading the encryption engine…', 15);
+    const Lib = await ensureCantoo();
+    setProg('Encrypting…', 55);
+    const doc = await Lib.PDFDocument.load(await files[0].file.arrayBuffer(), { ignoreEncryption: true });
+    const perms = { modifying: false };
+    if(!$('oPPrint') || $('oPPrint').checked) perms.printing = 'highResolution';
+    if(!$('oPCopy')  || $('oPCopy').checked)  perms.copying = true;
+    doc.encrypt({ userPassword: pw, ownerPassword: pw, permissions: perms });
+    setProg('Saving…', 88);
+    saveOut(new Blob([await doc.save()], {type:'application/pdf'}), baseName(files[0].file) + ' (protected).pdf');
+    return 'Password added — this PDF now asks for the password to open.';
+  }},
  {id:'crop',      cat:'edit', ic:'✂', name:'Crop PDF', desc:'Crop margins or select an area of the pages.', soon:true},
  {id:'forms',     cat:'edit', ic:'🧾', name:'PDF Forms', desc:'Create and fill interactive PDF forms.', soon:true},
  {id:'redact',    cat:'sec', ic:'⬛', name:'Redact PDF', desc:'Permanently remove sensitive information.', soon:true},
