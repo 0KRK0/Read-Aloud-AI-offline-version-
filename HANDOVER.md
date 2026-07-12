@@ -348,7 +348,34 @@ the conversion SERVER itself is external infra KRK must provision):
   `CONVERT_SERVER_URL` env is NOT set yet, so it currently returns 503 "coming soon"
   until the conversion server (Step 3) exists.
 
-- **Step 2 — Premium UI framework (tools-page.js + tools.html):** ⬜ NOT STARTED. SPEC:
+- **Step 2 — Premium UI framework (tools-page.js + tools.html):** ✅ DONE (built +
+  Read/Grep-verified + isolated /tmp `node --check` passed). WHAT WAS BUILT:
+  tools.html loads supabase-js v2 + a ★ Premium category chip. tools-page.js top:
+  `LX` config (Supabase URL/key + `CONVERT_URL` = the deployed gateway), `lxSb`
+  client, `lxToken()` (auth OPTIONAL — anonymous allowed), `lxToast` fallback.
+  KIT: dual tools compress/ocr/word2pdf/pdf2word got `premium:true` + `ptool`
+  (`*_hd`) and a **free⟷★Premium toggle** in the tool view (`premToggleHtml`/
+  `wirePremToggle`/`applyPremUi`, state `premOn`); **ppt2pdf + excel2pdf activated**
+  as server-only ★ tools (accept lists like `.ppt,.pptx` — `acceptFile` was fixed
+  to split comma lists); pdf2ppt/pdf2excel/pdfa/html2pdf/translate/editword stay
+  `soon:true` but carry `premium:true`+`ptool` (★ badge + Soon pill; activate each
+  once the conversion server supports it — only LibreOffice-native tools were
+  activated to avoid failed-job UX). Catalog: ★ badge (`.pxStar`) on premium cards,
+  premium chip filters across all type groups. Run flow (`runPremium`): page count
+  client-side (real for PDFs via openPdfjs; Office files **estimated** at ≈40 KB/page,
+  labelled "estimated" in the modal) → `POST /quote` (Bearer only when logged in) →
+  **consent modal** (`consentModal`, promise-based: Continue/charge, Top up when
+  `!enough`, Log in, "Use the free version instead" for dual tools, Not now; anonymous
+  partial = "first N pages free — log in for the whole file"; used-up = the
+  "come back tomorrow… or a penny a page ★" upsell) → `POST /convert` (multipart,
+  consent=1) → saves the blob (`X-Filename` or ptool ext map), shows `X-Lexora-Charge`
+  ("Done — ₹X from your wallet" / "free, within today's pages") + partial notice.
+  Errors: 503 "launching very soon — use the free version", 402 top-up, 429
+  come-back-tomorrow, other = "failed on the server — you were not charged".
+  Premium CSS injected from JS (`injectPremCss`, end of file — same pages.css-cache
+  reason as Sign/Edit). Drop-zone + progress privacy lines swap wording in premium
+  mode. TO DEPLOY: re-upload `tools.html` + `scripts/tools-page.js` to Cloudflare
+  Pages (+ hard refresh). Original spec follows:
   1. **Auth on tools.html.** tools.html is currently anonymous. Add the Supabase client
      (same CONFIG as app-core.js) + a `CONVERT_URL` (the deployed worker-convert URL).
      Premium calls need `Authorization: Bearer <supabase session token>`; if not logged

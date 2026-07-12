@@ -8,6 +8,31 @@
 toolBusy = (msg, pct)=> setProg(msg, pct);
 toolDone = ()=>{};
 
+/* ===== ★ Premium config (Phase 4) — same Supabase as app-core.js + the
+   deployed conversion gateway (worker-convert.js). Auth is OPTIONAL: anonymous
+   users get the free daily pages; the token is only added when logged in. ===== */
+const LX = {
+  SUPABASE_URL: 'https://lgwqqytjqoenozhjhbkr.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_lK4DQ5LVguBYO-4afNbbVw_J_WLNlWv',
+  CONVERT_URL: 'https://readaloud-convert.konarajeshkumar011.workers.dev'
+};
+const lxSb = (window.supabase && window.supabase.createClient)
+  ? window.supabase.createClient(LX.SUPABASE_URL, LX.SUPABASE_ANON_KEY) : null;
+async function lxToken(){
+  if(!lxSb) return null;
+  try{ const {data:{session:s}} = await lxSb.auth.getSession(); return s ? s.access_token : null; }
+  catch(e){ return null; }
+}
+/* toast (app-wallet.js isn't loaded on this page — same look, #lxToast styles in theme.css) */
+if(typeof window.lxToast !== 'function') window.lxToast = function(msg){
+  let el = document.getElementById('lxToast');
+  if(!el){ el = document.createElement('div'); el.id = 'lxToast'; document.body.appendChild(el); }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(window.lxToast._t);
+  window.lxToast._t = setTimeout(()=> el.classList.remove('show'), 2800);
+};
+
 const CATS = [
   ['org','Organize PDF'], ['opt','Optimize PDF'], ['to','Convert to PDF'],
   ['from','Convert from PDF'], ['edit','Edit PDF'], ['sec','PDF Security'], ['ai','PDF Intelligence']
@@ -130,7 +155,7 @@ const KIT = [
     return `Rotated ${files.length === 1 ? 'the file' : files.length + ' files'} by ${ang}°.`;
   }},
  {id:'compress', cat:'opt', ic:'📉', name:'Compress PDF', desc:'Reduce file size while keeping text sharp, selectable and searchable.',
-  accept:'.pdf', preview:'files', action:'Compress PDF',
+  accept:'.pdf', preview:'files', action:'Compress PDF', premium:true, ptool:'compress_hd',
   opts:()=>`<label class="f">Compression level</label><select id="oQ">
     <option value="0.72|1600">Balanced — good quality</option>
     <option value="0.55|1200">Strong — smallest file</option>
@@ -158,7 +183,7 @@ const KIT = [
     return `Rebuilt ${src.getPageCount()} pages into a clean PDF.`;
   }},
  {id:'ocr', cat:'opt', ic:'🔍', name:'OCR PDF', desc:'Convert a scanned PDF into a searchable, selectable document.',
-  accept:'.pdf', preview:'files', action:'Make it searchable',
+  accept:'.pdf', preview:'files', action:'Make it searchable', premium:true, ptool:'ocr_hd',
   opts:()=>`<p class="sHint">Each page is recognised on your device (English). The text is placed invisibly right on the scan — select it, search it, copy it. Takes a moment per page.</p>`,
   run: async (files)=>{
     if(!(await ensureJsPDF())) throw new Error('could not load the PDF maker');
@@ -224,7 +249,7 @@ const KIT = [
     return `${files.length} picture${files.length>1?'s':''} in one PDF.`;
   }},
  {id:'word2pdf', cat:'to', ic:'📃', name:'Word to PDF', desc:'Make DOCX files easy to read by converting them to a clean PDF.',
-  accept:'.docx', preview:'files', action:'Convert to PDF',
+  accept:'.docx', preview:'files', action:'Convert to PDF', premium:true, ptool:'word2pdf_hd',
   opts:()=>`<p class="sHint">Text, headings and lists are laid out as a clean, readable PDF.</p>`,
   run: async (files)=>{
     if(!(await ensureJsPDF())) throw new Error('could not load the PDF maker');
@@ -274,7 +299,7 @@ const KIT = [
     return imgs.length === 1 ? 'Image saved.' : `${imgs.length} images saved as a ZIP.`;
   }},
  {id:'pdf2word', cat:'from', ic:'📝', name:'PDF to Word', desc:'Editable .docx with headings, bold text and pictures preserved. Scans are OCR’d.',
-  accept:'.pdf', preview:'files', action:'Convert to Word',
+  accept:'.pdf', preview:'files', action:'Convert to Word', premium:true, ptool:'pdf2word_hd',
   opts:()=>`<p class="sHint">Digital PDFs keep headings, bold and pictures. Scanned PDFs are recognised (OCR) into clean text.</p>`,
   run: async (files)=>{
     const rich = await pdfPagesRich(files[0].file);
@@ -528,14 +553,16 @@ const KIT = [
  {id:'forms',     cat:'edit', ic:'🧾', name:'PDF Forms', desc:'Create and fill interactive PDF forms.', soon:true},
  {id:'redact',    cat:'sec', ic:'⬛', name:'Redact PDF', desc:'Permanently remove sensitive information.', soon:true},
  {id:'compare',   cat:'sec', ic:'🆚', name:'Compare PDF', desc:'Side-by-side comparison of two versions.', soon:true},
- {id:'pdf2ppt',   cat:'from', ic:'📽', name:'PDF to PowerPoint', desc:'Turn PDFs into editable PPTX slides.', soon:true},
- {id:'pdf2excel', cat:'from', ic:'📊', name:'PDF to Excel', desc:'Pull tables from PDFs into spreadsheets.', soon:true},
- {id:'pdfa',      cat:'from', ic:'🗄', name:'PDF to PDF/A', desc:'ISO archive format for long-term storage.', soon:true},
- {id:'ppt2pdf',   cat:'to', ic:'📽', name:'PowerPoint to PDF', desc:'Make PPT and PPTX easy to view as PDF.', soon:true},
- {id:'excel2pdf', cat:'to', ic:'📊', name:'Excel to PDF', desc:'Make spreadsheets easy to read as PDF.', soon:true},
- {id:'html2pdf',  cat:'to', ic:'🌐', name:'HTML to PDF', desc:'Convert webpages to PDF from a URL.', soon:true},
- {id:'translate', cat:'ai', ic:'🌍', name:'Translate PDF', desc:'AI translation that keeps the layout intact.', soon:true},
- {id:'editword',  cat:'edit', ic:'📄', name:'Edit Word', desc:'Edit .docx documents right in the browser.', soon:true}
+ {id:'pdf2ppt',   cat:'from', ic:'📽', name:'PDF to PowerPoint', desc:'Turn PDFs into editable PPTX slides.', soon:true, premium:true, ptool:'pdf2ppt'},
+ {id:'pdf2excel', cat:'from', ic:'📊', name:'PDF to Excel', desc:'Pull tables from PDFs into spreadsheets.', soon:true, premium:true, ptool:'pdf2excel'},
+ {id:'pdfa',      cat:'from', ic:'🗄', name:'PDF to PDF/A', desc:'ISO archive format for long-term storage.', soon:true, premium:true, ptool:'pdfa'},
+ {id:'ppt2pdf',   cat:'to', ic:'📽', name:'PowerPoint to PDF', desc:'Make PPT and PPTX easy to view as PDF.',
+  accept:'.ppt,.pptx', preview:'files', action:'Convert to PDF', premium:true, ptool:'ppt2pdf'},
+ {id:'excel2pdf', cat:'to', ic:'📊', name:'Excel to PDF', desc:'Make spreadsheets easy to read as PDF.',
+  accept:'.xls,.xlsx', preview:'files', action:'Convert to PDF', premium:true, ptool:'excel2pdf'},
+ {id:'html2pdf',  cat:'to', ic:'🌐', name:'HTML to PDF', desc:'Convert webpages to PDF from a URL.', soon:true, premium:true, ptool:'html2pdf'},
+ {id:'translate', cat:'ai', ic:'🌍', name:'Translate PDF', desc:'AI translation that keeps the layout intact.', soon:true, premium:true, ptool:'translate'},
+ {id:'editword',  cat:'edit', ic:'📄', name:'Edit Word', desc:'Edit .docx documents right in the browser.', soon:true, premium:true, ptool:'editword'}
 ];
 
 /* ================= state & views ================= */
@@ -553,7 +580,7 @@ function renderHome(filter){
   const box = $('catalog');
   box.innerHTML = '';
   TYPES.forEach(([ty, label])=>{
-    const items = KIT.filter(t=> (TYPE[t.id]||'pdf') === ty && (!filter || filter === 'all' || filter === ty));
+    const items = KIT.filter(t=> (TYPE[t.id]||'pdf') === ty && (filter === 'premium' ? t.premium : (!filter || filter === 'all' || filter === ty)));
     if(!items.length) return;
     const h = document.createElement('h2'); h.className = 'catHead'; h.textContent = label;
     box.appendChild(h);
@@ -562,7 +589,7 @@ function renderHome(filter){
       const b = document.createElement(t.href ? 'a' : 'button');
       b.className = 'toolCard2' + (t.soon ? ' soon' : '');
       if(t.href) b.href = t.href;
-      b.innerHTML = `<span class="tIc2">${t.ic}</span><b>${t.name}${t.soon ? ' <span class="soonPill">Soon</span>' : ''}</b><small>${t.desc}</small>`;
+      b.innerHTML = `<span class="tIc2">${t.ic}</span><b>${t.premium ? '<span class="pxStar">★</span> ' : ''}${t.name}${t.soon ? ' <span class="soonPill">Soon</span>' : ''}</b><small>${t.desc}</small>`;
       if(!t.href && !t.soon) b.addEventListener('click', ()=> openTool(t.id));
       g.appendChild(b);
     });
@@ -927,6 +954,150 @@ async function runEdit(files){
   return `Saved your edits (${editItems.length} item${editItems.length>1?'s':''}).`;
 }
 
+/* ============================================================
+   ★ Premium engine (Phase 4) — quote → consent → convert through the
+   Lexora conversion gateway. Anonymous users get the free daily pages
+   (big files convert partially); logged-in users pay from the ₹ wallet
+   past the free cap. The file is ONLY uploaded after explicit consent.
+   ============================================================ */
+let premOn = false;
+const PEXT = { pdf2word_hd:'.docx', pdf2ppt:'.pptx', pdf2excel:'.xlsx' };
+const fmtP = p=> '₹' + (Math.round(p || 0) / 100).toFixed(2).replace(/\.00$/, '');
+
+function premToggleHtml(){
+  return `<div class="pxToggle"><button type="button" class="pxOpt on" data-p="0">Free<small>on your device</small></button><button type="button" class="pxOpt" data-p="1">★ Premium<small>HD · server</small></button></div>`;
+}
+function premOptsHtml(){
+  return `<p class="sHint">★ HD conversion on our secure server. The first 50 pages a day are free on this tool; after that it’s about ₹0.10 a page from your ₹ wallet. You’ll see the exact price and give consent before anything is uploaded.</p>`;
+}
+function wirePremToggle(){
+  document.querySelectorAll('.pxOpt').forEach(b=> b.onclick = ()=>{ premOn = b.dataset.p === '1'; applyPremUi(); });
+}
+function applyPremUi(){
+  const dropP = document.querySelector('#tvDrop .dropPriv');
+  if(dropP) dropP.textContent = premOn
+    ? '★ This premium tool runs on our secure server — you approve the exact price before anything is uploaded.'
+    : '🔒 Files are processed on your device — nothing is uploaded.';
+  const fo = document.getElementById('freeOpts'), po = document.getElementById('premOpts');
+  if(fo) fo.style.display = premOn ? 'none' : 'block';
+  if(po) po.style.display = premOn ? 'block' : 'none';
+  if(T) $('goBtn').textContent = (premOn ? '★ ' : '') + T.action + ' →';
+  document.querySelectorAll('.pxOpt').forEach(b=> b.classList.toggle('on', (b.dataset.p === '1') === premOn));
+}
+
+async function premPageCount(f){
+  if(/\.pdf$/i.test(f.name)){
+    try{ const d = await openPdfjs(f); return d.numPages; }catch(e){}
+  }
+  /* Office files: estimated (≈40 KB per page, clamped) — shown as an estimate */
+  return Math.max(1, Math.min(5000, Math.round(f.size / 40000)));
+}
+function premOutName(f, ptool){
+  if(ptool === 'compress_hd') return baseName(f) + ' (compressed).pdf';
+  if(ptool === 'ocr_hd') return baseName(f) + ' (searchable).pdf';
+  return baseName(f) + (PEXT[ptool] || '.pdf');
+}
+
+/* consent modal — resolves 'go' | 'free' | 'login' | 'topup' | 'cancel' */
+function consentModal(t, q, est){
+  return new Promise(res=>{
+    const old = document.getElementById('pxModal'); if(old) old.remove();
+    const wrap = document.createElement('div'); wrap.id = 'pxModal';
+    const pgs = `${q.pages}${est ? ' (estimated)' : ''} page${q.pages > 1 ? 's' : ''}`;
+    const lines = [
+      `<p class="pxP">This tool runs on our <b>secure server</b>, so your file (${pgs}) is uploaded for this one job and sent right back. The free tools stay 100% on your device.</p>`,
+      `<p class="pxP">First <b>${q.freeCap}</b> pages a day are free on this tool — you’ve used <b>${q.usedToday}</b> today.</p>`
+    ];
+    let btns = '';
+    if(q.loggedIn){
+      if(q.charge_paise > 0){
+        lines.push(`<p class="pxP">This job: <b>${q.billablePages}</b> page${q.billablePages > 1 ? 's' : ''} over the free limit → <b>${fmtP(q.charge_paise)}</b> from your wallet (balance ${fmtP(q.wallet_paise)}).</p>`);
+        if(!q.enough) lines.push(`<p class="pxP pxWarn">Not enough in your wallet — top up first.</p>`);
+        btns = q.enough
+          ? `<button class="goBig" data-a="go">Continue — ${fmtP(q.charge_paise)}</button>`
+          : `<button class="goBig" data-a="topup">Top up the wallet</button>`;
+      }else{
+        lines.push(`<p class="pxP pxOk">This job is <b>free</b> — it fits in today’s free pages.</p>`);
+        btns = `<button class="goBig" data-a="go">Continue — free</button>`;
+      }
+    }else if(q.convertPages <= 0){
+      lines.push(`<p class="pxP pxWarn">Time’s up for today — your ${q.freeCap} free pages on this tool are used. Come back tomorrow… or log in and finish it all for a penny a page. ★</p>`);
+      btns = `<button class="goBig" data-a="login">Log in to continue</button>`;
+    }else if(q.partial){
+      lines.push(`<p class="pxP">You’re not logged in — the first <b>${q.convertPages}</b> of ${q.pages} pages convert free today. Log in to do the whole file.</p>`);
+      btns = `<button class="goBig" data-a="go">Convert the first ${q.convertPages} pages — free</button><button class="btn ghost" data-a="login">Log in for the full file</button>`;
+    }else{
+      lines.push(`<p class="pxP pxOk">This job is <b>free</b> — no login needed.</p>`);
+      btns = `<button class="goBig" data-a="go">Continue — free</button>`;
+    }
+    if(t.run) btns += `<button class="btn ghost" data-a="free">Use the free version instead</button>`;
+    btns += `<button class="btn ghost" data-a="cancel">Not now</button>`;
+    wrap.innerHTML = `<div class="pxCard"><h3>★ Premium — one quick OK</h3>${lines.join('')}<div class="pxBtns">${btns}</div></div>`;
+    document.body.appendChild(wrap);
+    wrap.addEventListener('click', e=>{
+      const b = e.target.closest('button[data-a]');
+      if(b){ wrap.remove(); res(b.dataset.a); }
+      else if(e.target === wrap){ wrap.remove(); res('cancel'); }
+    });
+  });
+}
+
+/* the full premium run — returns the done-message, or null if cancelled */
+async function runPremium(t){
+  const f = files[0].file;
+  setProg('Counting pages…', 8);
+  const isPdf = /\.pdf$/i.test(f.name);
+  const pages = await premPageCount(f);
+  const token = await lxToken();
+  const auth = token ? { authorization: 'Bearer ' + token } : {};
+  setProg('Checking today’s free pages…', 16);
+  let q;
+  try{
+    const r = await fetch(LX.CONVERT_URL + '/quote', {
+      method: 'POST',
+      headers: Object.assign({ 'content-type': 'application/json' }, auth),
+      body: JSON.stringify({ tool: t.ptool, pages })
+    });
+    q = await r.json();
+  }catch(e){ throw new Error('could not reach the premium service — check your connection and try again'); }
+  if(!q || !q.ok) throw new Error((q && q.error) || 'could not get a price for this job');
+
+  const act = await consentModal(t, q, !isPdf);
+  if(act === 'cancel') return null;
+  if(act === 'login'){ location.href = 'login.html'; return null; }
+  if(act === 'topup'){ window.open('index.html#plans', '_blank'); lxToast('Top up your wallet, then run the tool again.'); return null; }
+  if(act === 'free'){ premOn = false; applyPremUi(); return await t.run(files, ui); }
+
+  setProg('Uploading securely…', 35);
+  const fd = new FormData();
+  fd.append('file', f, f.name);
+  fd.append('tool', t.ptool);
+  fd.append('pages', String(pages));
+  fd.append('consent', '1');
+  let r;
+  try{ r = await fetch(LX.CONVERT_URL + '/convert', { method: 'POST', headers: auth, body: fd }); }
+  catch(e){ throw new Error('the upload failed — check your connection (you were not charged)'); }
+  if(r.status === 503) throw new Error('★ Premium is launching very soon — use the free version for now.');
+  if(r.status === 402){
+    const j = await r.json().catch(()=> ({}));
+    throw new Error('not enough in your wallet — this job needs ' + fmtP(j.charge_paise || 0) + '. Top up in Plans & wallet, then try again.');
+  }
+  if(r.status === 429) throw new Error('today’s free pages on this tool are done — come back tomorrow for more, or log in and pay a penny a page to finish today. ★');
+  if(!r.ok){
+    const j = await r.json().catch(()=> ({}));
+    throw new Error((j && j.error) || 'the conversion failed on the server — you were not charged');
+  }
+
+  setProg('Converting on the server…', 75);
+  const blob = await r.blob();
+  const charge = parseInt(r.headers.get('X-Lexora-Charge') || '0') || 0;
+  const partial = r.headers.get('X-Lexora-Partial') === '1';
+  saveOut(blob, r.headers.get('X-Filename') || premOutName(f, t.ptool));
+  let msg = charge > 0 ? `Done — ${fmtP(charge)} from your wallet.` : 'Done — free, within today’s pages.';
+  if(partial) msg += ` Converted the first ${q.convertPages} of ${pages} pages — log in to do the whole file.`;
+  return msg;
+}
+
 /* ---------- tool view ---------- */
 function openTool(id){
   const t = KIT.find(x=> x.id === id);
@@ -935,10 +1106,21 @@ function openTool(id){
   history.replaceState(null, '', '#' + id);
   $('tvName').textContent = t.name;
   $('tvDesc').textContent = t.desc;
-  $('pickBtn').textContent = 'Select ' + (t.accept === 'image/*' ? 'images' : t.accept === '.docx' ? 'Word file' : 'PDF file' + (t.multiple ? 's' : ''));
-  $('tvSideOpts').innerHTML = (t.opts ? t.opts() : '');
+  $('pickBtn').textContent = 'Select ' + (t.accept === 'image/*' ? 'images'
+    : /\.pptx?/i.test(t.accept || '') ? 'PowerPoint file'
+    : /\.xlsx?/i.test(t.accept || '') ? 'Excel file'
+    : t.accept === '.docx' ? 'Word file' : 'PDF file' + (t.multiple ? 's' : ''));
+  /* ★ premium: server-only tools start (and stay) premium; dual tools get a toggle */
+  premOn = !!(t.premium && !t.run);
+  const hasToggle = !!(t.ptool && t.run);
+  $('tvSideOpts').innerHTML =
+    (hasToggle ? premToggleHtml() : '') +
+    (t.premium && !t.run ? '<div class="pxOnly">★ Premium tool — runs on our secure server, only with your consent.</div>' : '') +
+    `<div id="freeOpts">${t.opts ? t.opts() : ''}</div><div id="premOpts" style="display:none">${premOptsHtml()}</div>`;
   if(t.init) t.init();                 /* wire interactive options (e.g. the signature pad) */
+  if(hasToggle) wirePremToggle();
   $('goBtn').textContent = t.action + ' →';
+  applyPremUi();
   $('fileIn').accept = t.accept || '';
   $('fileIn').multiple = !!t.multiple;
   $('tvDrop').style.display = 'block';
@@ -953,7 +1135,8 @@ $('doneBack').addEventListener('click', backHome);
 function acceptFile(f){
   if(!T) return false;
   if(T.accept === 'image/*') return f.type.startsWith('image/');
-  return new RegExp(T.accept.replace('.','\\.') + '$', 'i').test(f.name);
+  /* accept can be a comma list, e.g. ".ppt,.pptx" */
+  return (T.accept || '').split(',').some(ext=> new RegExp(ext.trim().replace('.','\\.') + '$', 'i').test(f.name));
 }
 async function addFiles(list){
   const ok = [...list].filter(acceptFile);
@@ -1111,9 +1294,14 @@ $('goBtn').addEventListener('click', async ()=>{
   /* option inputs stay live (hidden) in #tvSideOpts, so $(id) reads the user's values */
   show('tvProg');
   $('progName').textContent = T.name;
+  const privLine = document.querySelector('#tvProg .dropPriv');
+  if(privLine) privLine.textContent = premOn
+    ? '★ Premium job — your file is converted on our secure server and sent right back.'
+    : 'Everything happens in your browser — please keep this tab open.';
   setProg('Starting…', 5);
   try{
-    const msg = await T.run(files, ui);
+    const msg = premOn ? await runPremium(T) : await T.run(files, ui);
+    if(msg === null){ show('tvTool'); return; }   /* premium flow cancelled */
     $('doneMsg').textContent = msg || 'Done!';
     $('doneName').textContent = T.name;
     $('again').onclick = ()=> outFiles.forEach(o=> downloadBlob(o.blob, o.name));
@@ -1168,5 +1356,28 @@ else show('tvHome');
     + '.edItem{touch-action:none}'
     + '.edItem .sHandle{position:absolute; right:-8px; bottom:-8px; width:15px; height:15px; background:var(--accent); border:2px solid #fff; border-radius:50%; cursor:nwse-resize}'
     + '.edItem .sDel{position:absolute; top:-11px; right:-11px; width:21px; height:21px; background:var(--warn); color:#fff; border:none; border-radius:50%; font-size:11px; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center; z-index:2}';
+  var s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+})();
+
+/* ★ Premium styles — injected from JS (like the Sign/Edit CSS) so they survive
+   pages.css browser caching. Black/white/orange, no gradients. */
+(function injectPremCss(){
+  var css = '.pxStar{color:var(--accent); font-size:.95em}'
+    + '.pxToggle{display:flex; gap:6px; margin:0 0 12px}'
+    + '.pxOpt{flex:1; background:var(--panel); border:1px solid var(--line); color:var(--muted); border-radius:9px; padding:8px 6px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:2px; transition:border-color .12s, color .12s, background .12s}'
+    + '.pxOpt small{font-weight:400; font-size:10.5px; opacity:.75}'
+    + '.pxOpt:hover{border-color:var(--accent)}'
+    + '.pxOpt.on{border-color:var(--accent); color:#fff; background:var(--accent)}'
+    + '.pxOpt.on small{opacity:.9}'
+    + '.pxOnly{background:var(--panel2); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:9px; padding:9px 11px; font-size:12.5px; color:var(--muted); margin:0 0 12px}'
+    + '#pxModal{position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:1000; padding:16px}'
+    + '.pxCard{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px 20px; max-width:440px; width:100%; box-shadow:var(--shadow); max-height:90vh; overflow:auto}'
+    + '.pxCard h3{margin:0 0 10px; font-size:17px; color:var(--text)}'
+    + '.pxP{margin:0 0 10px; font-size:13.5px; line-height:1.5; color:var(--text)}'
+    + '.pxP.pxWarn{color:var(--warn)}'
+    + '.pxP.pxOk{color:var(--ok)}'
+    + '.pxBtns{display:flex; flex-direction:column; gap:8px; margin-top:14px}'
+    + '.pxBtns .goBig{margin:0}'
+    + '.pxBtns .btn{width:100%}';
   var s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
 })();
