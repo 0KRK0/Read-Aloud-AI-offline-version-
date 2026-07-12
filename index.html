@@ -57,15 +57,18 @@
     <a href="privacy.html" target="_blank">Privacy</a>
     <a href="terms.html" target="_blank">Terms</a>
   </nav>
-  <div class="account">
-    <div class="who">
+  <div class="account" id="acctWrap">
+    <button class="who" id="acctBtn" aria-haspopup="true" aria-expanded="false">
       <span class="avatar" id="acctAvatar">👤</span>
-      <span class="whoTxt"><b id="acctEmail">Guest</b><small>Lexora AI</small></span>
+      <span class="whoTxt"><b id="acctName">Guest</b><small id="acctSub">Not signed in</small></span>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="acctMenu" id="acctMenu">
+      <button id="acctUpgrade"><span class="mi">⭐</span>Upgrade plan</button>
+      <button id="acctTheme"><span class="mi">◑</span>Switch theme</button>
+      <button id="acctLogin" style="display:none"><span class="mi">→</span>Log in</button>
+      <button id="acctLogout" style="display:none"><span class="mi">⏻</span>Log out</button>
     </div>
-    <button id="acctUpgrade">Upgrade plan</button>
-    <button id="acctTheme">Switch theme</button>
-    <button id="acctLogin" style="display:none">Log in</button>
-    <button id="acctLogout" style="display:none">Log out</button>
   </div>
 </aside>
 

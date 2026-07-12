@@ -152,16 +152,16 @@
     radial-gradient(1100px 600px at 85% -5%, rgba(108,140,255,.14), transparent),
     radial-gradient(800px 500px at 0% 110%, rgba(154,108,255,.10), transparent), var(--bg);
     display:flex; z-index:100; padding:16px; overflow-y:auto}
-  #login .card{background:transparent; width:min(400px, 94vw); text-align:center; margin:auto; padding:24px 0}
-  #login .logo2{width:64px; height:64px; margin:0 auto 22px; border-radius:16px; font-size:30px; font-weight:800; color:#fff;
+  #login .card{background:transparent; width:min(400px, 94vw); text-align:center; margin:auto; padding:14px 0}
+  #login .logo2{width:54px; height:54px; margin:0 auto 12px; border-radius:15px; font-size:26px; font-weight:800; color:#fff;
     display:flex; align-items:center; justify-content:center;
     background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 8px 28px rgba(108,140,255,.35)}
-  #login h2{font-size:26px; font-weight:700; letter-spacing:-.3px; margin-bottom:8px}
+  #login h2{font-size:23px; font-weight:700; letter-spacing:-.3px; margin-bottom:5px}
   #login h2 span{color:var(--accent)}
-  #login p{color:var(--muted); font-size:14px; line-height:1.6; margin-bottom:26px}
-  #login .fieldLabel{display:block; text-align:left; font-size:13px; color:var(--muted); margin:0 0 6px 2px}
+  #login p{color:var(--muted); font-size:13.5px; line-height:1.55; margin-bottom:16px}
+  #login .fieldLabel{display:block; text-align:left; font-size:13px; color:var(--muted); margin:0 0 5px 2px}
   #login input{width:100%; background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:10px;
-    padding:13px 14px; font-size:14.5px; margin-bottom:14px; outline:none; transition:border-color .15s, box-shadow .15s}
+    padding:11px 13px; font-size:14.5px; margin-bottom:11px; outline:none; transition:border-color .15s, box-shadow .15s}
   #login input:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(108,140,255,.18)}
   #login .card{animation:cardIn .55s cubic-bezier(.2,.8,.25,1)}
   @keyframes cardIn{from{opacity:0; transform:translateY(14px) scale(.985)}to{opacity:1; transform:none}}
@@ -170,7 +170,7 @@
   #loginBtn{width:100%; color:#fff; border:none; border-radius:10px;
     background:linear-gradient(90deg, var(--accent), var(--accent2), #ff8bd3, var(--accent));
     background-size:300% 100%; background-position:0% 50%;
-    padding:13px; font-weight:700; font-size:15px; cursor:pointer; margin-bottom:4px;
+    padding:11px; font-weight:700; font-size:15px; cursor:pointer; margin-bottom:4px;
     transition:box-shadow .3s, transform .15s;}
   #loginBtn:hover{animation:gradShift 1.6s linear infinite alternate;
     box-shadow:0 8px 28px rgba(108,140,255,.5), 0 2px 10px rgba(154,108,255,.4); transform:translateY(-1.5px)}
@@ -179,7 +179,7 @@
   #googleBtn{width:100%; color:var(--text); border-radius:10px; border:1px solid transparent;
     background:linear-gradient(var(--panel), var(--panel)) padding-box,
                linear-gradient(90deg, var(--line), var(--line)) border-box;
-    padding:12px; font-size:14.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    padding:10px; font-size:14.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center;
     gap:10px; margin-bottom:4px; transition:box-shadow .3s, transform .15s}
   #googleBtn:hover{
     background:linear-gradient(var(--panel), var(--panel)) padding-box,
@@ -189,10 +189,10 @@
     box-shadow:0 6px 24px rgba(108,140,255,.28); transform:translateY(-1.5px)}
   #googleBtn:active{transform:translateY(0)}
   #googleBtn svg{width:18px; height:18px; flex:none}
-  #appleBtn{width:100%; color:var(--text); border-radius:10px; border:1px solid transparent; margin-top:8px;
+  #appleBtn{width:100%; color:var(--text); border-radius:10px; border:1px solid transparent; margin-top:6px;
     background:linear-gradient(var(--panel), var(--panel)) padding-box,
                linear-gradient(90deg, var(--line), var(--line)) border-box;
-    padding:12px; font-size:14.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    padding:10px; font-size:14.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center;
     gap:10px; margin-bottom:4px; transition:box-shadow .3s, transform .15s}
   #appleBtn:hover{
     background:linear-gradient(var(--panel), var(--panel)) padding-box,
@@ -204,12 +204,12 @@
   #appleBtn svg{width:16px; height:16px; flex:none}
   #login .logo2{transition:box-shadow .35s, transform .35s}
   #login .card:hover .logo2{box-shadow:0 10px 40px rgba(108,140,255,.55), 0 0 60px rgba(154,108,255,.25); transform:translateY(-2px)}
-  #login .divider{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12.5px; margin:18px 0}
+  #login .divider{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12.5px; margin:12px 0}
   #login .divider::before, #login .divider::after{content:''; flex:1; height:1px; background:var(--line)}
-  #guestBtn{width:100%; background:none; border:none; color:var(--muted); padding:12px 0 0; font-size:13.5px; cursor:pointer}
+  #guestBtn{width:100%; background:none; border:none; color:var(--muted); padding:10px 0 0; font-size:13.5px; cursor:pointer}
   #guestBtn:hover{color:var(--accent); text-decoration:underline}
   #loginMsg{font-size:13px; color:var(--ok); min-height:18px; margin-bottom:10px}
-  #login .foot{color:var(--muted); font-size:12px; margin-top:22px; line-height:1.6}
+  #login .foot{color:var(--muted); font-size:12px; margin-top:13px; line-height:1.5}
   #login .foot a{color:var(--muted); text-decoration:underline}
   #login .foot a:hover{color:var(--accent)}
   #otpBtn{width:100%; color:var(--accent); border-radius:10px; border:1px solid transparent;
@@ -228,11 +228,11 @@
   #walletFill{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent2)); border-radius:3px; transition:width .4s}
 
   /* ---------- Plans modal ---------- */
-  #plans{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:95; padding:14px}
-  #plans .box{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:26px; width:min(430px,94vw); max-height:90vh; overflow-y:auto; box-shadow:var(--shadow)}
+  #plans{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:95; padding:16px}
+  #plans .box{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:20px; width:min(460px, calc(100vw - 32px)); max-height:calc(100vh - 32px); overflow-y:auto; overflow-x:hidden; box-sizing:border-box; box-shadow:var(--shadow)}
   #plans h2{font-size:18px; margin-bottom:4px}
-  #plans .sub{color:var(--muted); font-size:12.5px; margin-bottom:16px}
-  .planCard{border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:10px; cursor:pointer; transition:border-color .15s; display:flex; align-items:center; gap:12px}
+  #plans .sub{color:var(--muted); font-size:12.5px; margin-bottom:12px}
+  .planCard{border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:border-color .15s; display:flex; align-items:center; gap:12px}
   .planCard:hover{border-color:var(--accent)}
   .planCard .ic{font-size:22px}
   .planCard b{font-size:14px; display:block}
@@ -290,8 +290,8 @@
   /* ---------- Camera scan ---------- */
   .orScan{margin-top:12px; color:var(--muted,#9aa1b5); font-size:13px}
   /* ---------- Engine tiers + Token Saver ---------- */
-  #tierBox{margin:14px 0 4px; padding:12px; background:var(--panel2,#141828); border-radius:12px}
-  .tierHead{font-size:13px; font-weight:700; margin-bottom:8px}
+  #tierBox{margin:12px 0 4px; padding:11px; background:var(--panel2,#141828); border-radius:12px}
+  .tierHead{font-size:13px; font-weight:700; margin-bottom:7px}
   .tierHead small{color:var(--muted,#9aa1b5); font-weight:400}
   .tierRow{display:flex; gap:8px}
   .tierBtn{flex:1; background:var(--panel,#181c2f); border:1.5px solid var(--line,#262b45); border-radius:10px;
@@ -302,11 +302,17 @@
   .saverRow{display:flex; align-items:center; gap:8px; margin-top:12px; font-size:12.5px; color:var(--muted,#9aa1b5); cursor:pointer}
   .saverRow b{color:var(--text,#e8eaf2)}
   .saverRow input{accent-color:var(--accent,#6c8cff); width:16px; height:16px}
-  #customRow{display:flex; align-items:center; gap:6px; margin-top:8px}
+  #customRow{display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap}
   #customRow select,#customRow input{background:var(--panel,#181c2f); border:1px solid var(--line,#262b45);
     color:var(--text,#e8eaf2); border-radius:8px; padding:7px 8px; font-size:13px}
-  #customRow input{width:84px}
+  #customRow select{flex:1; min-width:0}
+  #customRow input#customAmt{flex:1; min-width:64px; width:auto}
+  #customRow #customBuy{flex:none}
   #customRow .rupee{color:var(--muted,#9aa1b5)}
+  /* hide the browser number-spinner on the custom amount field */
+  #customAmt::-webkit-outer-spin-button,
+  #customAmt::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
+  #customAmt{-moz-appearance:textfield; appearance:textfield}
   #customBuy{background:linear-gradient(90deg, var(--accent,#6c8cff), var(--accent2,#9a6cff)); color:#fff;
     border:none; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:700; cursor:pointer}
   #customBuy:hover{filter:brightness(1.1)}

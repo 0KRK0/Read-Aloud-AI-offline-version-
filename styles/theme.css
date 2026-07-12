@@ -153,26 +153,51 @@ header h1 span{color:var(--accent)}
 #sideNav nav .active{background:var(--panel2); color:var(--text); font-weight:600}
 #sideNav .navSep{height:1px; background:var(--line); margin:10px 12px}
 #sideNav .account{
+  position:relative;                 /* anchor for the pop-up menu */
   border-top:1px solid var(--line);
-  padding-top:12px; margin-top:8px;
+  padding-top:10px; margin-top:8px;
   display:flex; flex-direction:column; gap:2px;
 }
+/* the account chip — a single clickable row, Claude-style */
 #sideNav .account .who{
-  display:flex; align-items:center; gap:9px; padding:6px 10px 10px;
+  display:flex; align-items:center; gap:9px; width:100%;
+  padding:8px 10px; border-radius:10px;
+  background:none; border:1px solid transparent; cursor:pointer;
+  text-align:left; font-family:inherit; color:var(--text);
+  transition:background .12s, border-color .12s;
 }
+#sideNav .account .who:hover{background:var(--panel2); border-color:var(--line)}
 #sideNav .account .avatar{
   width:28px; height:28px; border-radius:50%; background:var(--panel2); border:1px solid var(--line);
   display:inline-flex; align-items:center; justify-content:center; font-size:12px; color:var(--accent); font-weight:700;
   flex:none;
 }
-#sideNav .account .whoTxt{min-width:0}
-#sideNav .account .whoTxt b{display:block; font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-#sideNav .account .whoTxt small{color:var(--muted); font-size:11px}
-#sideNav .account button{
+#sideNav .account .whoTxt{min-width:0; flex:1}
+#sideNav .account .whoTxt b{display:block; font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text)}
+#sideNav .account .whoTxt small{display:block; color:var(--muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#sideNav .account .who .chev{width:15px; height:15px; flex:none; color:var(--muted); transition:transform .18s}
+#sideNav .account.open .who .chev{transform:rotate(180deg)}
+/* pop-up menu floats above the chip */
+#sideNav .acctMenu{
+  position:absolute; left:0; right:0; bottom:calc(100% - 2px);
+  display:none; flex-direction:column; gap:2px;
+  background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  padding:6px; box-shadow:var(--shadow); z-index:70;
+}
+#sideNav .account.open .acctMenu{display:flex}
+#sideNav .acctMenu button{
+  display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+  background:none; border:none; cursor:pointer;
+  color:var(--muted); font-size:13px; font-family:inherit; padding:9px 11px; border-radius:8px;
+}
+#sideNav .acctMenu button:hover{background:var(--panel2); color:var(--text)}
+#sideNav .acctMenu .mi{width:16px; text-align:center; flex:none; color:var(--accent); font-size:13px}
+/* fallback: standalone pages (settings/tools/scan) still use simple stacked account buttons */
+#sideNav .account > button:not(.who){
   display:block; width:100%; text-align:left; background:none; border:none; cursor:pointer;
   color:var(--muted); font-size:13px; font-family:inherit; padding:8px 12px; border-radius:8px;
 }
-#sideNav .account button:hover{background:var(--panel2); color:var(--text)}
+#sideNav .account > button:not(.who):hover{background:var(--panel2); color:var(--text)}
 
 /* companion collapse (desktop) */
 #compCollapse{
