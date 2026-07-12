@@ -52,7 +52,6 @@
     <button id="navTools">Tools</button>
     <button id="navScan">Scan</button>
     <button id="navPlans">Plans &amp; wallet</button>
-    <button id="navSettings">Settings</button>
     <div class="navSep"></div>
     <a href="privacy.html" target="_blank">Privacy</a>
     <a href="terms.html" target="_blank">Terms</a>
@@ -65,6 +64,8 @@
     </button>
     <div class="acctMenu" id="acctMenu">
       <button id="acctUpgrade"><span class="mi">⭐</span>Upgrade plan</button>
+      <button id="acctSettings"><span class="mi">⚙</span>Settings</button>
+      <button id="acctGuide"><span class="mi">🧭</span>Show me around</button>
       <button id="acctTheme"><span class="mi">◑</span>Switch theme</button>
       <button id="acctLogin" style="display:none"><span class="mi">→</span>Log in</button>
       <button id="acctLogout" style="display:none"><span class="mi">⏻</span>Log out</button>
@@ -210,15 +211,7 @@
       <span><b>Just this document</b><small id="docPlanDesc">One-time unlock on Swift</small></span>
       <span class="price" id="docPlanPrice">₹—</span>
     </div>
-    <div id="tierBox" style="display:none">
-      <div class="tierHead">Engine power <small>— applies to every question you ask</small></div>
-      <div class="tierRow">
-        <button class="tierBtn" data-tier="core"><b>Core</b><small>default · best value</small></button>
-        <button class="tierBtn" data-tier="plus"><b>Plus</b><small>smarter · ×burn</small></button>
-        <button class="tierBtn" data-tier="ultra"><b>Ultra</b><small>top model · ⚠ burns fast</small></button>
-      </div>
-      <label class="saverRow"><input type="checkbox" id="saverToggle"> <b>🪄 Token Saver</b> — compresses what we send to the engine, same answers for fewer tokens</label>
-    </div>
+    <a href="settings.html#aiengine" style="display:block; text-align:center; margin:4px 0 10px; font-size:12.5px; color:var(--muted); text-decoration:none">⚙ Engine power &amp; Token Saver — in Settings → AI Engine</a>
     <div class="planNote">Tokens are used per question — the bar in the companion panel shows the % left. Top up anytime. Switch between Swift and Sage for free — your balance converts by money value, nothing you paid for is lost. Higher engine power gives smarter answers but uses your balance faster. When it runs out you return to the Free plan (Spark engine). Payments are one-time, no auto-renewal, no refunds — see <a href="privacy.html" target="_blank" style="color:var(--accent)">Privacy &amp; Terms</a>.</div>
     <button id="plansClose">Close</button>
   </div>
@@ -280,6 +273,7 @@
 <script src="scripts/app-viewer.js"></script>
 <script src="scripts/app-companion.js"></script>
 <script src="scripts/app-wallet.js"></script>
+<script src="scripts/onboarding.js"></script>
 <script src="scripts/nav.js"></script>
 </body>
 </html>

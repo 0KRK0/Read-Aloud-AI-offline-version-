@@ -178,4 +178,27 @@ $('exportBtn').addEventListener('click', ()=>{
   setTimeout(()=> URL.revokeObjectURL(a.href), 5000);
 });
 
+/* ---------- AI engine: tier + token saver (moved here from the plans modal) ---------- */
+(function(){
+  const TIER_LABEL = { core:'Core', plus:'Plus', ultra:'Ultra' };
+  let tier = localStorage.getItem('ra_tier') || 'core';
+  if(!TIER_LABEL[tier]) tier = 'core';
+  const paint = ()=> document.querySelectorAll('#setTierRow .tierBtn')
+    .forEach(b=> b.classList.toggle('on', b.dataset.tier === tier));
+  document.querySelectorAll('#setTierRow .tierBtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const t = b.dataset.tier;
+      if(t === 'ultra' && tier !== 'ultra' &&
+         !confirm('⚠ Ultra uses the most powerful engine — best answers, but it uses your balance up to 25× faster per question. Continue?')) return;
+      tier = t; localStorage.setItem('ra_tier', t); paint();
+    });
+  });
+  paint();
+  const saver = $('setSaver');
+  if(saver){
+    saver.checked = localStorage.getItem('ra_saver') === '1';
+    saver.addEventListener('change', e=> localStorage.setItem('ra_saver', e.target.checked ? '1' : '0'));
+  }
+})();
+
 loadAccount();

@@ -564,7 +564,7 @@ async function renderPreview(){
     main.innerHTML = '';
     for(let i=0;i<files.length;i++){
       const card = document.createElement('div'); card.className = 'fCard';
-      card.innerHTML = `<div class="fTh">⏳</div><b title="${files[i].name}">${files[i].name}</b><small>${human(files[i].size)}</small>
+      card.innerHTML = `<div class="fTh"><span class="lxSpin sm"></span></div><b title="${files[i].name}">${files[i].name}</b><small>${human(files[i].size)}</small>
         <div class="fBtns">${T.multiple && T.id==='merge' ? '<button class="mv" data-d="-1">◀</button><button class="mv" data-d="1">▶</button>' : ''}<button class="rm">✕</button></div>`;
       main.appendChild(card);
       card.querySelector('.rm').addEventListener('click', ()=>{
@@ -584,7 +584,7 @@ async function renderPreview(){
     }
   }else{
     /* single-pdf page thumbnails */
-    main.innerHTML = '<p class="thumbHint" id="thLoad">Loading page previews…</p>';
+    main.innerHTML = '<div class="tvLoad"><div class="lxSpin"></div><p class="thumbHint" id="thLoad">Loading page previews…</p></div>';
     try{
       const doc = await openPdfjs(files[0].file);
       const n = Math.min(doc.numPages, 100);

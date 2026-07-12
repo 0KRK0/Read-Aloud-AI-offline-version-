@@ -99,7 +99,7 @@ $('loginBtn').addEventListener('click', async ()=>{
   if(!/^\S+@\S+\.\S+$/.test(email)){ $('loginMsg').style.color='var(--warn)'; $('loginMsg').textContent='Please enter a valid email.'; return; }
   $('loginBtn').disabled = true;
   const {error} = await sb.auth.signInWithOtp({email, options:{emailRedirectTo: APP_URL}});
-  $('loginMsg').style.color = error ? 'var(--warn)' : 'var(--ok)';
+  $('loginMsg').style.color = error ? 'var(--warn)' : 'var(--accent)';
   if(error){
     const wait = (error.message.match(/after (\d+) seconds/) || [])[1];
     if(wait){                       /* asked too soon — lock and count down exactly that long */
@@ -113,7 +113,7 @@ $('loginBtn').addEventListener('click', async ()=>{
     }
     return;
   }
-  $('loginMsg').textContent = '✓ Sent! Check your email — click the link, or type the 6-digit code below.';
+  $('loginMsg').textContent = '✓ Code sent — check your email.';
   $('otpRow').style.display = 'block';
   lockEmail();
   startCooldown(50);

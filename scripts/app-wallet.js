@@ -98,35 +98,10 @@ function openPlans(){
     $('customProv').disabled = false;
   }
   customPreview();
-  /* engine power + Token Saver: subscribers only (doc packs run Core, no options) */
-  const isSub = me && me.effective === 'paid' && me.plan !== 'doc';
-  $('tierBox').style.display = isSub ? 'block' : 'none';
-  if(isSub){
-    document.querySelectorAll('.tierBtn').forEach(b=> b.classList.toggle('on', b.dataset.tier === aiTier));
-    $('saverToggle').checked = aiSaver;
-  }
+  /* engine power + Token Saver now live in Settings → AI Engine (read from localStorage) */
   renderWallet();
   $('plans').style.display='flex';
 }
-document.querySelectorAll('.tierBtn').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    const t = b.dataset.tier;
-    if(t === 'ultra' && aiTier !== 'ultra'){
-      if(!confirm('⚠ Ultra uses the most powerful engine — it gives the best answers but uses your balance much faster (up to 25× per question). Continue?')) return;
-    }
-    aiTier = t;
-    localStorage.setItem('ra_tier', t);
-    document.querySelectorAll('.tierBtn').forEach(x=> x.classList.toggle('on', x === b));
-    renderWallet();
-    say(`Engine power set to ${TIER_LABEL[t]}.` + (t==='ultra' ? ' ⚠ This burns tokens much faster.' : ''), 'sys');
-  });
-});
-$('saverToggle').addEventListener('change', e=>{
-  aiSaver = e.target.checked;
-  localStorage.setItem('ra_saver', aiSaver ? '1' : '0');
-  say(aiSaver ? '🪄 Token Saver is ON — I will compress what I send to the engine to stretch your balance.'
-              : 'Token Saver is off.', 'sys');
-});
 $('upgradeBtn').addEventListener('click', openPlans);
 $('plansClose').addEventListener('click', ()=> $('plans').style.display='none');
 $('plans').addEventListener('click', e=>{ if(e.target===$('plans')) $('plans').style.display='none'; });

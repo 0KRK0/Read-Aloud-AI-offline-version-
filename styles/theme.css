@@ -282,3 +282,24 @@ header .icon-btn:hover{background:var(--panel2) !important}
   cursor:pointer; padding:0 10px; display:inline-flex; align-items:center; flex:none}
 #attachBtn:hover{border-color:var(--accent); color:var(--accent)}
 #attachBtn svg{width:17px; height:17px}
+
+/* ---- account menu: give the sign in/out action its own space ---- */
+#sideNav .acctMenu #acctLogin,
+#sideNav .acctMenu #acctLogout{margin-top:6px; padding-top:12px; border-top:1px solid var(--line)}
+
+/* ---- fancy loading spinner (reader + shared) ---- */
+#viewerWrap{position:relative}
+#docSpin{position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
+  gap:16px; z-index:40; background:rgba(0,0,0,.5); background:color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px)}
+.lxSpin{width:56px; height:56px; border-radius:50%;
+  background:conic-gradient(from 90deg, transparent 8%, var(--accent) 92%, transparent 100%);
+  -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+  mask:radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+  animation:lxspin .85s linear infinite;
+  filter:drop-shadow(0 0 10px rgba(224,122,63,.55))}
+.lxSpin.sm{width:26px; height:26px;
+  -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))}
+@keyframes lxspin{to{transform:rotate(360deg)}}
+.docSpinTxt{color:var(--muted); font-size:13.5px; font-family:Georgia,'Times New Roman',serif; letter-spacing:.02em}

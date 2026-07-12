@@ -239,6 +239,14 @@
   .planCard small{color:var(--muted); font-size:11.5px; line-height:1.5; display:block}
   .planCard .price{margin-left:auto; font-weight:800; color:var(--accent); white-space:nowrap}
   #plansClose{width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--muted); border-radius:12px; padding:11px; cursor:pointer; margin-top:6px}
+  /* laptops & desktops: a roomier plans dialog (mobile keeps the compact size above) */
+  @media (min-width:900px){
+    #plans .box{width:min(660px, calc(100vw - 48px)); padding:26px 28px}
+    .planCard{padding:14px 18px}
+    .planCard .ic{font-size:24px}
+    .planCard b{font-size:15px}
+    .planCard small{font-size:12px}
+  }
   .planNote{font-size:11px; color:var(--muted); margin-top:10px; line-height:1.5}
 
   /* ---------- Mobile ---------- */

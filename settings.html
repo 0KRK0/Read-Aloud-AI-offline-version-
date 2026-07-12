@@ -52,6 +52,7 @@
       <a href="#purchases">Purchases</a>
       <a href="#usage">Usage</a>
       <a href="#general">General</a>
+      <a href="#aiengine">AI Engine</a>
       <a href="#privacy">Privacy</a>
       <a href="#about">About</a>
     </nav>
@@ -120,6 +121,20 @@
             <button class="btn ghost" id="voiceTest">▶ Test</button>
           </div>
           <p class="hint">Voices come from your device/browser. Voices marked “Online” need internet.</p>
+        </div>
+      </section>
+
+      <section class="setSec" id="aiengine">
+        <h2 class="secTitle">AI Engine</h2>
+        <div class="card">
+          <label class="f">Engine power — applies to every question you ask the companion</label>
+          <div class="tierRow" id="setTierRow">
+            <button class="tierBtn" data-tier="core"><b>Core</b><small>default · best value</small></button>
+            <button class="tierBtn" data-tier="plus"><b>Plus</b><small>smarter · uses more</small></button>
+            <button class="tierBtn" data-tier="ultra"><b>Ultra</b><small>top model · ⚠ burns fast</small></button>
+          </div>
+          <label class="saverRow" style="margin-top:16px"><input type="checkbox" id="setSaver"> <span><b>🪄 Token Saver</b> — compresses what we send to the engine, same answers for fewer tokens</span></label>
+          <p class="hint">Higher engine power gives smarter answers but uses your token balance faster. This applies when you are on a paid engine (Swift or Sage); on the free plan the Spark engine is always used.</p>
         </div>
       </section>
 

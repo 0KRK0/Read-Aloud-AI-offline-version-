@@ -56,6 +56,8 @@
   wire('acctLogout', ()=>{ const l = $$('logoutBtn'); if(l) l.click(); });
   wire('acctLogin', ()=>{ location.href = 'login.html'; });
   wire('acctUpgrade', ()=>{ if(typeof openPlans === 'function') openPlans(); });
+  wire('acctSettings', ()=>{ location.href = 'settings.html'; });
+  wire('acctGuide', ()=>{ if(typeof startTour === 'function') startTour(); });
 
   /* --- companion collapse / reopen (desktop) --- */
   wire('compCollapse', ()=>{ document.body.classList.add('compHidden'); });

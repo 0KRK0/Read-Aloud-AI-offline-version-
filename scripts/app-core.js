@@ -38,7 +38,25 @@ let chatHistory = [];
 let ocrBusy = false, waitingForMore = false;
 let docBusy = false;      /* true while recognising — controls are locked */
 let docLabel = '';        /* human-friendly way to refer to the open document */
-function setDocBusy(on){ docBusy = on; const pb = $('playbar'); if(pb) pb.classList.toggle('busy', on); }
+function setDocBusy(on){
+  docBusy = on;
+  const pb = $('playbar'); if(pb) pb.classList.toggle('busy', on);
+  const vw = $('viewerWrap');
+  if(vw){
+    let sp = document.getElementById('docSpin');
+    if(on){
+      if(!sp){
+        sp = document.createElement('div');
+        sp.id = 'docSpin';
+        sp.innerHTML = '<div class="lxSpin"></div><div class="docSpinTxt">Reading your document…</div>';
+        vw.appendChild(sp);
+      }
+      sp.style.display = 'flex';
+    }else if(sp){
+      sp.style.display = 'none';
+    }
+  }
+}
 /* "IMG_20260711_094512.jpg" is not something a human says out loud */
 function friendlyName(name, kind){
   const base = String(name||'').replace(/\.[a-z0-9]{2,5}$/i,'');
@@ -112,7 +130,7 @@ $('loginBtn').addEventListener('click', async ()=>{
     }
     return;
   }
-  $('loginMsg').textContent = '✓ Sent! Check your email — click the link, or type the 6-digit code below.';
+  $('loginMsg').textContent = '✓ Code sent — check your email.';
   $('otpRow').style.display = 'block';
   lockEmail();
   startCooldown(50);
