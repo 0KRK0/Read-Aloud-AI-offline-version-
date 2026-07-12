@@ -110,6 +110,9 @@ $('profSave').addEventListener('click', async ()=>{
 });
 
 async function loadWallet(){
+  let money = 0;
+  try{ const { data } = await sb.from('profiles').select('wallet_paise').eq('id', session.user.id).single(); if(data && typeof data.wallet_paise === 'number') money = data.wallet_paise; }catch(e){}
+  const moneyHtml = `<div class="row" style="justify-content:space-between; align-items:baseline; margin-bottom:16px"><b>💠 ₹ Wallet balance</b><span style="font-size:22px; font-weight:800; color:var(--accent)">₹${(money/100).toFixed(2)}</span></div>`;
   try{
     const r = await fetch(CONFIG.API_URL + '/me', {headers:{authorization:'Bearer ' + session.access_token}});
     if(!r.ok) throw new Error('server ' + r.status);
@@ -117,14 +120,14 @@ async function loadWallet(){
     const paid = me.effective === 'paid';
     const max = Math.max((me.tokens_balance||0) + (me.tokens_used||0), 1);
     const pct = Math.max(0, Math.min(100, Math.round((me.tokens_balance||0) / max * 100)));
-    $('walletBody').innerHTML = paid
+    $('walletBody').innerHTML = moneyHtml + (paid
       ? `<h3>${ENGINE[me.provider] || 'Swift'} engine · ${me.plan === 'doc' ? 'document unlock' : 'subscription'}</h3>
          <div class="meter"><i style="width:${pct}%"></i></div>
          <p class="hint">${fmtTokens(me.tokens_balance)} of ${fmtTokens(max)} tokens left (${pct}%). Lifetime used: ${fmtTokens(me.tokens_used||0)}.</p>`
       : `<h3>Free plan · Spark engine</h3>
-         <p class="hint">You are on the free engine with a daily question limit. Upgrade for the Swift or Sage engine and a token wallet.</p>`;
+         <p class="hint">You are on the free engine with a daily question limit. Upgrade for the Swift or Sage engine and a token wallet.</p>`);
   }catch(e){
-    $('walletBody').innerHTML = '<p class="empty">Could not load the wallet (' + esc(e.message) + ').</p>';
+    $('walletBody').innerHTML = moneyHtml + '<p class="empty">Could not load the token wallet (' + esc(e.message) + ').</p>';
   }
 }
 

@@ -347,16 +347,59 @@ const KIT = [
     saveOut(new Blob([await src.save()], {type:'application/pdf'}), baseName(files[0].file)+' (numbered).pdf');
     return `Numbered ${n} pages.`;
   }},
- {id:'unlock', cat:'sec', ic:'🔓', name:'Unlock PDF', desc:'Remove PDF restrictions so you can use your file freely (best effort).',
+ {id:'unlock', cat:'sec', ic:'🔓', name:'Unlock PDF', desc:'Remove print/copy locks, or take the password off a PDF you can open.',
   accept:'.pdf', preview:'files', action:'Unlock PDF',
-  opts:()=>`<p class="sHint">Works on PDFs with owner/permission locks (no-print, no-copy). PDFs that need a password to even open cannot be unlocked here.</p>`,
+  opts:()=>`<label class="f">Password <span style="color:var(--muted); font-weight:400">— only if the PDF needs one to open</span></label>
+    <input type="password" id="oPwd" placeholder="Leave blank for print / copy locks" autocomplete="off" style="width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:11px 12px; font-size:14px; font-family:inherit; outline:none">
+    <p class="sHint">For print/copy-locked PDFs, leave this blank. For a PDF that asks for a password to open (like a bank statement), type it here — it never leaves your device. That copy is rebuilt from the pages, so its text is no longer selectable.</p>`,
   run: async (files)=>{
-    if(!(await ensurePdfLib())) throw new Error('could not load the PDF engine');
-    setProg('Removing restrictions…', 40);
-    const src = await PDFLib.PDFDocument.load(await files[0].file.arrayBuffer(), {ignoreEncryption:true});
-    const bytes = await src.save();
-    saveOut(new Blob([bytes], {type:'application/pdf'}), baseName(files[0].file)+' (unlocked).pdf');
-    return 'Saved without restrictions.';
+    const pw = ($('oPwd') && $('oPwd').value.trim()) || '';
+    const buf = await files[0].file.arrayBuffer();
+    if(!pw){
+      /* print/copy-locked (owner) PDFs — pdf-lib drops the restrictions, text stays selectable */
+      try{
+        if(!(await ensurePdfLib())) throw new Error('engine');
+        setProg('Removing restrictions…', 45);
+        const src = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+        saveOut(new Blob([await src.save()], {type:'application/pdf'}), baseName(files[0].file)+' (unlocked).pdf');
+        return 'Removed the restrictions — your PDF is free to use.';
+      }catch(e){
+        throw new Error('This PDF needs a password to open (like a bank statement). Type the password in the box above, then tap Unlock PDF again.');
+      }
+    }
+    /* password-to-open PDFs — decrypt locally with the password, rebuild an unlocked copy */
+    if(!ensurePdfjs()) throw new Error('the PDF engine did not load — refresh and try again');
+    setProg('Checking the password…', 8);
+    const task = pdfjsLib.getDocument({
+      data: buf.slice(0), password: pw,
+      cMapUrl: new URL('lib/cmaps/', location.href).href, cMapPacked: true,
+      standardFontDataUrl: new URL('lib/standard_fonts/', location.href).href, stopAtErrors: false
+    });
+    let doc;
+    try{ doc = await task.promise; }
+    catch(e){
+      const msg = ((e && (e.name || e.message)) || '') + '';
+      throw new Error(/password/i.test(msg) ? 'That password did not work — check it and try again.' : 'Could not open this PDF (' + (e.message || 'unknown') + ').');
+    }
+    if(!(await ensureJsPDF())) throw new Error('could not load the PDF maker');
+    const { jsPDF } = window.jspdf;
+    const n = doc.numPages;
+    let out = null;
+    for(let i = 1; i <= n; i++){
+      setProg(`Unlocking page ${i} of ${n}…`, 10 + i/n*85);
+      const page = await doc.getPage(i);
+      const base = page.getViewport({scale:1});
+      const vp = page.getViewport({scale:2});
+      const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+      await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+      const img = c.toDataURL('image/jpeg', 0.92);
+      const pt = [base.width, base.height];
+      if(!out) out = new jsPDF({unit:'pt', format:pt, orientation: pt[0] > pt[1] ? 'l' : 'p', compress:true});
+      else out.addPage(pt, pt[0] > pt[1] ? 'l' : 'p');
+      out.addImage(img, 'JPEG', 0, 0, pt[0], pt[1]);
+    }
+    saveOut(out.output('blob'), baseName(files[0].file) + ' (unlocked).pdf');
+    return `Password removed — saved an unlocked copy (${n} page${n>1?'s':''}).`;
   }},
  {id:'imgcompress', cat:'opt', ic:'🗜', name:'Compress image', desc:'Shrink JPG/PNG photos while keeping them sharp.',
   accept:'image/*', multiple:true, preview:'files', action:'Compress images',
@@ -429,38 +472,14 @@ const KIT = [
  {id:'scan', cat:'org', ic:'📷', name:'Scan to PDF', desc:'Capture a paper with your camera — edges found and straightened automatically.', href:'scan.html'},
  {id:'summarize', cat:'ai', ic:'🤖', name:'AI Summarizer', desc:'Open any document in the reader and ask the companion to summarize or explain it.', href:'index.html'},
  /* coming soon (Phase 3 / conversion server) */
- {id:'edit',      cat:'edit', ic:'✏️', name:'Edit PDF', desc:'Add text, images, shapes or annotations to a PDF.', soon:true},
- {id:'sign', cat:'sec', ic:'✍️', name:'Sign PDF', desc:'Draw or type your signature and place it on the page.',
-  accept:'.pdf', preview:'files', action:'Sign PDF',
-  opts:()=>`<label class="f">Your signature</label>
-    <div class="sigTabs"><button type="button" class="sigTab on" data-m="draw">✍ Draw</button><button type="button" class="sigTab" data-m="type">⌨ Type</button></div>
-    <div id="sigDrawWrap"><canvas id="sigPad" width="520" height="200"></canvas><button type="button" id="sigClear" class="sigClear">Clear</button></div>
-    <div id="sigTypeWrap" style="display:none"><input type="text" id="sigText" placeholder="Your name" maxlength="40"><div id="sigPreview" class="sigPreview">Your name</div></div>
-    <label class="f">Put it on</label><select id="oSigPage"><option value="last">Last page</option><option value="first">First page</option><option value="all">Every page</option></select>
-    <label class="f">Position</label><select id="oSigPos"><option value="br">Bottom right</option><option value="bc">Bottom center</option><option value="bl">Bottom left</option><option value="tr">Top right</option><option value="tl">Top left</option></select>
-    <label class="f">Size</label><select id="oSigSize"><option value="200">Medium</option><option value="150">Small</option><option value="280">Large</option></select>
-    <p class="sHint">Everything happens on your device — your file never leaves it.</p>`,
-  init:()=> initSignPad(),
-  run: async (files)=>{
-    if(!(await ensurePdfLib())) throw new Error('could not load the PDF engine');
-    setProg('Preparing your signature…', 20);
-    const sig = await getSignaturePng();
-    const src = await PDFLib.PDFDocument.load(await files[0].file.arrayBuffer(), {ignoreEncryption:true});
-    const png = await src.embedPng(sig.bytes);
-    const pages = src.getPages();
-    const which = $('oSigPage').value;
-    const targets = which === 'all' ? pages.map((_,i)=>i) : which === 'first' ? [0] : [pages.length - 1];
-    const pos = $('oSigPos').value, wPt = +$('oSigSize').value, hPt = wPt * (sig.h / sig.w), M = 36;
-    targets.forEach(idx=>{
-      const p = pages[idx], sz = p.getSize();
-      let x = pos.indexOf('r') > 0 ? sz.width - wPt - M : pos.indexOf('c') > 0 ? (sz.width - wPt)/2 : M;
-      let y = pos[0] === 't' ? sz.height - hPt - M : M;
-      p.drawImage(png, { x, y, width: wPt, height: hPt });
-    });
-    setProg('Saving…', 90);
-    saveOut(new Blob([await src.save()], {type:'application/pdf'}), baseName(files[0].file) + ' (signed).pdf');
-    return `Signature added to ${targets.length > 1 ? targets.length + ' pages' : 'the ' + which + ' page'}.`;
-  }},
+ {id:'edit', cat:'edit', ic:'✏️', name:'Edit PDF', desc:'Add text boxes or white-out anywhere on the page.',
+  accept:'.pdf', preview:'edit', action:'Save PDF',
+  opts:()=> editOptsHtml(), init:()=> initEditPanel(), run: async (files)=> runEdit(files)},
+ {id:'sign', cat:'sec', ic:'✍️', name:'Sign PDF', desc:'Draw, type or import a signature, then drag it onto the page.',
+  accept:'.pdf', preview:'sign', action:'Sign PDF',
+  opts:()=> signOptsHtml(),
+  init:()=> initSignPanel(),
+  run: async (files)=> runSign(files)},
  {id:'protect',   cat:'sec', ic:'🔒', name:'Protect PDF', desc:'Encrypt your PDF with a password.', soon:true},
  {id:'crop',      cat:'edit', ic:'✂', name:'Crop PDF', desc:'Crop margins or select an area of the pages.', soon:true},
  {id:'forms',     cat:'edit', ic:'🧾', name:'PDF Forms', desc:'Create and fill interactive PDF forms.', soon:true},
@@ -514,68 +533,355 @@ document.querySelectorAll('.catChip').forEach(ch=>{
   });
 });
 
-/* ---------- Sign PDF: signature pad + typed signature ---------- */
-let sigMode = 'draw', sigDrawn = false;
-function initSignPad(){
-  sigMode = 'draw'; sigDrawn = false;
-  const pad = document.getElementById('sigPad');
-  if(!pad) return;
-  const ctx = pad.getContext('2d');
-  ctx.clearRect(0, 0, pad.width, pad.height);
-  ctx.lineWidth = 3.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111';
-  let drawing = false, lx = 0, ly = 0;
-  function at(e){
-    const r = pad.getBoundingClientRect();
-    return { x:(e.clientX - r.left) * (pad.width / r.width), y:(e.clientY - r.top) * (pad.height / r.height) };
-  }
-  pad.addEventListener('pointerdown', e=>{ e.preventDefault(); drawing = true; const p = at(e); lx = p.x; ly = p.y; if(pad.setPointerCapture) try{ pad.setPointerCapture(e.pointerId); }catch(_){} });
-  pad.addEventListener('pointermove', e=>{ if(!drawing) return; e.preventDefault(); const p = at(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke(); lx = p.x; ly = p.y; sigDrawn = true; });
-  window.addEventListener('pointerup', ()=>{ drawing = false; });
-  const clr = document.getElementById('sigClear');
-  if(clr) clr.addEventListener('click', ()=>{ ctx.clearRect(0, 0, pad.width, pad.height); sigDrawn = false; });
-  document.querySelectorAll('.sigTab').forEach(b=> b.addEventListener('click', ()=>{
-    document.querySelectorAll('.sigTab').forEach(x=> x.classList.toggle('on', x === b));
-    sigMode = b.dataset.m;
-    document.getElementById('sigDrawWrap').style.display = sigMode === 'draw' ? 'block' : 'none';
-    document.getElementById('sigTypeWrap').style.display = sigMode === 'type' ? 'block' : 'none';
-  }));
-  const txt = document.getElementById('sigText'), prev = document.getElementById('sigPreview');
-  if(txt) txt.addEventListener('input', ()=>{ prev.textContent = txt.value || 'Your name'; });
+/* ============================================================
+   Sign PDF — interactive editor: draw / type / import a signature,
+   render the real PDF pages, drag & resize the signature onto them.
+   ============================================================ */
+let signMode = 'draw', signDrawn = false, signImport = null;
+let signColor = '#111111', signFontFamily = '"Segoe Script","Brush Script MT","Snell Roundhand",cursive', signFontSize = 72;
+let signDoc = null, signPage = 0, signItems = [];   /* {page, rx, ry, rw, img:{bytes,w,h,url}} */
+
+function signOptsHtml(){
+  return `<label class="f">Your signature</label>
+    <div class="sigTabs">
+      <button type="button" class="sigTab on" data-m="draw">✍ Draw</button>
+      <button type="button" class="sigTab" data-m="type">⌨ Type</button>
+      <button type="button" class="sigTab" data-m="import">🖼 Import</button>
+    </div>
+    <div class="sigColors">
+      <span class="sigColLbl">Ink</span>
+      <button type="button" class="sigColor on" data-c="#111111" style="background:#111111"></button>
+      <button type="button" class="sigColor" data-c="#1a56db" style="background:#1a56db"></button>
+      <button type="button" class="sigColor" data-c="#c0392b" style="background:#c0392b"></button>
+      <label class="sigColPick" title="Custom colour"><input type="color" id="sigColorInput" value="#111111"></label>
+    </div>
+    <div class="sigBody" data-b="draw"><canvas id="sigPad" width="520" height="200"></canvas><button type="button" id="sigClear" class="btnMini">Clear</button></div>
+    <div class="sigBody" data-b="type" style="display:none">
+      <input type="text" id="sigText" placeholder="Your name" maxlength="40">
+      <div class="sigRow2">
+        <select id="sigFont">
+          <option value='"Segoe Script","Brush Script MT","Snell Roundhand",cursive'>Signature</option>
+          <option value='"Segoe Print","Bradley Hand","Comic Sans MS",cursive'>Handwriting</option>
+          <option value='Georgia,"Times New Roman",serif'>Serif</option>
+          <option value='Arial,Helvetica,sans-serif'>Sans</option>
+        </select>
+        <select id="sigFsize"><option value="56">Small</option><option value="72" selected>Medium</option><option value="96">Large</option></select>
+      </div>
+      <div id="sigPreview" class="sigPreview">Your name</div>
+    </div>
+    <div class="sigBody" data-b="import" style="display:none"><button type="button" id="sigPick" class="btnMini">Choose an image…</button><input type="file" id="sigImgIn" accept="image/*" hidden><div id="sigImgPrev" class="sigImgPrev">A PNG with a transparent background looks best.</div></div>
+    <button type="button" id="sigPlace" class="goBig" style="margin-top:12px">➕ Add to page</button>
+    <p class="sHint">Draw or type your signature, then drag it onto the page and pull the corner to resize.</p>`;
 }
-/* returns {bytes,w,h} — a transparent PNG of the signature (dark strokes) */
-async function getSignaturePng(){
-  let canvas;
-  if(sigMode === 'type'){
-    const text = (document.getElementById('sigText').value || '').trim();
-    if(!text) throw new Error('type your name for the signature');
-    const font = 'italic 72px "Segoe Script","Brush Script MT","Snell Roundhand",cursive';
-    const meas = document.createElement('canvas').getContext('2d');
-    meas.font = font;
-    canvas = document.createElement('canvas');
-    canvas.width = Math.ceil(meas.measureText(text).width) + 44;
-    canvas.height = 120;
-    const c = canvas.getContext('2d');
-    c.font = font; c.fillStyle = '#111'; c.textBaseline = 'middle';
-    c.fillText(text, 22, 64);
-  }else{
-    const pad = document.getElementById('sigPad');
-    if(!pad || !sigDrawn) throw new Error('draw your signature first');
-    canvas = trimCanvas(pad);
+
+function initSignPanel(){
+  signMode = 'draw'; signDrawn = false; signImport = null; signColor = '#111111';
+  const pad = document.getElementById('sigPad');
+  let ctx = null;
+  if(pad){
+    pad.style.background = '#fff';               /* white paper — visible on any theme */
+    ctx = pad.getContext('2d');
+    ctx.clearRect(0, 0, pad.width, pad.height);
+    ctx.lineWidth = 3.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = signColor;
+    let drawing = false, lx = 0, ly = 0;
+    const at = e=>{ const r = pad.getBoundingClientRect(); return { x:(e.clientX - r.left) * (pad.width / r.width), y:(e.clientY - r.top) * (pad.height / r.height) }; };
+    pad.addEventListener('pointerdown', e=>{ e.preventDefault(); drawing = true; const p = at(e); lx = p.x; ly = p.y; try{ pad.setPointerCapture(e.pointerId); }catch(_){} });
+    pad.addEventListener('pointermove', e=>{ if(!drawing) return; e.preventDefault(); const p = at(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke(); lx = p.x; ly = p.y; signDrawn = true; });
+    window.addEventListener('pointerup', ()=>{ drawing = false; });
+    const clr = document.getElementById('sigClear');
+    if(clr) clr.onclick = ()=>{ ctx.clearRect(0, 0, pad.width, pad.height); signDrawn = false; };
   }
-  const blob = await new Promise(r=> canvas.toBlob(r, 'image/png'));
-  return { bytes: new Uint8Array(await blob.arrayBuffer()), w: canvas.width, h: canvas.height };
+  document.querySelectorAll('.sigTab').forEach(b=> b.onclick = ()=>{
+    document.querySelectorAll('.sigTab').forEach(x=> x.classList.toggle('on', x === b));
+    signMode = b.dataset.m;
+    document.querySelectorAll('.sigBody').forEach(x=> x.style.display = x.dataset.b === signMode ? 'block' : 'none');
+  });
+  /* ink colour (swatches + custom picker) — applies to drawn strokes and typed text */
+  const setColor = c=>{ signColor = c; if(ctx) ctx.strokeStyle = c; renderTypePreview(); };
+  document.querySelectorAll('.sigColor').forEach(b=> b.onclick = ()=>{
+    document.querySelectorAll('.sigColor').forEach(x=> x.classList.toggle('on', x === b));
+    setColor(b.dataset.c);
+    const ci = document.getElementById('sigColorInput'); if(ci) ci.value = b.dataset.c;
+  });
+  const ci = document.getElementById('sigColorInput');
+  if(ci) ci.oninput = ()=>{ document.querySelectorAll('.sigColor').forEach(x=> x.classList.remove('on')); setColor(ci.value); };
+  const txt = document.getElementById('sigText'), font = document.getElementById('sigFont'), fsize = document.getElementById('sigFsize');
+  if(txt) txt.oninput = renderTypePreview;
+  if(font) font.onchange = ()=>{ signFontFamily = font.value; renderTypePreview(); };
+  if(fsize) fsize.onchange = ()=>{ signFontSize = +fsize.value; renderTypePreview(); };
+  const pick = document.getElementById('sigPick'), imgIn = document.getElementById('sigImgIn');
+  if(pick) pick.onclick = ()=> imgIn.click();
+  if(imgIn) imgIn.onchange = async e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const img = await loadImg(URL.createObjectURL(f));
+    const c = document.createElement('canvas'); c.width = img.naturalWidth || img.width; c.height = img.naturalHeight || img.height;
+    c.getContext('2d').drawImage(img, 0, 0);
+    signImport = await canvasToSig(c);
+    document.getElementById('sigImgPrev').innerHTML = `<img src="${signImport.url}" alt="signature">`;
+  };
+  const place = document.getElementById('sigPlace'); if(place) place.onclick = placeSignature;
+  renderTypePreview();
+}
+function renderTypePreview(){
+  const prev = document.getElementById('sigPreview'), txt = document.getElementById('sigText');
+  if(!prev) return;
+  prev.textContent = (txt && txt.value) || 'Your name';
+  prev.style.fontFamily = signFontFamily;
+  prev.style.fontStyle = 'italic';
+  prev.style.fontSize = Math.round(signFontSize * 0.42) + 'px';
+  prev.style.color = signColor;
+}
+
+function loadImg(src){ return new Promise((res, rej)=>{ const i = new Image(); i.onload = ()=> res(i); i.onerror = rej; i.src = src; }); }
+async function canvasToSig(c){
+  const blob = await new Promise(r=> c.toBlob(r, 'image/png'));
+  return { bytes: new Uint8Array(await blob.arrayBuffer()), w: c.width, h: c.height, url: c.toDataURL('image/png') };
 }
 function trimCanvas(src){
   const w = src.width, h = src.height, d = src.getContext('2d').getImageData(0, 0, w, h).data;
   let x0 = w, y0 = h, x1 = 0, y1 = 0, found = false;
   for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){ if(d[(y*w + x)*4 + 3] > 8){ found = true; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } }
   if(!found) return src;
-  const pad = 12;
-  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+  const p = 12;
+  x0 = Math.max(0, x0 - p); y0 = Math.max(0, y0 - p); x1 = Math.min(w - 1, x1 + p); y1 = Math.min(h - 1, y1 + p);
   const ow = x1 - x0 + 1, oh = y1 - y0 + 1;
   const out = document.createElement('canvas'); out.width = ow; out.height = oh;
   out.getContext('2d').drawImage(src, x0, y0, ow, oh, 0, 0, ow, oh);
   return out;
+}
+async function currentSignature(){
+  if(signMode === 'import'){ if(!signImport) throw new Error('choose an image for your signature'); return signImport; }
+  if(signMode === 'type'){
+    const text = (document.getElementById('sigText').value || '').trim();
+    if(!text) throw new Error('type your name for the signature');
+    const font = `italic ${signFontSize}px ${signFontFamily}`;
+    const gap = Math.round(0.3 * signFontSize);
+    const m = document.createElement('canvas').getContext('2d'); m.font = font;
+    const c = document.createElement('canvas'); c.width = Math.ceil(m.measureText(text).width) + gap*2; c.height = Math.ceil(signFontSize * 1.6);
+    const g = c.getContext('2d'); g.font = font; g.fillStyle = signColor; g.textBaseline = 'middle'; g.fillText(text, gap, c.height/2);
+    return canvasToSig(c);
+  }
+  const p = document.getElementById('sigPad');
+  if(!p || !signDrawn) throw new Error('draw your signature first');
+  return canvasToSig(trimCanvas(p));
+}
+
+/* --- render the PDF page(s) with a placement layer --- */
+async function renderSignEditor(){
+  const main = $('tvMain');
+  main.innerHTML = '<div class="tvLoad"><div class="lxSpin"></div><p class="thumbHint">Opening your PDF…</p></div>';
+  signItems = []; signPage = 0;
+  try{
+    signDoc = await openPdfjs(files[0].file);
+    main.innerHTML = '<div class="signNav" id="signNav"></div><div class="signStage" id="signStage"></div>';
+    await renderSignPage();
+  }catch(e){ main.innerHTML = '<p class="thumbHint">Could not open this PDF (' + e.message + ').</p>'; }
+}
+async function renderSignPage(){
+  const stage = $('signStage'); stage.innerHTML = '';
+  const page = await signDoc.getPage(signPage + 1);
+  const base = page.getViewport({scale:1});
+  const targetW = Math.min(stage.clientWidth || 600, 680);
+  const vp = page.getViewport({scale: targetW / base.width});
+  const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height); c.className = 'signPageCanvas';
+  await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+  const holder = document.createElement('div'); holder.className = 'signHolder';
+  holder.style.cssText = `position:relative; width:${c.width}px; height:${c.height}px; max-width:100%`;
+  const layer = document.createElement('div'); layer.className = 'signLayer'; layer.id = 'signLayer';
+  layer.style.cssText = 'position:absolute; inset:0';
+  holder.appendChild(c); holder.appendChild(layer); stage.appendChild(holder);
+  signItems.filter(it=> it.page === signPage).forEach(it=> addSignEl(it, layer));
+  const nav = $('signNav');
+  nav.innerHTML = signDoc.numPages > 1
+    ? `<button type="button" class="btnMini" id="sPrev">◀ Prev</button><span>Page ${signPage + 1} / ${signDoc.numPages}</span><button type="button" class="btnMini" id="sNext">Next ▶</button>`
+    : '';
+  if(signDoc.numPages > 1){
+    $('sPrev').onclick = ()=>{ if(signPage > 0){ signPage--; renderSignPage(); } };
+    $('sNext').onclick = ()=>{ if(signPage < signDoc.numPages - 1){ signPage++; renderSignPage(); } };
+  }
+}
+async function placeSignature(){
+  if(!signDoc) return;
+  let sig;
+  try{ sig = await currentSignature(); }
+  catch(e){ (typeof lxToast === 'function' ? lxToast : alert)(e.message); return; }
+  const it = { page: signPage, rx: 0.55, ry: 0.08, rw: 0.32, img: sig };
+  signItems.push(it);
+  addSignEl(it, $('signLayer'));
+}
+function addSignEl(it, layer){
+  if(!layer) return;
+  const W = layer.clientWidth, H = layer.clientHeight, aspect = it.img.h / it.img.w;
+  const el = document.createElement('div'); el.className = 'signItem';
+  el.style.position = 'absolute';
+  el.style.left = (it.rx * W) + 'px'; el.style.top = (it.ry * H) + 'px'; el.style.width = (it.rw * W) + 'px'; el.style.height = (it.rw * W * aspect) + 'px';
+  el.innerHTML = `<img src="${it.img.url}" draggable="false"><span class="sHandle"></span><button type="button" class="sDel" title="Remove">✕</button>`;
+  layer.appendChild(el);
+  el.querySelector('.sDel').onclick = ()=>{ signItems = signItems.filter(x=> x !== it); el.remove(); };
+  el.addEventListener('pointerdown', e=>{
+    if(e.target.classList.contains('sHandle') || e.target.classList.contains('sDel')) return;
+    e.preventDefault();
+    const sx = e.clientX, sy = e.clientY, ol = parseFloat(el.style.left), ot = parseFloat(el.style.top), w = layer.clientWidth, h = layer.clientHeight;
+    const mv = ev=>{ let nl = Math.max(0, Math.min(w - el.offsetWidth, ol + ev.clientX - sx)), nt = Math.max(0, Math.min(h - el.offsetHeight, ot + ev.clientY - sy)); el.style.left = nl + 'px'; el.style.top = nt + 'px'; it.rx = nl / w; it.ry = nt / h; };
+    const up = ()=>{ window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+  });
+  el.querySelector('.sHandle').addEventListener('pointerdown', e=>{
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, ow = el.offsetWidth, w = layer.clientWidth, asp = it.img.h / it.img.w;
+    const mv = ev=>{ let nw = Math.max(40, Math.min(w - parseFloat(el.style.left), ow + ev.clientX - sx)); el.style.width = nw + 'px'; el.style.height = (nw * asp) + 'px'; it.rw = nw / w; };
+    const up = ()=>{ window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+  });
+}
+async function runSign(files){
+  if(!signItems.length) throw new Error('add your signature to a page first — draw/type/import it, then “Add to page”');
+  if(!(await ensurePdfLib())) throw new Error('could not load the PDF engine');
+  setProg('Placing your signature…', 30);
+  const src = await PDFLib.PDFDocument.load(await files[0].file.arrayBuffer(), {ignoreEncryption:true});
+  const pages = src.getPages();
+  for(const it of signItems){
+    const png = await src.embedPng(it.img.bytes);
+    const p = pages[it.page], sz = p.getSize();
+    const w = it.rw * sz.width, h = w * (it.img.h / it.img.w);
+    const x = it.rx * sz.width, y = sz.height - it.ry * sz.height - h;
+    p.drawImage(png, { x, y, width: w, height: h });
+  }
+  setProg('Saving…', 90);
+  saveOut(new Blob([await src.save()], {type:'application/pdf'}), baseName(files[0].file) + ' (signed).pdf');
+  return `Signed ${new Set(signItems.map(i=> i.page)).size} page(s).`;
+}
+
+/* ============================================================
+   Edit PDF — drop text boxes and white-out over the real pages.
+   ============================================================ */
+let editColor = '#111111', editSize = 16, editDoc = null, editPage = 0, editItems = [];
+
+function editOptsHtml(){
+  return `<label class="f">Add to the page</label>
+    <div class="sigTabs">
+      <button type="button" class="btnMini" id="edAddText" style="flex:1">➕ Text</button>
+      <button type="button" class="btnMini" id="edAddWhite" style="flex:1">⬜ White-out</button>
+    </div>
+    <label class="f" style="margin-top:12px">Text colour</label>
+    <div class="sigColors">
+      <button type="button" class="sigColor on" data-c="#111111" style="background:#111111"></button>
+      <button type="button" class="sigColor" data-c="#1a56db" style="background:#1a56db"></button>
+      <button type="button" class="sigColor" data-c="#c0392b" style="background:#c0392b"></button>
+      <label class="sigColPick"><input type="color" id="edColor" value="#111111"></label>
+    </div>
+    <label class="f">Text size</label>
+    <select id="edSize"><option value="12">Small</option><option value="16" selected>Normal</option><option value="22">Large</option><option value="30">Huge</option></select>
+    <p class="sHint">Tap ➕ Text to drop a box, then click it and type. ⬜ White-out covers something. Drag to move, pull the corner to resize. (Text uses English letters &amp; numbers.)</p>`;
+}
+function initEditPanel(){
+  editColor = '#111111'; editSize = 16;
+  document.querySelectorAll('.sigColor').forEach(b=> b.onclick = ()=>{
+    document.querySelectorAll('.sigColor').forEach(x=> x.classList.toggle('on', x === b));
+    editColor = b.dataset.c; const ci = document.getElementById('edColor'); if(ci) ci.value = b.dataset.c;
+  });
+  const ci = document.getElementById('edColor'); if(ci) ci.oninput = ()=>{ document.querySelectorAll('.sigColor').forEach(x=> x.classList.remove('on')); editColor = ci.value; };
+  const sz = document.getElementById('edSize'); if(sz) sz.onchange = ()=>{ editSize = +sz.value; };
+  const at = document.getElementById('edAddText'); if(at) at.onclick = addEditText;
+  const aw = document.getElementById('edAddWhite'); if(aw) aw.onclick = addEditWhite;
+}
+async function renderEditEditor(){
+  const main = $('tvMain');
+  main.innerHTML = '<div class="tvLoad"><div class="lxSpin"></div><p class="thumbHint">Opening your PDF…</p></div>';
+  editItems = []; editPage = 0;
+  try{
+    editDoc = await openPdfjs(files[0].file);
+    main.innerHTML = '<div class="signNav" id="edNav"></div><div class="signStage" id="edStage"></div>';
+    await renderEditPage();
+  }catch(e){ main.innerHTML = '<p class="thumbHint">Could not open this PDF (' + e.message + ').</p>'; }
+}
+async function renderEditPage(){
+  const stage = $('edStage'); stage.innerHTML = '';
+  const page = await editDoc.getPage(editPage + 1);
+  const base = page.getViewport({scale:1});
+  const targetW = Math.min(stage.clientWidth || 600, 680);
+  const scale = targetW / base.width;
+  const vp = page.getViewport({scale});
+  const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height); c.className = 'signPageCanvas';
+  await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+  const holder = document.createElement('div'); holder.className = 'signHolder';
+  holder.style.cssText = `position:relative; width:${c.width}px; height:${c.height}px; max-width:100%`;
+  const layer = document.createElement('div'); layer.className = 'signLayer'; layer.id = 'edLayer';
+  layer.style.cssText = 'position:absolute; inset:0';
+  layer.dataset.scale = scale;
+  holder.appendChild(c); holder.appendChild(layer); stage.appendChild(holder);
+  editItems.filter(it=> it.page === editPage).forEach(it=> addEditEl(it, layer));
+  const nav = $('edNav');
+  nav.innerHTML = editDoc.numPages > 1
+    ? `<button type="button" class="btnMini" id="edPrev">◀ Prev</button><span>Page ${editPage + 1} / ${editDoc.numPages}</span><button type="button" class="btnMini" id="edNext">Next ▶</button>`
+    : '';
+  if(editDoc.numPages > 1){
+    $('edPrev').onclick = ()=>{ if(editPage > 0){ editPage--; renderEditPage(); } };
+    $('edNext').onclick = ()=>{ if(editPage < editDoc.numPages - 1){ editPage++; renderEditPage(); } };
+  }
+}
+function addEditText(){ if(!editDoc) return; const it = { type:'text', page: editPage, rx: 0.12, ry: 0.1, rw: 0.5, text: 'Type here', size: editSize, color: editColor }; editItems.push(it); addEditEl(it, $('edLayer')); }
+function addEditWhite(){ if(!editDoc) return; const it = { type:'white', page: editPage, rx: 0.2, ry: 0.2, rw: 0.4, rh: 0.05 }; editItems.push(it); addEditEl(it, $('edLayer')); }
+function addEditEl(it, layer){
+  if(!layer) return;
+  const W = layer.clientWidth, H = layer.clientHeight, scale = +layer.dataset.scale || 1;
+  const el = document.createElement('div'); el.className = 'edItem edItem-' + it.type;
+  el.style.position = 'absolute'; el.style.left = (it.rx * W) + 'px'; el.style.top = (it.ry * H) + 'px'; el.style.width = (it.rw * W) + 'px';
+  if(it.type === 'white'){
+    el.style.height = ((it.rh || 0.05) * H) + 'px'; el.style.background = '#fff'; el.style.border = '1px solid #bbb';
+  }else{
+    el.style.border = '1px dashed #e07a3f'; el.style.background = 'rgba(224,122,63,.05)';
+    const inner = document.createElement('div'); inner.className = 'edText'; inner.contentEditable = 'true'; inner.textContent = it.text;
+    inner.style.cssText = `outline:none; padding:2px 3px; white-space:pre-wrap; word-break:break-word; cursor:text; line-height:1.2; font-family:Helvetica,Arial,sans-serif; font-size:${it.size * scale}px; color:${it.color}`;
+    inner.addEventListener('input', ()=>{ it.text = inner.textContent; });
+    inner.addEventListener('pointerdown', e=> e.stopPropagation());
+    el.appendChild(inner);
+  }
+  const del = document.createElement('button'); del.type = 'button'; del.className = 'sDel'; del.textContent = '✕'; el.appendChild(del);
+  const handle = document.createElement('span'); handle.className = 'sHandle'; el.appendChild(handle);
+  layer.appendChild(el);
+  del.onclick = ()=>{ editItems = editItems.filter(x=> x !== it); el.remove(); };
+  el.addEventListener('pointerdown', e=>{
+    if(e.target.classList.contains('sHandle') || e.target.classList.contains('sDel') || e.target.classList.contains('edText')) return;
+    e.preventDefault();
+    const sx = e.clientX, sy = e.clientY, ol = parseFloat(el.style.left), ot = parseFloat(el.style.top), w = layer.clientWidth, h = layer.clientHeight;
+    const mv = ev=>{ let nl = Math.max(0, Math.min(w - el.offsetWidth, ol + ev.clientX - sx)), nt = Math.max(0, Math.min(h - el.offsetHeight, ot + ev.clientY - sy)); el.style.left = nl + 'px'; el.style.top = nt + 'px'; it.rx = nl / w; it.ry = nt / h; };
+    const up = ()=>{ window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+  });
+  handle.addEventListener('pointerdown', e=>{
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, sy = e.clientY, ow = el.offsetWidth, oh = el.offsetHeight, w = layer.clientWidth, h = layer.clientHeight;
+    const mv = ev=>{
+      let nw = Math.max(30, Math.min(w - parseFloat(el.style.left), ow + ev.clientX - sx)); el.style.width = nw + 'px'; it.rw = nw / w;
+      if(it.type === 'white'){ let nh = Math.max(12, Math.min(h - parseFloat(el.style.top), oh + ev.clientY - sy)); el.style.height = nh + 'px'; it.rh = nh / h; }
+    };
+    const up = ()=>{ window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+  });
+}
+async function runEdit(files){
+  if(!editItems.length) throw new Error('add a text box or white-out first');
+  if(!(await ensurePdfLib())) throw new Error('could not load the PDF engine');
+  setProg('Applying your edits…', 30);
+  const src = await PDFLib.PDFDocument.load(await files[0].file.arrayBuffer(), {ignoreEncryption:true});
+  const font = await src.embedFont(PDFLib.StandardFonts.Helvetica);
+  const pages = src.getPages();
+  const toRgb = h=>{ const n = parseInt(h.replace('#',''), 16) || 0; return PDFLib.rgb(((n>>16)&255)/255, ((n>>8)&255)/255, (n&255)/255); };
+  for(const it of editItems){
+    const p = pages[it.page], sz = p.getSize();
+    if(it.type === 'white'){
+      const w = it.rw * sz.width, h = (it.rh || 0.05) * sz.height;
+      p.drawRectangle({ x: it.rx * sz.width, y: sz.height - it.ry * sz.height - h, width: w, height: h, color: PDFLib.rgb(1,1,1) });
+    }else{
+      const size = it.size, x = it.rx * sz.width, yTop = it.ry * sz.height;
+      const text = (it.text || '').replace(/[^\x20-\x7E\n]/g, '');
+      text.split('\n').forEach((ln, i)=> p.drawText(ln, { x, y: sz.height - yTop - size - i*size*1.2, size, font, color: toRgb(it.color) }));
+    }
+  }
+  setProg('Saving…', 90);
+  saveOut(new Blob([await src.save()], {type:'application/pdf'}), baseName(files[0].file) + ' (edited).pdf');
+  return `Saved your edits (${editItems.length} item${editItems.length>1?'s':''}).`;
 }
 
 /* ---------- tool view ---------- */
@@ -655,6 +961,8 @@ async function renderPreview(){
   const main = $('tvMain');
   $('sideFiles').textContent = files.length + (files.length === 1 ? ' file' : ' files') + ' · ' + human(files.reduce((n,f)=> n+f.size, 0));
   $('addMore').style.display = T.multiple ? 'inline-block' : 'none';
+  if(T.preview === 'sign'){ await renderSignEditor(); return; }
+  if(T.preview === 'edit'){ await renderEditEditor(); return; }
   if(T.preview === 'files' || !T.preview){
     main.innerHTML = '';
     for(let i=0;i<files.length;i++){
@@ -783,3 +1091,39 @@ renderHome('all');
 const boot = location.hash.replace('#','');
 if(boot && KIT.some(t=> t.id === boot && !t.soon && !t.href)) openTool(boot);
 else show('tvHome');
+
+/* Sign PDF styles injected from JS so they stay in sync with this script even if
+   pages.css is cached by the browser. */
+(function injectSignCss(){
+  var css = '.btnMini{background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:7px 14px; font-size:12.5px; cursor:pointer; font-family:inherit; transition:border-color .12s,color .12s}'
+    + '.btnMini:hover{border-color:var(--accent); color:var(--accent)}'
+    + '.sigTabs{display:flex; gap:6px; margin:0 0 10px}'
+    + '.sigTab{flex:1; background:var(--panel); border:1px solid var(--line); color:var(--muted); border-radius:9px; padding:9px 6px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; transition:.12s}'
+    + '.sigTab:hover{border-color:var(--accent)}'
+    + '.sigTab.on{border-color:var(--accent); color:#fff; background:var(--accent)}'
+    + '.sigColors{display:flex; align-items:center; gap:8px; margin:0 0 12px}'
+    + '.sigColLbl{color:var(--muted); font-size:12px; margin-right:2px}'
+    + '.sigColor{width:22px; height:22px; border-radius:50%; border:2px solid var(--line); cursor:pointer; padding:0}'
+    + '.sigColor.on{border-color:var(--accent); box-shadow:0 0 0 2px rgba(224,122,63,.35)}'
+    + '.sigColPick{width:22px; height:22px; border-radius:50%; border:2px dashed var(--line); overflow:hidden; position:relative; cursor:pointer; display:inline-block}'
+    + '.sigColPick input{position:absolute; inset:-6px; width:200%; height:200%; border:none; padding:0; cursor:pointer; background:none}'
+    + '#sigPad{width:100%; height:165px; background:#fff; border:2px solid var(--accent); border-radius:12px; box-shadow:0 4px 18px rgba(0,0,0,.30); touch-action:none; cursor:crosshair; display:block; margin-bottom:8px}'
+    + '.sigRow2{display:flex; gap:8px; margin:8px 0}'
+    + '.sigRow2 select{flex:1}'
+    + '.sigPreview{background:#fff; color:#111; border:1px solid var(--line); border-radius:10px; padding:14px 12px; text-align:center; min-height:58px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; margin-top:8px}'
+    + '.sigImgPrev{background:var(--panel2); border:1px dashed var(--line); border-radius:10px; padding:12px; color:var(--muted); font-size:12px; text-align:center; margin-top:8px; min-height:58px; display:flex; align-items:center; justify-content:center}'
+    + '.sigImgPrev img{max-width:100%; max-height:90px}'
+    + '.signNav{display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:12px; color:var(--muted); font-size:13px}'
+    + '.signStage{display:flex; justify-content:center}'
+    + '.signHolder{position:relative; box-shadow:var(--shadow); border-radius:4px; overflow:hidden; max-width:100%}'
+    + '.signPageCanvas{display:block; max-width:100%; height:auto}'
+    + '.signLayer{position:absolute; inset:0}'
+    + '.signItem{position:absolute; border:1.5px dashed var(--accent); cursor:move; touch-action:none; background:rgba(224,122,63,.06)}'
+    + '.signItem img{width:100%; height:100%; display:block; pointer-events:none}'
+    + '.signItem .sHandle{position:absolute; right:-8px; bottom:-8px; width:16px; height:16px; background:var(--accent); border:2px solid #fff; border-radius:50%; cursor:nwse-resize}'
+    + '.signItem .sDel{position:absolute; top:-11px; right:-11px; width:22px; height:22px; background:var(--warn); color:#fff; border:none; border-radius:50%; font-size:11px; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center}'
+    + '.edItem{touch-action:none}'
+    + '.edItem .sHandle{position:absolute; right:-8px; bottom:-8px; width:15px; height:15px; background:var(--accent); border:2px solid #fff; border-radius:50%; cursor:nwse-resize}'
+    + '.edItem .sDel{position:absolute; top:-11px; right:-11px; width:21px; height:21px; background:var(--warn); color:#fff; border:none; border-radius:50%; font-size:11px; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center; z-index:2}';
+  var s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+})();

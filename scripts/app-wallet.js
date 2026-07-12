@@ -1,5 +1,17 @@
 /* ---------------- Wallet & plans ---------------- */
 let me = null;
+let walletPaise = 0;
+/* ---------------- Universal ₹ wallet (money balance) ---------------- */
+function fmtRs(paise){ return '₹' + ((paise || 0) / 100).toFixed(2); }
+function renderWalletMoney(){ const el = $('walletMoney'); if(el) el.textContent = fmtRs(walletPaise); }
+async function fetchWallet(){
+  if(!session || !sb) return;
+  try{
+    const { data } = await sb.from('profiles').select('wallet_paise').eq('id', session.user.id).single();
+    if(data && typeof data.wallet_paise === 'number') walletPaise = data.wallet_paise;
+  }catch(e){}
+  renderWalletMoney();
+}
 function fmtTokens(n){ return n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1000 ? Math.round(n/1000)+'k' : String(n); }
 async function fetchMe(){
   if(!session || !configured) return;
@@ -100,9 +112,22 @@ function openPlans(){
   customPreview();
   /* engine power + Token Saver now live in Settings → AI Engine (read from localStorage) */
   renderWallet();
+  fetchWallet();
   $('plans').style.display='flex';
 }
 $('upgradeBtn').addEventListener('click', openPlans);
+/* ₹ wallet top-ups */
+document.querySelectorAll('.wtop[data-inr]').forEach(b=> b.addEventListener('click', ()=> buy('wallet', { inr: +b.dataset.inr })));
+{
+  const wcb = $('wCustomBuy'), wca = $('wCustomAmt');
+  if(wcb) wcb.addEventListener('click', ()=>{
+    const inr = parseInt(wca && wca.value) || 0;
+    if(inr < 20){ lxToast('The smallest top-up is ₹20.'); return; }
+    if(inr > 5000){ if(wca) wca.value = '5000'; lxToast('The most you can add at once is ₹5,000.'); return; }
+    buy('wallet', { inr });
+  });
+  if(wca) wca.addEventListener('input', ()=>{ if(parseInt(wca.value) > 5000){ wca.value = '5000'; lxToast('The most you can add at once is ₹5,000.'); } });
+}
 $('plansClose').addEventListener('click', ()=> $('plans').style.display='none');
 $('plans').addEventListener('click', e=>{ if(e.target===$('plans')) $('plans').style.display='none'; });
 
@@ -200,8 +225,13 @@ async function buy(planKey, extra){
           const v = await vr.json();
           removeProgress();
           if(v.ok){
-            say(`🎉 Payment successful! ${fmtTokens(v.tokens_balance)} tokens in your wallet. Enjoy!`);
-            await fetchMe();
+            if(planKey === 'wallet'){
+              walletPaise = v.tokens_balance; renderWalletMoney();
+              say(`🎉 Added to your ₹ wallet! Balance: ${fmtRs(v.tokens_balance)}.`);
+            }else{
+              say(`🎉 Payment successful! ${fmtTokens(v.tokens_balance)} tokens in your wallet. Enjoy!`);
+              await fetchMe();
+            }
           }else say('Payment verification failed: ' + (v.error||'unknown') + '. If money was deducted, contact support.');
         }catch(e){ removeProgress(); say('Payment verification error: '+e.message); }
       }

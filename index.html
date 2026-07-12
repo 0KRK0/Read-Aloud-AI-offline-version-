@@ -180,6 +180,20 @@
   <div class="box">
     <h2>⭐ Plans</h2>
     <div class="sub" id="planStatus">You are on the Free plan.</div>
+    <div class="walletCard" id="walletCard">
+      <div class="walletTop"><span>💠 Your ₹ wallet</span><b id="walletMoney">₹0.00</b></div>
+      <div class="walletTopups">
+        <button type="button" class="wtop" data-inr="49">₹49</button>
+        <button type="button" class="wtop" data-inr="99">₹99</button>
+        <button type="button" class="wtop" data-inr="199">₹199</button>
+        <button type="button" class="wtop" data-inr="499">₹499</button>
+      </div>
+      <div class="walletCustom">
+        <span class="rupee">₹</span><input id="wCustomAmt" type="number" min="20" max="5000" placeholder="Custom amount" inputmode="numeric">
+        <button type="button" id="wCustomBuy">Add</button>
+      </div>
+      <small class="walletHint">Top up once, spend on anything — ★ premium tools will charge from here.</small>
+    </div>
     <div class="planCard" data-plan="sub_openai_49">
       <span class="ic">⚡</span>
       <span><b>Swift Plan</b><small>Quick, clever answers for everyday reading</small></span>

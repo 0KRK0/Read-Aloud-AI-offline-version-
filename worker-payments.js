@@ -91,8 +91,25 @@ async function sbRpc(env, fn, args) {
 async function creditOrder(env, order, paymentId) {
   const notes = order.notes || {};
   const uid = notes.uid;
+  if (!uid) return { code: 'invalid' };
+
+  /* ₹ wallet top-up — credit the money balance instead of AI tokens */
+  if (notes.wallet === '1') {
+    const paise = parseInt(notes.paise) || (order.amount | 0);
+    if (paise <= 0) return { code: 'invalid' };
+    const insW = await fetch(env.SUPABASE_URL + '/rest/v1/transactions', {
+      method: 'POST',
+      headers: { apikey: env.SUPABASE_SERVICE_KEY, authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY, 'content-type': 'application/json', prefer: 'return=minimal' },
+      body: JSON.stringify({ user_id: uid, kind: 'wallet_topup', amount_inr: order.amount / 100, razorpay_payment_id: paymentId })
+    });
+    if (!insW.ok) return { code: 'duplicate', notes };
+    const wbal = await sbRpc(env, 'credit_wallet', { uid, paise });
+    console.log(JSON.stringify({ wallet_topup: paymentId, uid, paise, wbal }));
+    return { code: 'ok', bal: wbal, notes, wallet: true };
+  }
+
   const tokens = parseInt(notes.tokens) || 0;
-  if (!uid || tokens <= 0) return { code: 'invalid' };
+  if (tokens <= 0) return { code: 'invalid' };
 
   // idempotency — refuse double-crediting the same payment
   const ins = await fetch(env.SUPABASE_URL + '/rest/v1/transactions', {
@@ -198,7 +215,7 @@ export default {
     try { body = await request.json(); } catch { return json({ error: 'Bad request' }, 400, cors); }
 
     async function getProfile() {
-      const r = await fetch(env.SUPABASE_URL + `/rest/v1/profiles?id=eq.${uid}&select=provider,tokens_balance,plan`, {
+      const r = await fetch(env.SUPABASE_URL + `/rest/v1/profiles?id=eq.${uid}&select=provider,tokens_balance,plan,wallet_paise`, {
         headers: { apikey: env.SUPABASE_SERVICE_KEY, authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY }
       });
       if (!r.ok) return null;
@@ -226,11 +243,36 @@ export default {
       return json({ ok: true, tokens_balance: bal, provider: target }, 200, cors);
     }
 
+    /* ---------- ₹ wallet: spend on a paid tool job (charged premium tools) ---------- */
+    if (url.pathname.endsWith('/wallet/deduct')) {
+      const tool = String(body.tool || '').slice(0, 40);
+      const pages = Math.max(0, parseInt(body.pages) || 0);
+      const paise = Math.max(0, parseInt(body.paise) || 0);
+      if (paise <= 0) return json({ error: 'Nothing to charge.' }, 400, cors);
+      const bal = await sbRpc(env, 'deduct_wallet', { uid, paise });
+      if (bal === null || bal < 0) {
+        const cur = await getProfile();
+        return json({ ok: false, error: 'insufficient', wallet_paise: cur ? cur.wallet_paise : 0 }, 402, cors);
+      }
+      await fetch(env.SUPABASE_URL + '/rest/v1/tool_log', {
+        method: 'POST',
+        headers: { apikey: env.SUPABASE_SERVICE_KEY, authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY, 'content-type': 'application/json', prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id: uid, tool, pages, cost_paise: paise })
+      });
+      console.log(JSON.stringify({ wallet_deduct: uid, tool, pages, paise, bal }));
+      return json({ ok: true, wallet_paise: bal }, 200, cors);
+    }
+
     /* ---------- create order ---------- */
     if (url.pathname.endsWith('/order')) {
       let item;
       if (body.plan === 'doc') {
         item = docQuote(body.pages);
+      } else if (body.plan === 'wallet') {
+        /* universal ₹ wallet top-up — credits the money balance, not tokens */
+        const inr = parseInt(body.inr);
+        if (!Number.isInteger(inr) || inr < 20 || inr > 5000) return json({ error: 'Top-up must be between ₹20 and ₹5000.' }, 400, cors);
+        item = { label: `Wallet top-up ₹${inr}`, inr, wallet: true, paise: inr * 100 };
       } else if (body.plan === 'topup') {
         /* custom amount — tokens computed SERVER-side at the plan's value rate */
         const inr = parseInt(body.inr);
@@ -263,7 +305,9 @@ export default {
           amount: item.inr * 100,           // paise
           currency: 'INR',
           receipt: 'ra_' + Date.now(),
-          notes: { uid, tokens: String(item.tokens), plan: item.plan, provider: item.provider, model: item.model }
+          notes: item.wallet
+            ? { uid, wallet: '1', paise: String(item.paise) }
+            : { uid, tokens: String(item.tokens), plan: item.plan, provider: item.provider, model: item.model }
         })
       });
       if (!r.ok) {

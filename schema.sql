@@ -100,3 +100,61 @@ begin
    returning tokens_balance into newbal;
   return coalesce(newbal, 0);
 end; $$;
+
+-- ============================================================
+-- Phase 3 — Universal ₹ wallet (money balance, separate from the AI token wallet).
+-- Stored in PAISE (integer) so top-ups and deductions stay atomic and race-free.
+-- ============================================================
+
+-- 6) Add the rupee balance to profiles
+alter table public.profiles add column if not exists wallet_paise bigint not null default 0;
+
+-- 7) Atomic wallet credit (top-ups via Razorpay)
+create or replace function public.credit_wallet(uid uuid, paise bigint)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare newbal bigint;
+begin
+  update public.profiles
+     set wallet_paise = wallet_paise + greatest(paise, 0), updated_at = now()
+   where id = uid
+   returning wallet_paise into newbal;
+  return coalesce(newbal, 0);
+end; $$;
+
+-- 8) Atomic wallet deduction — only succeeds if the balance covers it.
+--    Returns the new balance, or -1 when there isn't enough (never goes negative).
+create or replace function public.deduct_wallet(uid uuid, paise bigint)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare newbal bigint;
+begin
+  update public.profiles
+     set wallet_paise = wallet_paise - paise, updated_at = now()
+   where id = uid and wallet_paise >= paise
+   returning wallet_paise into newbal;
+  if newbal is null then return -1; end if;
+  return newbal;
+end; $$;
+
+-- 9) Tool usage log — history for the user + the daily free-page cap on ★ premium tools
+create table if not exists public.tool_log (
+  id bigint generated always as identity primary key,
+  user_id uuid references auth.users(id) on delete set null,
+  tool text,                          -- e.g. 'pdf2word', 'compress_hd'
+  pages int,
+  cost_paise bigint default 0,        -- 0 for free jobs
+  created_at timestamptz default now()
+);
+alter table public.tool_log enable row level security;
+drop policy if exists "own tool_log read" on public.tool_log;
+create policy "own tool_log read" on public.tool_log
+  for select using (auth.uid() = user_id);
+
+-- 10) Pages a user has already used on a given ★ tool TODAY (for the free 50/day cap).
+--     SECURITY DEFINER so the free tier can check its own remaining allowance.
+create or replace function public.tool_pages_today(uid uuid, t text)
+returns int language sql security definer set search_path = public as $$
+  select coalesce(sum(pages), 0)::int
+    from public.tool_log
+   where user_id = uid and tool = t
+     and created_at >= date_trunc('day', now());
+$$;
