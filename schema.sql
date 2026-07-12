@@ -158,3 +158,17 @@ returns int language sql security definer set search_path = public as $$
    where user_id = uid and tool = t
      and created_at >= date_trunc('day', now());
 $$;
+
+-- 11) Anonymous (not-logged-in) free tier tracked by a HASHED client IP.
+--     Survives new tab / incognito / browser switch on the same connection.
+--     (VPN / mobile-data switching resets it — the accepted residual gap.)
+alter table public.tool_log add column if not exists ip_hash text;
+create index if not exists tool_log_ip_day on public.tool_log (ip_hash, tool, created_at);
+
+create or replace function public.tool_pages_today_ip(iph text, t text)
+returns int language sql security definer set search_path = public as $$
+  select coalesce(sum(pages), 0)::int
+    from public.tool_log
+   where ip_hash = iph and tool = t and user_id is null
+     and created_at >= date_trunc('day', now());
+$$;

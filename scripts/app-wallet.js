@@ -3,7 +3,7 @@ let me = null;
 let walletPaise = 0;
 /* ---------------- Universal ₹ wallet (money balance) ---------------- */
 function fmtRs(paise){ return '₹' + ((paise || 0) / 100).toFixed(2); }
-function renderWalletMoney(){ const el = $('walletMoney'); if(el) el.textContent = fmtRs(walletPaise); }
+function renderWalletMoney(){ const el = $('walletMoney'); if(el) el.textContent = fmtRs(walletPaise); renderWalletButtons(); }
 async function fetchWallet(){
   if(!session || !sb) return;
   try{
@@ -11,6 +11,44 @@ async function fetchWallet(){
     if(data && typeof data.wallet_paise === 'number') walletPaise = data.wallet_paise;
   }catch(e){}
   renderWalletMoney();
+}
+/* show a "Pay ₹X from wallet" button on each plan card the balance can cover */
+function renderWalletButtons(){
+  document.querySelectorAll('.planCard[data-plan^="sub_"]').forEach(c=>{
+    const price = PLAN_INR[c.dataset.plan] || (c.dataset.plan === 'sub_claude_99' ? 99 : 49);
+    let fw = c.querySelector('.fromWallet');
+    if(walletPaise >= price * 100){
+      if(!fw){
+        fw = document.createElement('button'); fw.type = 'button'; fw.className = 'fromWallet';
+        c.appendChild(fw);
+        fw.addEventListener('click', e=>{ e.stopPropagation(); buyFromWallet(c.dataset.plan); });
+      }
+      fw.textContent = `Pay ₹${price} from your wallet`;
+      fw.style.display = '';
+    }else if(fw){ fw.style.display = 'none'; }
+  });
+}
+async function buyFromWallet(planKey){
+  $('plans').style.display = 'none';
+  sayProgress('Paying from your ₹ wallet…');
+  try{
+    const { data:{ session:s } } = await sb.auth.getSession();
+    const r = await fetch(CONFIG.PAY_URL + '/wallet/buysub', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + s.access_token },
+      body: JSON.stringify({ plan: planKey })
+    });
+    const v = await r.json();
+    removeProgress();
+    if(v.ok){
+      walletPaise = v.wallet_paise; renderWalletMoney();
+      say(`✅ Done — paid from your ₹ wallet. You're on the ${ENGINE[v.provider] || 'Swift'} plan with ${fmtTokens(v.tokens_balance)} tokens. Wallet: ${fmtRs(v.wallet_paise)}.`);
+      await fetchMe();
+    }else if(v.error === 'insufficient'){
+      say("Your ₹ wallet doesn't have enough for that — top up and try again.");
+      openPlans();
+    }else say('Could not complete (' + (v.error || 'unknown') + ').');
+  }catch(e){ removeProgress(); say('Wallet payment error: ' + e.message); }
 }
 function fmtTokens(n){ return n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1000 ? Math.round(n/1000)+'k' : String(n); }
 async function fetchMe(){

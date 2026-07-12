@@ -263,6 +263,43 @@ export default {
       return json({ ok: true, wallet_paise: bal }, 200, cors);
     }
 
+    /* ---------- buy a subscription / top-up FROM the ₹ wallet (no Razorpay) ---------- */
+    if (url.pathname.endsWith('/wallet/buysub')) {
+      let item;
+      if (body.plan === 'topup') {
+        const inr = parseInt(body.inr);
+        let provider = body.provider === 'anthropic' ? 'anthropic' : 'openai';
+        if (!Number.isInteger(inr) || inr < 49 || inr > 5000) return json({ error: 'Amount must be between ₹49 and ₹5000.' }, 400, cors);
+        const c0 = await getProfile();
+        if (c0 && c0.plan === 'sub' && c0.tokens_balance > 0) provider = c0.provider;
+        item = { inr, tokens: Math.floor(inr / RATE[provider]), plan: 'sub', provider, model: provider === 'anthropic' ? 'claude-haiku-4-5' : 'gpt-4o-mini' };
+      } else {
+        item = CFG.cat[body.plan];
+      }
+      if (!item) return json({ error: 'Unknown plan' }, 400, cors);
+      const paise = item.inr * 100;
+      const wbal = await sbRpc(env, 'deduct_wallet', { uid, paise });
+      if (wbal === null || wbal < 0) {
+        const cur0 = await getProfile();
+        return json({ ok: false, error: 'insufficient', wallet_paise: cur0 ? cur0.wallet_paise : 0, need_paise: paise }, 402, cors);
+      }
+      // value-convert an existing balance if switching engines (same rule as /verify and /switch)
+      let delta = item.tokens;
+      const cur = await getProfile();
+      if (cur && cur.tokens_balance > 0 && cur.provider !== item.provider && RATE[cur.provider] && RATE[item.provider]) {
+        const converted = Math.floor(cur.tokens_balance * RATE[cur.provider] / RATE[item.provider]);
+        delta = item.tokens + converted - cur.tokens_balance;
+      }
+      const tbal = await sbRpc(env, 'credit_tokens', { uid, amount: delta, new_plan: item.plan, new_provider: item.provider, new_model: item.model });
+      await fetch(env.SUPABASE_URL + '/rest/v1/transactions', {
+        method: 'POST',
+        headers: { apikey: env.SUPABASE_SERVICE_KEY, authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY, 'content-type': 'application/json', prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id: uid, kind: 'sub_from_wallet', amount_inr: item.inr, tokens_credited: item.tokens, provider: item.provider })
+      });
+      console.log(JSON.stringify({ buysub_wallet: uid, plan: item.plan, provider: item.provider, inr: item.inr, wbal, tbal }));
+      return json({ ok: true, wallet_paise: wbal, tokens_balance: tbal, provider: item.provider, plan: item.plan }, 200, cors);
+    }
+
     /* ---------- create order ---------- */
     if (url.pathname.endsWith('/order')) {
       let item;
