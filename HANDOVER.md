@@ -71,7 +71,12 @@ Read it fully before touching code.
   redirect** (`tools.`→tools.html, `scan.`→scan.html, clean-URL-safe).
 - **`app-viewer.js`** — PDF render, karaoke marker, sentence building, speech, selection,
   password-protected PDF open (pdf.js `onPassword`).
-- **`app-companion.js`** — askAI, conversation commands, mic/STT. **`normalizeCmd()`**
+- **`rag.js`** — the companion retrieval engine (Private AI / Smart AI / Deep Research;
+  see §11 Step 5b). Chunking + Transformers.js embeddings (WebGPU→WASM) + IndexedDB +
+  BM25 + fusion + intent routing + the Deep Research consent/upload client. Loaded on
+  index.html between app-viewer.js and app-companion.js. Exposes `LxRag.getContext()`.
+- **`app-companion.js`** — askAI, conversation commands, mic/STT; `smartContext()` wraps
+  LxRag with fallback to the legacy buildContext. **`normalizeCmd()`**
   converts spelled numbers→digits + handles "beginning/top/first page" so voice
   commands ("go to page three") work for BOTH browser SpeechRecognition AND the
   OpenAI /stt fallback (both funnel through `sendChat`→`handleCommand`).
@@ -137,7 +142,14 @@ Read it fully before touching code.
 merge, split, remove, organize, rotate, compress (true never-larger), repair, ocr
 (searchable), jpg2pdf, word2pdf, pdf2jpg, pdf2word (OCR fallback), pdf2text, pdf2md,
 watermark, pagenum, unlock, imgcompress, imgresize, img2text, word2txt, word2md,
-**edit**, **sign**, **protect**. Plus link cards: scan→scan.html, summarize→index.html.
+**edit**, **sign**, **protect**, and (Step 5, 13 July) **crop**, **redact**, **forms**
+(fill), **compare**, **editword**, **pdf2ppt** (page-per-slide images). Plus link cards:
+scan→scan.html, summarize→index.html.
+
+**LIVE (★ premium, server, consent + 50 free pages/day):** compress_hd, ocr_hd,
+word2pdf_hd, pdf2word_hd (toggles on the dual tools), ppt2pdf, excel2pdf, pdfa,
+**pdf2excel**, **html2pdf** (URL input), **translate** (needs TRANSLATE_SERVER_URL →
+`online/translate-server/`, our NLLB-200/MarianMT service).
 
 ### The four Phase-3 tools (details)
 - **Sign PDF** (`preview:'sign'`): interactive editor — **Draw / Type / Import** a
@@ -160,9 +172,9 @@ watermark, pagenum, unlock, imgcompress, imgresize, img2text, word2txt, word2md,
   userPassword, ownerPassword, permissions })` then `doc.save()`. **⚠ NOT YET TESTED
   end-to-end** — verify the encrypt API/permissions shape on first run; adjust if it throws.
 
-**"SOON" (dimmed cards, `soon:true`) — these are the Phase-4 ★ premium/server targets:**
-crop, forms, redact, compare, pdf2ppt, pdf2excel, pdfa, ppt2pdf, excel2pdf, html2pdf,
-translate, editword. (Plus **server-grade** versions of compress, pdf2word, word2pdf, ocr.)
+**"SOON" (dimmed cards, `soon:true`):** none left — every card is live as of 13 July 2026.
+(Future own-engine upgrades: true content-edit Premium Edit PDF, editable PDF→PPT/Excel,
+layout-preserving Translate.)
 
 ---
 
@@ -319,12 +331,31 @@ Wallet: **universal ₹ wallet** — schema + worker-payments + frontend.
 
 ## 11. PHASE 4 — LIVE PROGRESS (update this as you go)
 
-▶ **START HERE NEXT:** Step 5 → build **Crop PDF** (first remaining free client tool — drag
-a rectangle over the rendered page → pdf-lib `setCropBox`, reusing the Sign/Edit editor
-infra). Then Redact, Forms-fill, Compare, Edit Word (all free client), then the ★ server
-tools (PDF→Excel, HTML→PDF, Translate). Mark each ⏳ IN PROGRESS before starting, ✅ DONE
-after. Steps 1–4 are DONE; PDF→PowerPoint (in Step 5) is DONE. Deploys pending: see §8 +
-the "Left to deploy" list. Standing rule: our own engines only, never a paid API.
+▶ **START HERE NEXT:** **Step 5 is CODE-COMPLETE (13 July 2026)** — all 8 remaining tools
+built (Crop / Redact / Forms-fill / Compare / Edit Word free client-side; ★ PDF→Excel /
+★ HTML→PDF / ★ Translate on the conversion server). What's left is OPS (KRK) + testing:
+
+  **Deploy checklist for the 13-July session:**
+  1. Cloudflare Pages: re-upload `scripts/tools-page.js` (the only frontend file changed) →
+     hard refresh. (tools.html/pages.css untouched — all new CSS is JS-injected.)
+  2. Gateway worker: re-paste `worker-convert.js` (adds the `opts` passthrough that
+     HTML→PDF's URL and Translate's target language ride on).
+  3. Conversion server (Railway): redeploy `convert-server/` — the new Dockerfile adds
+     chromium + poppler-utils + camelot/openpyxl/pandas and COPYs `pdf2excel.py`
+     (first build ~10 min). No new env needed for pdf2excel/html2pdf.
+  4. Translate only: deploy **`online/translate-server/`** as a second Railway service
+     (our OWN engine: Meta **NLLB-200** default → **MarianMT** auto-fallback on small
+     hosts → LibreTranslate proxy only as an optional last resort). The NLLB model is
+     **PRE-BAKED into the Docker image at build time** (no cold-start download; build
+     takes a few extra minutes once, boots are instant; `--build-arg PREBAKE=0` +
+     a `/models` volume is the small-image alternative — never mount a volume over a
+     pre-baked `/models`). Give it ~4 GB RAM for NLLB-600M (less = MarianMT
+     automatically), then set `TRANSLATE_SERVER_URL` on the conversion server. Until
+     then Translate returns a clean "translation engine not connected" error.
+  5. Test each new tool once (see per-tool notes below). Then Step 6 (Own Voice TTS /
+     PWA / Capacitor) is the next build frontier.
+
+  Standing rule unchanged: our own engines only, never a paid API.
 
 
 Phase 3 is DONE and TESTED (KRK confirmed Protect PDF + the ₹ wallet work). Phase 4
@@ -429,11 +460,12 @@ the conversion SERVER itself is external infra KRK must provision):
   (Tesseract, searchable PDF); `pdfa` → **Ghostscript** PDF/A; word2pdf_hd / ppt2pdf /
   excel2pdf / html2pdf → **LibreOffice**; compress_* → **Ghostscript**. Dockerfile installs
   libreoffice + ghostscript + qpdf + tesseract-ocr + python3 (pdf2docx, ocrmypdf) — first
-  build ~5–10 min. **Supported ptools:** word2pdf_hd, ppt2pdf, excel2pdf, html2pdf,
-  pdf2word_hd, ocr_hd, pdfa, compress_hd/max/web/light.
-  STILL "Soon" (build our own later — never a paid API): pdf2ppt, pdf2excel, translate,
-  editword, and true content-edit "Premium Edit PDF". To show the `pdfa` card in the UI,
-  remove `soon:true` from its KIT entry in tools-page.js (small, careful edit).
+  build ~5–10 min. **Supported ptools (13 July):** word2pdf_hd, ppt2pdf, excel2pdf,
+  html2pdf (now REAL Chromium render, not LibreOffice), pdf2word_hd, ocr_hd, pdfa,
+  pdf2excel (camelot), translate (our translate-server: NLLB-200/MarianMT),
+  compress_hd/max/web/light.
+  STILL future (build our own later — never a paid API): true content-edit "Premium
+  Edit PDF" and editable-text PDF→PPT/Excel fidelity (the "Lexora Layout Engine").
 - **Step 4 — Buy plans from wallet (`/wallet/buysub`):** ✅ DONE (built + verified).
   `worker-payments.js` endpoint `POST /wallet/buysub {plan}` (also `{plan:'topup',inr,
   provider}`): `deduct_wallet` the price → `credit_tokens` (value-converts on provider
@@ -457,33 +489,168 @@ the conversion SERVER itself is external infra KRK must provision):
 
   FREE client-side (build in tools-page.js, reuse the Sign/Edit editor infra — render pages,
   drag items, save via pdf-lib; NO server/consent):
-  - **Crop (`crop`)** → interactive drag-rectangle over the rendered page → pdf-lib
-    `page.setCropBox(x,y,w,h)` (convert display px → pt like Sign/Edit). `preview:'crop'`.
-  - **Redact (`redact`)** → like Edit-PDF white-out but BLACK boxes, then **flatten** each
-    affected page: re-render that page to an image (pdf.js) with the black box baked in and
-    rebuild the PDF from images, so the covered text is truly removed (not just hidden).
-  - **PDF Forms — fill (`forms`)** → pdf-lib `doc.getForm()`, enumerate `getFields()`, render
-    an input per field, `field.setText()/check()`, optional `form.flatten()`. (Creating new
-    forms = defer.)
-  - **Compare (`compare`)** → two file inputs; render both with pdf.js; per page either a
-    pixel diff (draw both to canvas, XOR/overlay highlight) or a text diff (getTextContent).
-    Side-by-side view. `T.multiple` / two-file intake.
-  - **Edit Word (`editword`)** → mammoth (docx→html) into a `contenteditable`, let the user
-    edit, re-export .docx via the existing `buildDocx`/OOXML in shared.js. Basic formatting only.
+  - **Crop (`crop`)** ✅ DONE → interactive drag-rectangle over the rendered page (move/resize/
+    draw-new; scope: all pages or just this one) → pdf-lib `setCropBox`, MediaBox-origin-aware.
+    Functions: cropOptsHtml/renderCropEditor/renderCropPage/addCropRect/runCrop + injectCropCss.
+  - **Redact (`redact`)** ✅ DONE (built + Read/Grep-verified + /tmp node --check passed; KRK
+    end-to-end test pending) → black boxes over real pages (drag/resize, multi-page), on save
+    every covered page is FLATTENED: re-rendered scale-2 via pdf.js with the boxes baked in →
+    JPEG image page, so content is truly removed. Untouched pages copyPages as-is (text stays
+    selectable). Functions: redactOptsHtml/initRedactPanel/renderRedactEditor/renderRedactPage/
+    addRedactBox/addRedactEl/runRedact.
+  - **PDF Forms — fill (`forms`)** ✅ DONE (built + verified + node --check passed; KRK test
+    pending) → renderFormsEditor/runForms: pdf-lib getForm/getFields, an input per field
+    (text/textarea/checkbox/radio/dropdown/option-list), prefilled from current values, the
+    SAME loaded doc is saved (no reload), optional flatten with graceful fallback. No-form
+    PDFs get a "use Edit PDF instead" hint. (Creating new forms = deferred.)
+  - **Compare (`compare`)** ✅ DONE (built + verified + node --check passed; KRK test pending) →
+    cmpPageCanvas/cmpDiff/renderCompareEditor/renderComparePage/runCompare: two-file intake
+    (multiple:true, min:2), side-by-side A|B with the pixel diff painted orange on B, page nav,
+    %-changed note, pages present in only one file flagged; run() saves a side-by-side jsPDF
+    "comparison report.pdf" (60-page cap).
+  - **Edit Word (`editword`)** ✅ DONE (built + verified + node --check passed; KRK test pending)
+    → reclassified from ★premium to FREE client tool (premium/ptool/soon removed). mammoth
+    (docx→html) into a contenteditable .ewPage; on save, renderEditWordEditor/ewRuns/runEditWord
+    rebuild headings/bold/list-bullets into a .docx via app-tools buildDocxRich. Pictures &
+    complex layouts not kept (honest client-side MVP — noted in the tool hint).
 
-  ★ PREMIUM server (add our-own OSS engines to `convert-server/`; wire like the other
-  premium tools — remove `soon:true`, keep `premium:true` + `ptool`):
-  - **PDF→Excel (`pdf2excel`)** → server: **camelot-py** (`pip install camelot-py[cv]`) →
-    export xlsx (pandas/openpyxl). Add to Dockerfile + a `pdf2excel` handler. Only good on
-    ruled/lattice tables — note it.
-  - **HTML→PDF (`html2pdf`)** → server: **headless Chromium via Puppeteer** (real webpage
-    render, unlike LibreOffice). Add chromium + puppeteer to the image; the FRONTEND needs a
-    **URL input** (not a file upload) — a special tool flow (opts with a text input; send the
-    URL to the server, not a file). Its current LibreOffice handler is a weak placeholder.
-  - **Translate (`translate`)** → **LibreTranslate** (self-hosted OSS, NO paid API — matches
-    "our own"). Run it as its own service; `convert-server` extracts text (pdf.js/pdftotext),
-    translates, and overlays/rebuilds. Layout-preserving translate is the hardest — MVP can be
-    "translated text as a new PDF" first, layout-preserving later.
+  ★ PREMIUM server — ✅ ALL THREE BUILT (13 July; syntax-verified; deploy + test pending, see
+  the checklist at the top of §11). A new optional multipart field **`opts`** (JSON string)
+  now flows browser → gateway (`worker-convert.js` forwards it) → server (parsed, passed as
+  the 3rd arg to handlers). `premOpts:()=>html` on a KIT entry injects tool-specific fields
+  into the premium options panel.
+  - **PDF→Excel (`pdf2excel`)** ✅ → server `pdf2excel.py` (camelot: lattice pass first,
+    stream fallback; each table → its own sheet via pandas/openpyxl; exit 2 = "no tables").
+    Dockerfile adds `camelot-py[cv]`+openpyxl+pandas+poppler-utils. KIT card activated
+    (accept .pdf, ★ server-only) with a "ruled tables work best" premOpts hint. xlsx
+    content-type added to CT.
+  - **HTML→PDF (`html2pdf`)** ✅ → server `chromiumPdf()`: **headless Chromium CLI**
+    (`--headless=new --no-sandbox --print-to-pdf`, `CHROME_BIN=chromium` from apt — real
+    browser render, no puppeteer npm needed; the old LibreOffice handler is replaced).
+    Frontend: new **`urlTool:true`** flow — no file drop; openTool renders a URL input
+    (`#oUrl`) in the main area; runPremium sends a tiny text stub as `file`, pages=1, and
+    `opts={url}`; goBtn guard allows file-less URL tools. Renders `opts.url`, or an
+    uploaded .html file if no URL given.
+  - **Translate (`translate`)** ✅ → server `translatePdf()` calls OUR translation service
+    **`online/translate-server/`** (env `TRANSLATE_SERVER_URL`; NO paid API; all
+    LibreTranslate-specific code/config removed from convert-server). The service
+    (Flask + transformers, own Dockerfile, separate Railway container) picks its engine
+    automatically: **Meta NLLB-200** (`facebook/nllb-200-distilled-600M`, override via
+    `NLLB_MODEL`) → **MarianMT** per-pair fallback (English pivot) if NLLB can't load →
+    LibreTranslate proxy ONLY if `LIBRETRANSLATE_FALLBACK_URL` is set and no model engine
+    works. Source language **auto-detected**; `target` accepts ISO-639-1 or raw FLORES-200
+    codes → all 200 NLLB languages supported. Pipeline unchanged: `pdftotext -layout` →
+    ~4000-char chunks → POST /translate → translated .txt → LibreOffice → `translated.pdf`.
+    MVP = clean translated-text PDF; layout-preserving is the later own-engine upgrade.
+    KIT card: 30-language `#oTrLang` select (10 Indian languages — NLLB's strength);
+    runPremium sends `opts={lang}`. Scanned PDFs error with "run OCR on it first".
+    Premium flow/pricing untouched (same gateway, consent, caps, wallet).
+
+- **Step 5b — Companion "Hybrid RAG" upgrade (13 July, evening):** ✅ BUILT (syntax-verified;
+  deploy + test pending). The AI companion now retrieves instead of dumping text. UI names
+  (NEVER say "RAG" in the UI): **Private AI** (default) / **Smart AI** (recommended) /
+  **Deep Research** (opt-in). Selector: Settings → AI Engine → "Document understanding"
+  (localStorage `ra_ai_mode`).
+  - **NEW `scripts/rag.js`** (~430 lines, classic script, loaded before app-companion.js on
+    index.html): sentence-based chunker (~1100 chars, 1-sentence overlap, heading detection
+    from `lines[].h` height heuristic); browser embeddings via **Transformers.js v3**
+    (`@huggingface/transformers` from jsdelivr, `Xenova/all-MiniLM-L6-v2` q8, **WebGPU with
+    automatic WASM fallback**); vectors cached in **IndexedDB** (`lxrag` db, keyed by doc
+    fingerprint) + in-memory Float32Array cosine search; **BM25** keyword index; **RRF
+    fusion** + boosts (reading-position page, heading match, dates for timelines); intent
+    routing in Smart mode (summarize = spread-across-document sampling, compare = per-side
+    retrieval, definition/find = keyword-weighted, timeline = date boost). Background
+    pre-indexing poller (only when a doc is open + companion available). Docs whose full
+    text ≤ 8 KB return null → the classic path sends everything (cheapest + identical).
+  - **app-companion.js**: new `smartContext(question)` wrapper — tries `LxRag.getContext`,
+    falls back to the untouched legacy `buildContext()` on any error (nothing was rewritten;
+    explain-selection and explain-page keep their existing precise contexts). `sendChat` now
+    awaits `smartContext(t)`.
+  - **Privacy model preserved**: Private/Smart send ONLY question + top passages to the
+    existing `/chat` (context string ≤ 9000 — no worker change needed for these two modes).
+    The document and the embedding DB never leave the device.
+  - **Deep Research** (opt-in): per-document consent modal in rag.js → chunks upload to NEW
+    `worker-gateway.js` endpoints `/rag/index`, `/rag/query`, `/rag/delete` (auth required,
+    placed before the chat rate-limit). Server side: **Cloudflare Vectorize** + **Workers AI**
+    embeddings (`@cf/baai/bge-base-en-v1.5`), ids `uid:docId:i`, metadata `{ns, page, text,
+    exp}` with **24 h expiry** (expired matches filtered) + client delete on pagehide/close.
+    Until the bindings exist the endpoints return 503 and the client silently falls back to
+    on-device Smart AI. Chat pricing/metering unchanged (answers still go through `/chat`).
+  - **TO DEPLOY:** re-upload `index.html`, `settings.html`, `scripts/rag.js`,
+    `scripts/app-companion.js`, `scripts/settings.js` to Pages; re-paste `worker-gateway.js`.
+    For Deep Research additionally: `wrangler vectorize create lexora-rag --dimensions=768
+    --metric=cosine` + `wrangler vectorize create-metadata-index lexora-rag
+    --property-name=ns --type=string`, then bind it as `VECTORIZE` and add a Workers AI
+    binding named `AI` on the gateway worker (dashboard → worker → Settings → Bindings).
+
+- **Step 5c — Production audit: SEO / performance / trust / a11y (15 July 2026):** ✅ BUILT
+  (deploy + a few manual dashboard steps pending — see **`SEO-LAUNCH-CHECKLIST.md`**).
+  WHAT WAS DONE:
+  - **SEO:** unique title + meta description + canonical + Open Graph + Twitter Card on
+    EVERY page; JSON-LD structured data (index: Organization + WebSite +
+    SoftwareApplication w/ pricing; tools: BreadcrumbList + ItemList of top tools;
+    faq.html: FAQPage with 10 Q&As); `robots.txt` (AI crawlers explicitly welcomed —
+    GPTBot/ClaudeBot/PerplexityBot); `sitemap.xml` (9 URLs, clean-URL form);
+    settings=noindex, terms redirect=noindex; titles rewritten keyword-first on
+    tools/scan ("Free PDF Tools Online — Merge, Split…").
+  - **Icons/PWA:** `favicon.svg` (orange L on black) + `manifest.webmanifest`.
+    ⚠ PNG icons (192/512/maskable/apple-touch/og-card 1200×630) were generated but the
+    sandbox CANNOT write binaries into the project — they were handed to KRK as files;
+    he must drop them into **`online/icons/`** (checklist item 1).
+  - **Performance:** the 4 render-BLOCKING head libraries (pdf.js ~300 KB, tesseract,
+    mammoth, supabase) are now `defer` on every page, and ALL body scripts got `defer`
+    too (defer preserves execution order, so the classic-script chain is unchanged —
+    verified: app-core's top-level `supabase.createClient` still runs after the CDN lib;
+    lazy `ensurePdfjs()` re-reads handle the later lib init; login.html's supabase stays
+    BLOCKING on purpose — its inline script needs it at parse time). `preconnect` to
+    jsdelivr + Supabase. `_headers` (Cloudflare Pages): HSTS, nosniff, SAMEORIGIN,
+    Referrer-Policy, Permissions-Policy + `lib/*` immutable 1-year cache (styles/scripts
+    intentionally short-cached — the pages.css trap).
+  - **Trust pages (new, on-brand shell):** `faq.html` (FAQPage schema), `about.html`,
+    `security.html`, `contact.html` — linked from every sidebar (tools/scan/settings +
+    each other). privacy.html RECOLORED from the old blue/purple palette to
+    black/white/orange (was off-brand).
+  - **Analytics:** `scripts/analytics.js` on every page — privacy-first: ships EMPTY
+    (`LX_GA4_ID`/`LX_CLARITY_ID` at top of file; nothing loads until set). Global
+    `lxTrack(event,params)` no-op API + documented conversion wiring points (sign_up,
+    tool_run, premium_run, purchase).
+  - **Top remaining levers (manual/product decisions, in the checklist):** a real public
+    landing page at / (apex currently JS-redirects logged-out users to /login — the
+    single biggest SEO weakness), per-tool landing pages (/merge-pdf style), Search
+    Console + Bing verification, GA4/Clarity ids, blog for Discover.
+
+- **Step 5d — Public landing + 43 SEO landing pages (15 July 2026):** ✅ BUILT (deploy pending).
+  - **Landing at / (redirect REMOVED):** app-core.js `initAuth` no longer bounces logged-out
+    visitors to login.html — it shows the new `#landing` section inside index.html instead
+    (full marketing page: hero, features, popular-tools grid linking the SEO pages, how-it-
+    works, pricing cards, FAQ accordion, footer; styles in NEW `styles/landing.css`).
+    Landing is VISIBLE in static HTML (crawlers see real content, no JS needed); an early
+    inline script hides it instantly for returning users (`localStorage.ra_returning`, set on
+    login) and any `location.hash` (covers #guest + auth-token flows); initAuth hides it for
+    sessions and falls back to the old redirect if the section is missing. Login is now only
+    asked for when actually needed. NOTE the old #login overlay + login.html flows unchanged.
+  - **43 SEO landing pages** at clean URLs (`/merge-pdf`, `/pdf-to-word`, `/ocr-aadhaar-card`,
+    `/chat-with-pdf` …) — 26 tool pages + 3 AI-feature pages + 14 programmatic intent pages
+    (OCR: scanned/receipts/invoices/handwritten/bank-statements/passport/aadhaar/pan/DL;
+    conversion intents; AI intents). ZERO duplicated page code: each page is a ~35-line SHELL
+    (unique title/description/canonical/OG/Twitter + static crawlable h1/intro/CTA) and the
+    body renders from two shared components: **`scripts/seo-data.js`** (content registry —
+    name/cta/benefits/steps/faqs/related per slug) + **`scripts/seo-page.js`** (renderer:
+    privacy note, benefits grid, how-it-works, FAQ accordion, related-tools links, footer,
+    visible breadcrumb, JS-injected BreadcrumbList+FAQPage JSON-LD, injected CSS).
+    Free tools CTA straight into tools.html#id (no login!); AI pages CTA → login.html;
+    ★ tools show the premium/consent messaging. All `related` slugs validated (script check:
+    43 entries, all shells present, no orphans, node --check clean).
+  - **Internal linking:** landing → 12 SEO pages + all sections; every SEO page → 4 related
+    pages + tools/faq/security/home; faq.html got a "Popular guides" block; breadcrumbs on
+    every SEO page (visible + schema).
+  - **sitemap.xml** regenerated: 52 URLs (9 core + 43 SEO pages). To add a page later: create
+    the shell + an LX_SEO entry + a sitemap line.
+  - **TO DEPLOY:** re-upload everything (43 new *.html, styles/landing.css, scripts/seo-data.js,
+    scripts/seo-page.js, edited index.html + app-core.js + faq.html + sitemap.xml). Then in
+    Search Console: resubmit the sitemap + request indexing for /, /tools, /chat-with-pdf,
+    /merge-pdf. Testimonials: the landing intentionally shows use-cases instead of fabricated
+    quotes — swap in real user quotes when collected.
 
 - **Step 6 — Own Voice TTS / PWA / Capacitor:** ⬜ later.
 

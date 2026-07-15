@@ -107,11 +107,12 @@ function overCapCharge(env, billable) {
   return Math.min(capC, Math.max(min, billable * per));
 }
 
-async function forwardToServer(env, file, tool, maxPages) {
+async function forwardToServer(env, file, tool, maxPages, opts) {
   const fwd = new FormData();
   fwd.append('file', file, (file.name || 'input'));
   fwd.append('tool', tool);
   fwd.append('maxPages', String(maxPages));   // server converts only the first maxPages
+  if (opts) fwd.append('opts', opts);         // tool extras, e.g. {"url":…} / {"lang":…}
   return fetch(env.CONVERT_SERVER_URL.replace(/\/$/, '') + '/convert', {
     method: 'POST', headers: { authorization: 'Bearer ' + (env.CONVERT_SERVER_KEY || '') }, body: fwd
   });
@@ -157,6 +158,7 @@ export default {
       const tool = String(form.get('tool') || '').slice(0, 40);
       const pages = clampPages(form.get('pages'));
       const consent = String(form.get('consent') || '') === '1';
+      const opts = String(form.get('opts') || '').slice(0, 2000);
       if (!file) return json({ error: 'No file.' }, 400, cors);
       if (!consent) return json({ error: 'consent_required' }, 400, cors);
       if (!env.CONVERT_SERVER_URL) return json({ error: 'The premium conversion server is not connected yet — coming soon.' }, 503, cors);
@@ -182,7 +184,7 @@ export default {
       await logTool(env, id, tool, convertPages, charge);
 
       let sr;
-      try { sr = await forwardToServer(env, file, tool, convertPages); }
+      try { sr = await forwardToServer(env, file, tool, convertPages, opts); }
       catch (e) {
         if (charge > 0) await sbRpc(env, 'credit_wallet', { uid: id.uid, paise: charge });
         return json({ error: 'Could not reach the conversion server — you were not charged.' }, 502, cors);

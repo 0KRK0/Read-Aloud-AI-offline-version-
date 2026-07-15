@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Settings — Lexora AI</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta name="description" content="Your Lexora AI settings: profile, wallet, purchases, usage, AI engine and privacy.">
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://lexoraai.online/settings">
+<meta name="theme-color" content="#111110">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://lgwqqytjqoenozhjhbkr.supabase.co" crossorigin>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="styles/theme.css">
 <link rel="stylesheet" href="styles/pages.css">
 </head>
@@ -20,6 +28,10 @@
     <a href="index.html#plans">Plans &amp; wallet</a>
     <a href="settings.html" class="active">Settings</a>
     <div class="navSep"></div>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+    <a href="security.html">Security</a>
+    <a href="contact.html">Contact</a>
     <a href="privacy.html" target="_blank">Privacy</a>
     <a href="terms.html" target="_blank">Terms</a>
   </nav>
@@ -135,6 +147,14 @@
           </div>
           <label class="saverRow" style="margin-top:16px"><input type="checkbox" id="setSaver"> <span><b>🪄 Token Saver</b> — compresses what we send to the engine, same answers for fewer tokens</span></label>
           <p class="hint">Higher engine power gives smarter answers but uses your token balance faster. This applies when you are on a paid engine (Swift or Sage); on the free plan the Spark engine is always used.</p>
+
+          <label class="f" style="margin-top:20px">Document understanding — how the companion reads your document</label>
+          <div class="tierRow" id="setRagRow">
+            <button class="tierBtn" data-rag="private"><b>Private AI</b><small>100% on your device</small></button>
+            <button class="tierBtn" data-rag="smart"><b>Smart AI</b><small>recommended · sharpest answers</small></button>
+            <button class="tierBtn" data-rag="deep"><b>Deep Research</b><small>server · asks you first</small></button>
+          </div>
+          <p class="hint">Private AI and Smart AI read the whole document on your device and send the engine only your question plus the few passages that matter — the document itself never leaves your device. Smart AI adds a deeper understanding of what you're asking (find, compare, summarize, timelines…). Deep Research can dig through very large documents on our secure server: it always asks for your OK before anything is uploaded, and everything is deleted when you close the document (at most 24 hours).</p>
         </div>
       </section>
 
@@ -169,7 +189,8 @@
   </div>
 </div></main>
 
-<script src="scripts/settings.js"></script>
-<script src="scripts/select-style.js"></script>
+<script defer src="scripts/analytics.js"></script>
+<script defer src="scripts/settings.js"></script>
+<script defer src="scripts/select-style.js"></script>
 </body>
 </html>

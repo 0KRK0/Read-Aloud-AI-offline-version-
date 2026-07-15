@@ -561,10 +561,24 @@ const KIT = [
     saveOut(new Blob([await doc.save()], {type:'application/pdf'}), baseName(files[0].file) + ' (protected).pdf');
     return 'Password added — this PDF now asks for the password to open.';
   }},
- {id:'crop',      cat:'edit', ic:'✂', name:'Crop PDF', desc:'Crop margins or select an area of the pages.', soon:true},
- {id:'forms',     cat:'edit', ic:'🧾', name:'PDF Forms', desc:'Create and fill interactive PDF forms.', soon:true},
- {id:'redact',    cat:'sec', ic:'⬛', name:'Redact PDF', desc:'Permanently remove sensitive information.', soon:true},
- {id:'compare',   cat:'sec', ic:'🆚', name:'Compare PDF', desc:'Side-by-side comparison of two versions.', soon:true},
+ {id:'crop', cat:'edit', ic:'✂', name:'Crop PDF', desc:'Drag a rectangle over the page — keep just that area, crop the rest away.',
+  accept:'.pdf', preview:'crop', action:'Crop PDF',
+  opts:()=> cropOptsHtml(),
+  run: async (files)=> runCrop(files)},
+ {id:'forms', cat:'edit', ic:'🧾', name:'Fill PDF Forms', desc:'Fill the fields of an interactive PDF form and save it.',
+  accept:'.pdf', preview:'forms', action:'Save filled PDF',
+  opts:()=>`<label class="sCheck"><input type="checkbox" id="oFlat"> Lock the form after filling (answers can’t be changed)</label>
+    <p class="sHint">Type into the fields on the left, then save. Everything happens on your device — the form never leaves it.</p>`,
+  run: async (files)=> runForms(files)},
+ {id:'redact', cat:'sec', ic:'⬛', name:'Redact PDF', desc:'Black out sensitive parts — permanently removed, not just hidden.',
+  accept:'.pdf', preview:'redact', action:'Redact PDF',
+  opts:()=> redactOptsHtml(),
+  init:()=> initRedactPanel(),
+  run: async (files)=> runRedact(files)},
+ {id:'compare', cat:'sec', ic:'🆚', name:'Compare PDF', desc:'Two versions side by side, differences highlighted in orange.',
+  accept:'.pdf', multiple:true, min:2, preview:'compare', action:'Save comparison report',
+  opts:()=>`<p class="sHint">Add both versions — A first, then B. Every changed spot is highlighted in orange on file B. The button saves a side-by-side comparison report as a PDF. Everything happens on your device.</p>`,
+  run: async (files)=> runCompare(files)},
  {id:'pdf2ppt', cat:'from', ic:'📽', name:'PDF to PowerPoint', desc:'Turn each PDF page into a slide — on your device, free.',
   accept:'.pdf', preview:'files', action:'Convert to PowerPoint',
   run: async (files)=>{
@@ -590,16 +604,27 @@ const KIT = [
     saveOut(blob, baseName(files[0].file) + '.pptx');
     return `Made a ${n}-slide presentation.`;
   }},
- {id:'pdf2excel', cat:'from', ic:'📊', name:'PDF to Excel', desc:'Pull tables from PDFs into spreadsheets.', soon:true, premium:true, ptool:'pdf2excel'},
+ {id:'pdf2excel', cat:'from', ic:'📊', name:'PDF to Excel', desc:'Pull the tables out of a PDF into an .xlsx spreadsheet.',
+  accept:'.pdf', preview:'files', action:'Convert to Excel', premium:true, ptool:'pdf2excel',
+  premOpts:()=>`<p class="sHint">Works best on PDFs with ruled / visible table lines (bank statements, invoices, reports). Each table becomes its own sheet.</p>`},
  {id:'pdfa',      cat:'from', ic:'🗄', name:'PDF to PDF/A', desc:'ISO archive format for long-term storage.',
   accept:'.pdf', preview:'files', action:'Convert to PDF/A', premium:true, ptool:'pdfa'},
  {id:'ppt2pdf',   cat:'to', ic:'📽', name:'PowerPoint to PDF', desc:'Make PPT and PPTX easy to view as PDF.',
   accept:'.ppt,.pptx', preview:'files', action:'Convert to PDF', premium:true, ptool:'ppt2pdf'},
  {id:'excel2pdf', cat:'to', ic:'📊', name:'Excel to PDF', desc:'Make spreadsheets easy to read as PDF.',
   accept:'.xls,.xlsx', preview:'files', action:'Convert to PDF', premium:true, ptool:'excel2pdf'},
- {id:'html2pdf',  cat:'to', ic:'🌐', name:'HTML to PDF', desc:'Convert webpages to PDF from a URL.', soon:true, premium:true, ptool:'html2pdf'},
- {id:'translate', cat:'ai', ic:'🌍', name:'Translate PDF', desc:'AI translation that keeps the layout intact.', soon:true, premium:true, ptool:'translate'},
- {id:'editword',  cat:'edit', ic:'📄', name:'Edit Word', desc:'Edit .docx documents right in the browser.', soon:true, premium:true, ptool:'editword'}
+ {id:'html2pdf', cat:'to', ic:'🌐', name:'HTML to PDF', desc:'Turn any webpage into a PDF — just paste its address.',
+  urlTool:true, action:'Convert to PDF', premium:true, ptool:'html2pdf',
+  premOpts:()=>`<p class="sHint">The page is opened in a real browser engine on our server and printed to PDF exactly as it looks on screen.</p>`},
+ {id:'translate', cat:'ai', ic:'🌍', name:'Translate PDF', desc:'Translate a PDF’s text into another language.',
+  accept:'.pdf', preview:'files', action:'Translate PDF', premium:true, ptool:'translate',
+  premOpts:()=>`<label class="f">Translate to</label>
+    <select id="oTrLang"><option value="en">English</option><option value="hi">Hindi</option><option value="bn">Bengali</option><option value="ta">Tamil</option><option value="te">Telugu</option><option value="mr">Marathi</option><option value="gu">Gujarati</option><option value="kn">Kannada</option><option value="ml">Malayalam</option><option value="pa">Punjabi</option><option value="ur">Urdu</option><option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option><option value="pt">Portuguese</option><option value="it">Italian</option><option value="ru">Russian</option><option value="ar">Arabic</option><option value="zh">Chinese</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="tr">Turkish</option><option value="id">Indonesian</option><option value="vi">Vietnamese</option><option value="th">Thai</option><option value="nl">Dutch</option><option value="pl">Polish</option><option value="uk">Ukrainian</option><option value="fa">Persian</option><option value="sw">Swahili</option></select>
+    <p class="sHint">The source language is detected automatically. You get a clean PDF with the translated text — translated by our own AI engine on our server. (Keeping the exact original layout is coming later.)</p>`},
+ {id:'editword', cat:'edit', ic:'📄', name:'Edit Word', desc:'Open a .docx in the browser, edit it, save it back — free, on your device.',
+  accept:'.docx', preview:'editword', action:'Save Word file',
+  opts:()=>`<p class="sHint">Click into the document and edit it like a text editor. Headings, bold and lists are kept when you save; pictures and complex layouts are not (yet). Everything happens on your device.</p>`,
+  run: async (files)=> runEditWord(files)}
 ];
 
 /* ================= state & views ================= */
@@ -992,6 +1017,545 @@ async function runEdit(files){
 }
 
 /* ============================================================
+   Crop PDF — drag a rectangle over the real page, keep just that area.
+   Saves via pdf-lib setCropBox (display px -> PDF pt, MediaBox-aware).
+   ============================================================ */
+let cropDoc = null, cropPage = 0, cropRects = {};
+
+function cropOptsHtml(){
+  return `<label class="f">Apply the crop to</label>
+    <select id="oCropScope"><option value="all">All pages (same area)</option><option value="this">Only this page</option></select>
+    <p class="sHint">Move the orange rectangle over the part you want to KEEP (or draw a new one on the page). Everything outside it is cropped away. Pull the corner to resize.</p>`;
+}
+async function renderCropEditor(){
+  const main = $('tvMain');
+  main.innerHTML = '<div class="tvLoad"><div class="lxSpin"></div><p class="thumbHint">Opening your PDF…</p></div>';
+  cropRects = {}; cropPage = 0;
+  try{
+    cropDoc = await openPdfjs(files[0].file);
+    main.innerHTML = '<div class="signNav" id="cropNav"></div><div class="signStage" id="cropStage"></div>';
+    await renderCropPage();
+  }catch(e){ main.innerHTML = '<p class="thumbHint">Could not open this PDF (' + e.message + ').</p>'; }
+}
+async function renderCropPage(){
+  const stage = $('cropStage'); stage.innerHTML = '';
+  const page = await cropDoc.getPage(cropPage + 1);
+  const base = page.getViewport({scale:1});
+  const targetW = Math.min(stage.clientWidth || 600, 680);
+  const vp = page.getViewport({scale: targetW / base.width});
+  const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height); c.className = 'signPageCanvas';
+  await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+  const holder = document.createElement('div'); holder.className = 'signHolder';
+  holder.style.cssText = `position:relative; width:${c.width}px; height:${c.height}px; max-width:100%; overflow:hidden`;
+  const layer = document.createElement('div'); layer.className = 'signLayer'; layer.id = 'cropLayer';
+  layer.style.cssText = 'position:absolute; inset:0; cursor:crosshair';
+  holder.appendChild(c); holder.appendChild(layer); stage.appendChild(holder);
+  const it = cropRects[cropPage] || (cropRects[cropPage] = { rx:0.06, ry:0.06, rw:0.88, rh:0.88 });
+  addCropRect(it, layer);
+  const nav = $('cropNav');
+  nav.innerHTML = cropDoc.numPages > 1
+    ? `<button type="button" class="btnMini" id="cPrev">◀ Prev</button><span>Page ${cropPage + 1} / ${cropDoc.numPages}</span><button type="button" class="btnMini" id="cNext">Next ▶</button>`
+    : '';
+  if(cropDoc.numPages > 1){
+    $('cPrev').onclick = ()=>{ if(cropPage > 0){ cropPage--; renderCropPage(); } };
+    $('cNext').onclick = ()=>{ if(cropPage < cropDoc.numPages - 1){ cropPage++; renderCropPage(); } };
+  }
+}
+function addCropRect(it, layer){
+  if(!layer) return;
+  const el = document.createElement('div'); el.className = 'cropRect';
+  el.style.position = 'absolute';
+  el.innerHTML = '<span class="sHandle"></span>';
+  layer.appendChild(el);
+  const W = ()=> layer.clientWidth, H = ()=> layer.clientHeight;
+  const apply = ()=>{
+    el.style.left = (it.rx * W()) + 'px'; el.style.top = (it.ry * H()) + 'px';
+    el.style.width = (it.rw * W()) + 'px'; el.style.height = (it.rh * H()) + 'px';
+  };
+  apply();
+  /* move the rectangle */
+  el.addEventListener('pointerdown', e=>{
+    if(e.target.classList.contains('sHandle')) return;
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, sy = e.clientY, ox = it.rx * W(), oy = it.ry * H();
+    const mv = ev=>{
+      it.rx = Math.max(0, Math.min(1 - it.rw, (ox + ev.clientX - sx) / W()));
+      it.ry = Math.max(0, Math.min(1 - it.rh, (oy + ev.clientY - sy) / H()));
+      apply();
+    };
+    const up = ()=>{ window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+  });
+  /* resize from the corner */
+  el.querySelector('.sHandle').addEventListener('pointerdown', e=>{
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, sy = e.clientY, ow = it.rw * W(), oh = it.rh * H();
+    const mv = ev=>{
+      it.rw = Math.max(0.05, Math.min(1 - it.rx, (ow + ev.clientX - sx) / W()));
+      it.rh = Math.max(0.05, Math.min(1 - it.ry, (oh + ev.clientY - sy) / H()));
+      apply();
+    };
+    const up = ()=>{ window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+  });
+  /* draw a fresh rectangle anywhere on the empty page area */
+  layer.addEventListener('pointerdown', e=>{
+    if(e.target !== layer) return;
+    e.preventDefault();
+    const r = layer.getBoundingClientRect();
+    const sx = Math.max(0, Math.min(layer.clientWidth, e.clientX - r.left));
+    const sy = Math.max(0, Math.min(layer.clientHeight, e.clientY - r.top));
+    const mv = ev=>{
+      const cx = Math.max(0, Math.min(layer.clientWidth, ev.clientX - r.left));
+      const cy = Math.max(0, Math.min(layer.clientHeight, ev.clientY - r.top));
+      it.rx = Math.min(sx, cx) / layer.clientWidth;
+      it.ry = Math.min(sy, cy) / layer.clientHeight;
+      it.rw = Math.max(0.02, Math.abs(cx - sx) / layer.clientWidth);
+      it.rh = Math.max(0.02, Math.abs(cy - sy) / layer.clientHeight);
+      apply();
+    };
+    const up = ()=>{ window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+  });
+}
+/* ============================================================
+   Redact PDF — black boxes over the real pages; on save every covered
+   page is FLATTENED to an image (pdf.js re-render with the boxes baked
+   in), so the hidden content is truly removed, not just covered.
+   ============================================================ */
+let redactDoc = null, redactPage = 0, redactItems = [];
+
+function redactOptsHtml(){
+  return `<button type="button" id="rdAdd" class="goBig">⬛ Add a black box</button>
+    <p class="sHint">Cover everything you want gone — on any page. When you save, each covered page is rebuilt from a clean image with the boxes baked in, so the content underneath is <b>permanently removed</b>, not just hidden. (Redacted pages become picture pages — their text is no longer selectable.)</p>`;
+}
+function initRedactPanel(){
+  const b = document.getElementById('rdAdd'); if(b) b.onclick = addRedactBox;
+}
+async function renderRedactEditor(){
+  const main = $('tvMain');
+  main.innerHTML = '<div class="tvLoad"><div class="lxSpin"></div><p class="thumbHint">Opening your PDF…</p></div>';
+  redactItems = []; redactPage = 0;
+  try{
+    redactDoc = await openPdfjs(files[0].file);
+    main.innerHTML = '<div class="signNav" id="rdNav"></div><div class="signStage" id="rdStage"></div>';
+    await renderRedactPage();
+  }catch(e){ main.innerHTML = '<p class="thumbHint">Could not open this PDF (' + e.message + ').</p>'; }
+}
+async function renderRedactPage(){
+  const stage = $('rdStage'); stage.innerHTML = '';
+  const page = await redactDoc.getPage(redactPage + 1);
+  const base = page.getViewport({scale:1});
+  const targetW = Math.min(stage.clientWidth || 600, 680);
+  const vp = page.getViewport({scale: targetW / base.width});
+  const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height); c.className = 'signPageCanvas';
+  await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+  const holder = document.createElement('div'); holder.className = 'signHolder';
+  holder.style.cssText = `position:relative; width:${c.width}px; height:${c.height}px; max-width:100%`;
+  const layer = document.createElement('div'); layer.className = 'signLayer'; layer.id = 'rdLayer';
+  layer.style.cssText = 'position:absolute; inset:0';
+  holder.appendChild(c); holder.appendChild(layer); stage.appendChild(holder);
+  redactItems.filter(it=> it.page === redactPage).forEach(it=> addRedactEl(it, layer));
+  const nav = $('rdNav');
+  nav.innerHTML = redactDoc.numPages > 1
+    ? `<button type="button" class="btnMini" id="rdPrev">◀ Prev</button><span>Page ${redactPage + 1} / ${redactDoc.numPages}</span><button type="button" class="btnMini" id="rdNext">Next ▶</button>`
+    : '';
+  if(redactDoc.numPages > 1){
+    $('rdPrev').onclick = ()=>{ if(redactPage > 0){ redactPage--; renderRedactPage(); } };
+    $('rdNext').onclick = ()=>{ if(redactPage < redactDoc.numPages - 1){ redactPage++; renderRedactPage(); } };
+  }
+}
+function addRedactBox(){
+  if(!redactDoc) return;
+  const it = { page: redactPage, rx: 0.3, ry: 0.3, rw: 0.32, rh: 0.05 };
+  redactItems.push(it);
+  addRedactEl(it, $('rdLayer'));
+}
+function addRedactEl(it, layer){
+  if(!layer) return;
+  const W = layer.clientWidth, H = layer.clientHeight;
+  const el = document.createElement('div'); el.className = 'rdItem';
+  el.style.position = 'absolute';
+  el.style.left = (it.rx * W) + 'px'; el.style.top = (it.ry * H) + 'px';
+  el.style.width = (it.rw * W) + 'px'; el.style.height = ((it.rh || 0.05) * H) + 'px';
+  el.innerHTML = '<button type="button" class="sDel" title="Remove">✕</button><span class="sHandle"></span>';
+  layer.appendChild(el);
+  el.querySelector('.sDel').onclick = ()=>{ redactItems = redactItems.filter(x=> x !== it); el.remove(); };
+  el.addEventListener('pointerdown', e=>{
+    if(e.target.classList.contains('sHandle') || e.target.classList.contains('sDel')) return;
+    e.preventDefault();
+    const sx = e.clientX, sy = e.clientY, ol = parseFloat(el.style.left), ot = parseFloat(el.style.top), w = layer.clientWidth, h = layer.clientHeight;
+    const mv = ev=>{ let nl = Math.max(0, Math.min(w - el.offsetWidth, ol + ev.clientX - sx)), nt = Math.max(0, Math.min(h - el.offsetHeight, ot + ev.clientY - sy)); el.style.left = nl + 'px'; el.style.top = nt + 'px'; it.rx = nl / w; it.ry = nt / h; };
+    const up = ()=>{ window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+  });
+  el.querySelector('.sHandle').addEventListener('pointerdown', e=>{
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, sy = e.clientY, ow = el.offsetWidth, oh = el.offsetHeight, w = layer.clientWidth, h = layer.clientHeight;
+    const mv = ev=>{
+      let nw = Math.max(20, Math.min(w - parseFloat(el.style.left), ow + ev.clientX - sx)); el.style.width = nw + 'px'; it.rw = nw / w;
+      let nh = Math.max(10, Math.min(h - parseFloat(el.style.top), oh + ev.clientY - sy)); el.style.height = nh + 'px'; it.rh = nh / h;
+    };
+    const up = ()=>{ window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+  });
+}
+async function runRedact(files){
+  if(!redactItems.length) throw new Error('add at least one black box first — tap “⬛ Add a black box”');
+  if(!redactDoc) throw new Error('the page preview did not load — go back and try again');
+  if(!(await ensurePdfLib())) throw new Error('could not load the PDF engine');
+  const src = await PDFLib.PDFDocument.load(await files[0].file.arrayBuffer(), {ignoreEncryption:true});
+  const out = await PDFLib.PDFDocument.create();
+  const touched = new Set(redactItems.map(x=> x.page));
+  const n = src.getPageCount();
+  for(let i = 0; i < n; i++){
+    if(!touched.has(i)){
+      /* untouched pages are copied as-is — their text stays selectable */
+      (await out.copyPages(src, [i])).forEach(p=> out.addPage(p));
+      continue;
+    }
+    setProg(`Redacting page ${i + 1} of ${n}…`, (i + 1) / n * 85);
+    const page = await redactDoc.getPage(i + 1);
+    const base = page.getViewport({scale:1});
+    const vp = page.getViewport({scale:2});
+    const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+    const g = c.getContext('2d');
+    await page.render({canvasContext:g, viewport:vp}).promise;
+    g.fillStyle = '#000';
+    redactItems.filter(x=> x.page === i).forEach(x=>{
+      g.fillRect(x.rx * c.width, x.ry * c.height, x.rw * c.width, (x.rh || 0.05) * c.height);
+    });
+    const blob = await new Promise(r=> c.toBlob(r, 'image/jpeg', 0.92));
+    const img = await out.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+    const p = out.addPage([base.width, base.height]);
+    p.drawImage(img, { x: 0, y: 0, width: base.width, height: base.height });
+  }
+  setProg('Saving…', 92);
+  saveOut(new Blob([await out.save()], {type:'application/pdf'}), baseName(files[0].file) + ' (redacted).pdf');
+  return `Redacted ${touched.size} page${touched.size > 1 ? 's' : ''} — the covered content is permanently removed.`;
+}
+
+async function runCrop(files){
+  if(!cropDoc) throw new Error('the page preview did not load — go back and try again');
+  if(!(await ensurePdfLib())) throw new Error('could not load the PDF engine');
+  const scope = ($('oCropScope') && $('oCropScope').value) || 'all';
+  const cur = cropRects[cropPage];
+  if(!cur) throw new Error('drag a rectangle over the page first');
+  setProg('Cropping…', 40);
+  const src = await PDFLib.PDFDocument.load(await files[0].file.arrayBuffer(), {ignoreEncryption:true});
+  const pages = src.getPages();
+  let done = 0;
+  pages.forEach((p, i)=>{
+    if(scope !== 'all' && i !== cropPage) return;
+    const mb = p.getMediaBox();
+    const w = cur.rw * mb.width, h = cur.rh * mb.height;
+    const x = mb.x + cur.rx * mb.width;
+    const y = mb.y + mb.height - cur.ry * mb.height - h;
+    p.setCropBox(x, y, w, h);
+    done++;
+  });
+  setProg('Saving…', 90);
+  saveOut(new Blob([await src.save()], {type:'application/pdf'}), baseName(files[0].file) + ' (cropped).pdf');
+  return `Cropped ${done} of ${pages.length} page${pages.length > 1 ? 's' : ''}.`;
+}
+
+/* ============================================================
+   Fill PDF Forms — pdf-lib getForm(): every field becomes an input in
+   the main area; values are written back with setText/check/select and
+   the SAME loaded document is saved (optionally flattened).
+   ============================================================ */
+let formsDoc = null, formsList = [];   /* [{field, kind, el}] */
+
+async function renderFormsEditor(){
+  const main = $('tvMain');
+  main.innerHTML = '<div class="tvLoad"><div class="lxSpin"></div><p class="thumbHint">Reading the form…</p></div>';
+  formsDoc = null; formsList = [];
+  try{
+    if(!(await ensurePdfLib())) throw new Error('could not load the PDF engine');
+    formsDoc = await PDFLib.PDFDocument.load(await files[0].file.arrayBuffer(), {ignoreEncryption:true});
+    const form = formsDoc.getForm();
+    const fields = form.getFields();
+    if(!fields.length){
+      main.innerHTML = '<p class="thumbHint">This PDF has no fillable form fields. To add text anywhere on the page, use the <b>Edit PDF</b> tool instead.</p>';
+      return;
+    }
+    main.innerHTML = '';
+    const wrap = document.createElement('div'); wrap.className = 'fmWrap';
+    const head = document.createElement('p'); head.className = 'thumbHint';
+    head.textContent = fields.length + ' field' + (fields.length > 1 ? 's' : '') + ' found — fill what you need, leave the rest.';
+    wrap.appendChild(head);
+    fields.forEach(f=>{
+      const name = f.getName();
+      const row = document.createElement('div'); row.className = 'fmRow';
+      let el = null, kind = '';
+      if(f instanceof PDFLib.PDFTextField){
+        kind = 'text';
+        el = document.createElement(f.isMultiline && f.isMultiline() ? 'textarea' : 'input');
+        el.className = 'fmIn';
+        if(el.tagName === 'TEXTAREA') el.rows = 3;
+        try{ el.value = f.getText() || ''; }catch(e){}
+      }else if(f instanceof PDFLib.PDFCheckBox){
+        kind = 'check';
+        el = document.createElement('input'); el.type = 'checkbox';
+        try{ el.checked = f.isChecked(); }catch(e){}
+      }else if(f instanceof PDFLib.PDFRadioGroup || f instanceof PDFLib.PDFDropdown){
+        kind = 'select';
+        el = document.createElement('select'); el.className = 'fmIn'; el.dataset.native = '1';
+        const blank = document.createElement('option'); blank.value = ''; blank.textContent = '— leave as is —';
+        el.appendChild(blank);
+        let sel = '';
+        try{ const s = f.getSelected(); sel = Array.isArray(s) ? (s[0] || '') : (s || ''); }catch(e){}
+        (f.getOptions() || []).forEach(o=>{
+          const op = document.createElement('option'); op.value = o; op.textContent = o;
+          if(o === sel) op.selected = true;
+          el.appendChild(op);
+        });
+      }else if(f instanceof PDFLib.PDFOptionList){
+        kind = 'multi';
+        el = document.createElement('select'); el.className = 'fmIn'; el.multiple = true; el.size = Math.min(5, (f.getOptions() || []).length || 2); el.dataset.native = '1';
+        let sel = [];
+        try{ sel = f.getSelected() || []; }catch(e){}
+        (f.getOptions() || []).forEach(o=>{
+          const op = document.createElement('option'); op.value = o; op.textContent = o;
+          if(sel.indexOf(o) >= 0) op.selected = true;
+          el.appendChild(op);
+        });
+      }else{
+        return;   /* buttons / signatures — nothing to fill */
+      }
+      if(kind === 'check'){
+        const lab = document.createElement('label'); lab.className = 'fmChk';
+        lab.appendChild(el);
+        lab.appendChild(document.createTextNode(' ' + name));
+        row.appendChild(lab);
+      }else{
+        const lab = document.createElement('label'); lab.textContent = name;
+        row.appendChild(lab); row.appendChild(el);
+      }
+      wrap.appendChild(row);
+      formsList.push({ field: f, kind, el });
+    });
+    main.appendChild(wrap);
+    if(!formsList.length) main.innerHTML = '<p class="thumbHint">This form only has buttons or signatures — nothing to fill here.</p>';
+  }catch(e){ main.innerHTML = '<p class="thumbHint">Could not read this PDF (' + e.message + ').</p>'; }
+}
+async function runForms(){
+  if(!formsDoc || !formsList.length) throw new Error('no fillable fields — go back and pick a PDF form');
+  setProg('Writing your answers…', 40);
+  const form = formsDoc.getForm();
+  let filled = 0;
+  formsList.forEach(({field, kind, el})=>{
+    try{
+      if(kind === 'text'){ field.setText(el.value || ''); if(el.value) filled++; }
+      else if(kind === 'check'){ el.checked ? field.check() : field.uncheck(); filled++; }
+      else if(kind === 'select'){ if(el.value){ field.select(el.value); filled++; } }
+      else if(kind === 'multi'){
+        const vals = [...el.selectedOptions].map(o=> o.value).filter(Boolean);
+        if(vals.length){ field.select(vals); filled++; }
+      }
+    }catch(e){ console.warn('form field', field.getName(), e); }
+  });
+  let lockNote = '';
+  if($('oFlat') && $('oFlat').checked){
+    setProg('Locking the form…', 70);
+    try{ form.flatten(); lockNote = ' The form is locked — answers can no longer be changed.'; }
+    catch(e){ lockNote = ' (Locking was not possible for this form — saved fillable instead.)'; }
+  }
+  setProg('Saving…', 90);
+  saveOut(new Blob([await formsDoc.save()], {type:'application/pdf'}), baseName(files[0].file) + ' (filled).pdf');
+  return `Filled ${filled} field${filled === 1 ? '' : 's'}.` + lockNote;
+}
+
+/* ============================================================
+   Compare PDF — render both versions with pdf.js, pixel-diff each page
+   pair and paint the changes orange on file B. The run() saves a
+   side-by-side comparison report (jsPDF).
+   ============================================================ */
+let cmpDocA = null, cmpDocB = null, cmpPage = 0;
+
+async function cmpPageCanvas(doc, pageNo, width){
+  const page = await doc.getPage(pageNo);
+  const base = page.getViewport({scale:1});
+  const vp = page.getViewport({scale: width / base.width});
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+  await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+  return c;
+}
+/* paint differing pixels orange onto a copy of canvas B; returns {canvas, pct} */
+function cmpDiff(ca, cb){
+  const w = Math.min(ca.width, cb.width), h = Math.min(ca.height, cb.height);
+  const da = ca.getContext('2d').getImageData(0, 0, w, h).data;
+  const out = document.createElement('canvas'); out.width = cb.width; out.height = cb.height;
+  const g = out.getContext('2d'); g.drawImage(cb, 0, 0);
+  const id = g.getImageData(0, 0, w, h), db = id.data;
+  let diff = 0;
+  for(let i = 0; i < w * h; i++){
+    const j = i * 4;
+    if(Math.abs(da[j] - db[j]) + Math.abs(da[j+1] - db[j+1]) + Math.abs(da[j+2] - db[j+2]) > 60){
+      diff++;
+      db[j] = 224; db[j+1] = 90; db[j+2] = 40; db[j+3] = 255;
+    }
+  }
+  g.putImageData(id, 0, 0);
+  return { canvas: out, pct: diff / (w * h) * 100 };
+}
+async function renderCompareEditor(){
+  const main = $('tvMain');
+  if(files.length < 2){
+    main.innerHTML = '<p class="thumbHint">That’s version A — now tap <b>＋ Add more</b> (or drop the file) to add version B.</p>';
+    return;
+  }
+  main.innerHTML = '<div class="tvLoad"><div class="lxSpin"></div><p class="thumbHint">Opening both versions…</p></div>';
+  cmpPage = 0;
+  try{
+    cmpDocA = await openPdfjs(files[0].file);
+    cmpDocB = await openPdfjs(files[1].file);
+    main.innerHTML = '<div class="signNav" id="cmpNav"></div><div class="cmpRow" id="cmpRow"></div><p class="thumbHint" id="cmpNote"></p>';
+    await renderComparePage();
+  }catch(e){ main.innerHTML = '<p class="thumbHint">Could not open these PDFs (' + e.message + ').</p>'; }
+}
+async function renderComparePage(){
+  const row = $('cmpRow'); row.innerHTML = '';
+  const n = Math.max(cmpDocA.numPages, cmpDocB.numPages);
+  const w = Math.min(((row.clientWidth || 680) - 20) / 2, 340);
+  const fig = (cap)=>{ const f = document.createElement('figure'); f.className = 'cmpFig'; const c2 = document.createElement('figcaption'); c2.textContent = cap; f.appendChild(c2); return f; };
+  const fa = fig('A · ' + files[0].name), fb = fig('B · ' + files[1].name + ' — changes in orange');
+  let note = '';
+  const hasA = cmpPage < cmpDocA.numPages, hasB = cmpPage < cmpDocB.numPages;
+  let ca = null, cb = null;
+  if(hasA){ ca = await cmpPageCanvas(cmpDocA, cmpPage + 1, w); fa.appendChild(ca); }
+  else fa.insertAdjacentHTML('beforeend', '<div class="cmpMiss">no page ' + (cmpPage + 1) + '</div>');
+  if(hasB){ cb = await cmpPageCanvas(cmpDocB, cmpPage + 1, w); }
+  if(hasA && hasB){
+    const d = cmpDiff(ca, cb);
+    fb.appendChild(d.canvas);
+    note = d.pct < 0.02 ? 'This page looks identical in both versions.'
+      : 'About ' + (d.pct < 0.1 ? d.pct.toFixed(2) : d.pct.toFixed(1)) + '% of this page changed — highlighted in orange on B.';
+  }else if(hasB){
+    fb.appendChild(cb);
+    note = 'This page only exists in file B.';
+  }else{
+    fb.insertAdjacentHTML('beforeend', '<div class="cmpMiss">no page ' + (cmpPage + 1) + '</div>');
+    note = 'This page only exists in file A.';
+  }
+  row.appendChild(fa); row.appendChild(fb);
+  $('cmpNote').textContent = note;
+  const nav = $('cmpNav');
+  nav.innerHTML = n > 1
+    ? `<button type="button" class="btnMini" id="cmpPrev">◀ Prev</button><span>Page ${cmpPage + 1} / ${n}</span><button type="button" class="btnMini" id="cmpNext">Next ▶</button>`
+    : '';
+  if(n > 1){
+    $('cmpPrev').onclick = ()=>{ if(cmpPage > 0){ cmpPage--; renderComparePage(); } };
+    $('cmpNext').onclick = ()=>{ if(cmpPage < n - 1){ cmpPage++; renderComparePage(); } };
+  }
+}
+async function runCompare(files){
+  if(!cmpDocA || !cmpDocB) throw new Error('add both versions first');
+  if(!(await ensureJsPDF())) throw new Error('could not load the PDF maker');
+  const { jsPDF } = window.jspdf;
+  const total = Math.max(cmpDocA.numPages, cmpDocB.numPages);
+  const n = Math.min(total, 60);
+  const W = 900;
+  let out = null, changed = 0;
+  for(let i = 0; i < n; i++){
+    setProg(`Comparing page ${i + 1} of ${n}…`, (i + 1) / n * 90);
+    const hasA = i < cmpDocA.numPages, hasB = i < cmpDocB.numPages;
+    const ca = hasA ? await cmpPageCanvas(cmpDocA, i + 1, W) : null;
+    const cbRaw = hasB ? await cmpPageCanvas(cmpDocB, i + 1, W) : null;
+    let cb = cbRaw, head;
+    if(hasA && hasB){
+      const d = cmpDiff(ca, cbRaw);
+      cb = d.canvas;
+      const same = d.pct < 0.02;
+      if(!same) changed++;
+      head = `Page ${i + 1} — ` + (same ? 'identical' : 'about ' + (d.pct < 0.1 ? d.pct.toFixed(2) : d.pct.toFixed(1)) + '% changed (orange, on B)');
+    }else{
+      changed++;
+      head = `Page ${i + 1} — only in file ${hasA ? 'A' : 'B'}`;
+    }
+    const ph = Math.max(ca ? ca.height : 0, cb ? cb.height : 0);
+    const S = 0.5;                                 /* px -> pt */
+    const pw = (W * 2 + 60) * S, phPt = (ph + 90) * S;
+    if(!out) out = new jsPDF({unit:'pt', format:[pw, phPt], orientation: pw > phPt ? 'l' : 'p', compress:true});
+    else out.addPage([pw, phPt], pw > phPt ? 'l' : 'p');
+    out.setFont('helvetica', 'bold'); out.setFontSize(13);
+    out.text(head.replace(/[^\x20-\x7E]/g, '-'), 20 * S, 34 * S);
+    out.setFont('helvetica', 'normal'); out.setFontSize(9);
+    out.text('A: ' + files[0].name.replace(/[^\x20-\x7E]/g, '') + '   |   B: ' + files[1].name.replace(/[^\x20-\x7E]/g, ''), 20 * S, 62 * S);
+    if(ca) out.addImage(ca.toDataURL('image/jpeg', 0.82), 'JPEG', 20 * S, 90 * S, W * S, ca.height * S);
+    if(cb) out.addImage(cb.toDataURL('image/jpeg', 0.82), 'JPEG', (W + 40) * S, 90 * S, W * S, cb.height * S);
+  }
+  setProg('Saving the report…', 95);
+  saveOut(out.output('blob'), 'comparison report.pdf');
+  const capNote = total > n ? ` (first ${n} of ${total} pages)` : '';
+  return changed ? `${changed} of ${n} page${n > 1 ? 's' : ''} differ${changed === 1 ? 's' : ''}${capNote} — report saved.`
+                 : `No differences found on ${n} page${n > 1 ? 's' : ''}${capNote}.`;
+}
+
+/* ============================================================
+   Edit Word — mammoth (docx → html) into a contenteditable "page";
+   on save the edited HTML is rebuilt into a .docx via buildDocxRich
+   (headings / bold / list bullets kept — the honest client-side MVP).
+   ============================================================ */
+async function renderEditWordEditor(){
+  const main = $('tvMain');
+  main.innerHTML = '<div class="tvLoad"><div class="lxSpin"></div><p class="thumbHint">Opening your document…</p></div>';
+  try{
+    const html = (await mammoth.convertToHtml({arrayBuffer: await files[0].file.arrayBuffer()})).value;
+    main.innerHTML = '<div class="ewPage" id="ewPage" contenteditable="true" spellcheck="true"></div>';
+    $('ewPage').innerHTML = html || '<p></p>';
+  }catch(e){ main.innerHTML = '<p class="thumbHint">Could not open this document (' + e.message + ').</p>'; }
+}
+/* collect {t,b} runs from an element, following <b>/<strong> nesting */
+function ewRuns(el){
+  const runs = [];
+  const walk = (node, b)=>{
+    if(node.nodeType === 3){
+      const t = node.nodeValue.replace(/\s+/g, ' ');
+      if(t) runs.push({ t, b });
+      return;
+    }
+    if(node.nodeType !== 1) return;
+    const tag = node.tagName.toLowerCase();
+    if(tag === 'br'){ runs.push({ t: ' ', b }); return; }
+    walk2(node, b || tag === 'b' || tag === 'strong');
+  };
+  const walk2 = (node, b)=> node.childNodes.forEach(ch=> walk(ch, b));
+  walk2(el, false);
+  return runs;
+}
+async function runEditWord(files){
+  const pg = document.getElementById('ewPage');
+  if(!pg) throw new Error('the editor did not load — go back and try again');
+  setProg('Building the Word file…', 50);
+  const paras = [];
+  const push = (kind, el, boldAll, prefix)=>{
+    const sz = kind === 'h1' ? 19 : kind === 'h2' ? 15.5 : kind === 'h3' ? 13 : 11;
+    let runs = ewRuns(el).map(r=> ({ t: r.t, b: r.b || !!boldAll, sz }));
+    if(prefix) runs.unshift({ t: prefix, b: false, sz });
+    if(runs.map(r=> r.t).join('').trim()) paras.push({ kind, runs });
+  };
+  pg.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li').forEach(el=>{
+    if(el.querySelector('p,li')) return;
+    const tag = el.tagName.toLowerCase();
+    if(tag === 'h1') push('h1', el, true);
+    else if(tag === 'h2') push('h2', el, true);
+    else if(tag[0] === 'h') push('h3', el, true);
+    else if(tag === 'li') push('p', el, false, '•  ');
+    else push('p', el, false);
+  });
+  if(!paras.length){
+    const t = (pg.textContent || '').trim();
+    if(!t) throw new Error('the document is empty — type something first');
+    t.split(/\n+/).forEach(line=>{ if(line.trim()) paras.push({ kind:'p', runs:[{ t: line.trim(), b:false, sz:11 }] }); });
+  }
+  setProg('Saving…', 88);
+  saveOut(buildDocxRich([{ paras, images: [] }]), baseName(files[0].file) + ' (edited).docx');
+  return `Word file saved — ${paras.length} paragraph${paras.length > 1 ? 's' : ''}.`;
+}
+
+/* ============================================================
    ★ Premium engine (Phase 4) — quote → consent → convert through the
    Lexora conversion gateway. Anonymous users get the free daily pages
    (big files convert partially); logged-in users pay from the ₹ wallet
@@ -1081,10 +1645,24 @@ function consentModal(t, q, est){
 
 /* the full premium run — returns the done-message, or null if cancelled */
 async function runPremium(t){
-  const f = files[0].file;
-  setProg('Counting pages…', 8);
-  const isPdf = /\.pdf$/i.test(f.name);
-  const pages = await premPageCount(f);
+  let f, pages, est = false, jobOpts = null;
+  if(t.urlTool){
+    /* URL tools: the "file" is a tiny text stub; the real target travels in opts.url */
+    const u = ((document.getElementById('oUrl') || {}).value || '').trim();
+    if(!/^https?:\/\/./i.test(u)) throw new Error('type the full webpage address, starting with https://');
+    f = new File([u], 'webpage.txt', { type: 'text/plain' });
+    pages = 1;
+    jobOpts = { url: u };
+  }else{
+    f = files[0].file;
+    setProg('Counting pages…', 8);
+    pages = await premPageCount(f);
+    est = !/\.pdf$/i.test(f.name);
+  }
+  if(t.ptool === 'translate'){
+    const sel = document.getElementById('oTrLang');
+    jobOpts = { lang: (sel && sel.value) || 'en' };
+  }
   const token = await lxToken();
   const auth = token ? { authorization: 'Bearer ' + token } : {};
   setProg('Checking today’s free pages…', 16);
@@ -1099,7 +1677,7 @@ async function runPremium(t){
   }catch(e){ throw new Error('could not reach the premium service — check your connection and try again'); }
   if(!q || !q.ok) throw new Error((q && q.error) || 'could not get a price for this job');
 
-  const act = await consentModal(t, q, !isPdf);
+  const act = await consentModal(t, q, est);
   if(act === 'cancel') return null;
   if(act === 'login'){ location.href = 'login.html'; return null; }
   if(act === 'topup'){ window.open('index.html#plans', '_blank'); lxToast('Top up your wallet, then run the tool again.'); return null; }
@@ -1111,6 +1689,7 @@ async function runPremium(t){
   fd.append('tool', t.ptool);
   fd.append('pages', String(pages));
   fd.append('consent', '1');
+  if(jobOpts) fd.append('opts', JSON.stringify(jobOpts));
   let r;
   try{ r = await fetch(LX.CONVERT_URL + '/convert', { method: 'POST', headers: auth, body: fd }); }
   catch(e){ throw new Error('the upload failed — check your connection (you were not charged)'); }
@@ -1153,15 +1732,26 @@ function openTool(id){
   $('tvSideOpts').innerHTML =
     (hasToggle ? premToggleHtml() : '') +
     (t.premium && !t.run ? '<div class="pxOnly">★ Premium tool — runs on our secure server, only with your consent.</div>' : '') +
-    `<div id="freeOpts">${t.opts ? t.opts() : ''}</div><div id="premOpts" style="display:none">${premOptsHtml()}</div>`;
+    `<div id="freeOpts">${t.opts ? t.opts() : ''}</div><div id="premOpts" style="display:none">${(t.premOpts ? t.premOpts() : '') + premOptsHtml()}</div>`;
   if(t.init) t.init();                 /* wire interactive options (e.g. the signature pad) */
   if(hasToggle) wirePremToggle();
   $('goBtn').textContent = t.action + ' →';
   applyPremUi();
   $('fileIn').accept = t.accept || '';
   $('fileIn').multiple = !!t.multiple;
-  $('tvDrop').style.display = 'block';
-  $('tvWork').style.display = 'none';
+  if(t.urlTool){
+    /* URL tools (HTML→PDF): no file — type an address instead of dropping a file */
+    $('tvDrop').style.display = 'none';
+    $('tvWork').style.display = 'grid';
+    $('sideFiles').textContent = 'webpage address';
+    $('addMore').style.display = 'none';
+    $('tvMain').innerHTML = `<div class="fmWrap"><div class="fmRow"><label>Webpage address (URL)</label>
+      <input type="url" id="oUrl" class="fmIn" placeholder="https://example.com/page" autocomplete="off" spellcheck="false"></div>
+      <p class="thumbHint">The page is opened on our secure server in a real browser engine and printed to PDF exactly as it looks.</p></div>`;
+  }else{
+    $('tvDrop').style.display = 'block';
+    $('tvWork').style.display = 'none';
+  }
   show('tvTool');
 }
 function backHome(){ T = null; history.replaceState(null, '', '#'); show('tvHome'); }
@@ -1226,6 +1816,11 @@ async function renderPreview(){
   $('addMore').style.display = T.multiple ? 'inline-block' : 'none';
   if(T.preview === 'sign'){ await renderSignEditor(); return; }
   if(T.preview === 'edit'){ await renderEditEditor(); return; }
+  if(T.preview === 'crop'){ await renderCropEditor(); return; }
+  if(T.preview === 'redact'){ await renderRedactEditor(); return; }
+  if(T.preview === 'forms'){ await renderFormsEditor(); return; }
+  if(T.preview === 'compare'){ await renderCompareEditor(); return; }
+  if(T.preview === 'editword'){ await renderEditWordEditor(); return; }
   if(T.preview === 'files' || !T.preview){
     main.innerHTML = '';
     for(let i=0;i<files.length;i++){
@@ -1326,7 +1921,8 @@ function saveOut(blob, name){
   downloadBlob(blob, name);
 }
 $('goBtn').addEventListener('click', async ()=>{
-  if(!T || !files.length) return;
+  if(!T) return;
+  if(!files.length && !T.urlTool) return;
   if(T.min && files.length < T.min){ alert('Pick at least ' + T.min + ' files.'); return; }
   /* option inputs stay live (hidden) in #tvSideOpts, so $(id) reads the user's values */
   show('tvProg');
@@ -1416,5 +2012,38 @@ else show('tvHome');
     + '.pxBtns{display:flex; flex-direction:column; gap:8px; margin-top:14px}'
     + '.pxBtns .goBig{margin:0}'
     + '.pxBtns .btn{width:100%}';
+  var s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+})();
+
+/* Crop + Redact styles — injected from JS (same pages.css-caching reason as Sign/Edit). */
+(function injectCropCss(){
+  var css = '.cropRect{position:absolute; border:2px solid var(--accent); background:rgba(224,122,63,.08); box-shadow:0 0 0 9999px rgba(0,0,0,.35); cursor:move; touch-action:none}'
+    + '.cropRect .sHandle{position:absolute; right:-8px; bottom:-8px; width:16px; height:16px; background:var(--accent); border:2px solid #fff; border-radius:50%; cursor:nwse-resize}'
+    + '.rdItem{position:absolute; background:#000; border:1px solid #444; cursor:move; touch-action:none}'
+    + '.rdItem .sHandle{position:absolute; right:-8px; bottom:-8px; width:15px; height:15px; background:var(--accent); border:2px solid #fff; border-radius:50%; cursor:nwse-resize}'
+    + '.rdItem .sDel{position:absolute; top:-11px; right:-11px; width:21px; height:21px; background:var(--warn); color:#fff; border:none; border-radius:50%; font-size:11px; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center; z-index:2}'
+    + '.fmWrap{max-width:560px; margin:0 auto; text-align:left}'
+    + '.fmRow{margin:0 0 14px}'
+    + '.fmRow>label{display:block; font-size:12px; color:var(--muted); margin:0 0 5px; font-weight:600; word-break:break-word}'
+    + '.fmIn{width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:10px 11px; font-size:14px; font-family:inherit; outline:none; box-sizing:border-box}'
+    + '.fmIn:focus{border-color:var(--accent)}'
+    + 'textarea.fmIn{resize:vertical; min-height:64px}'
+    + '.fmChk{display:flex; align-items:center; gap:9px; font-size:14px; color:var(--text); cursor:pointer; word-break:break-word}'
+    + '.fmChk input{width:17px; height:17px; accent-color:var(--accent); flex:none}'
+    + '.cmpRow{display:flex; gap:14px; justify-content:center; flex-wrap:wrap}'
+    + '.cmpFig{margin:0; max-width:100%}'
+    + '.cmpFig figcaption{font-size:12px; color:var(--muted); margin:0 0 6px; text-align:center; max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}'
+    + '.cmpFig canvas{display:block; max-width:100%; height:auto; box-shadow:var(--shadow); border-radius:4px}'
+    + '.cmpMiss{width:280px; height:200px; border:1px dashed var(--line); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12.5px}'
+    + '.ewPage{background:#fff; color:#111; max-width:680px; margin:0 auto; padding:46px 52px; border-radius:4px; box-shadow:var(--shadow); text-align:left; min-height:420px; outline:none; font-family:Calibri,Arial,sans-serif; font-size:15px; line-height:1.55; cursor:text}'
+    + '.ewPage:focus{box-shadow:0 0 0 2px var(--accent), var(--shadow)}'
+    + '.ewPage h1{font-size:26px; margin:0 0 12px}'
+    + '.ewPage h2{font-size:20px; margin:18px 0 10px}'
+    + '.ewPage h3,.ewPage h4,.ewPage h5,.ewPage h6{font-size:17px; margin:16px 0 8px}'
+    + '.ewPage p{margin:0 0 10px}'
+    + '.ewPage ul,.ewPage ol{margin:0 0 10px; padding-left:26px}'
+    + '.ewPage img{max-width:100%}'
+    + '.ewPage table{border-collapse:collapse} .ewPage td,.ewPage th{border:1px solid #999; padding:4px 8px}'
+    + '@media (max-width:700px){.ewPage{padding:24px 18px}}';
   var s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
 })();

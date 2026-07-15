@@ -36,6 +36,19 @@ function buildContext(question){
   return parts.join('\n\n').slice(0, 8500);
 }
 
+/* Retrieval-backed context (rag.js — Private AI / Smart AI / Deep Research).
+   Sends the LLM only the question + the best matching passages. Falls back to
+   the classic buildContext() whenever the engine isn't ready or errors. */
+async function smartContext(question){
+  try{
+    if(window.LxRag){
+      const ctx = await LxRag.getContext(question);
+      if(ctx) return ctx;
+    }
+  }catch(e){ console.warn('retrieval fell back to classic context:', e); }
+  return buildContext(question);
+}
+
 /* Fresh access token; forceRefresh asks Supabase for a new one (stale-token fix, e.g. Brave) */
 async function authToken(forceRefresh){
   if(!sb) return null;
@@ -235,7 +248,7 @@ async function sendChat(){
     if(playing) togglePlay();
     sayProgress('Thinking…');
     try{
-      const ans = await askAI(t, buildContext(t));
+      const ans = await askAI(t, await smartContext(t));
       removeProgress();
       say(ans);
       speakText(ans, ()=>{ if(wasPlaying){ playing=true; setPlayBtn(); speakLine(current+1); } });

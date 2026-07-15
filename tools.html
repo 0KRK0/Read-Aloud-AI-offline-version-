@@ -3,14 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Every tool you need to work with PDFs — Lexora AI</title>
-<script src="lib/pdf.min.js"></script>
-<script src="lib/pdf.worker.min.js"></script>
-<script src="lib/ocr/tesseract.min.js"></script>
-<script src="lib/mammoth.browser.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Free PDF Tools Online — Merge, Split, Compress, Convert, Sign | Lexora AI</title>
+<meta name="description" content="40+ free PDF, Word and image tools that run entirely in your browser: merge, split, compress, convert to Word or Excel, OCR, sign, edit, redact, crop, translate and more. No upload — your files never leave your device.">
+<link rel="canonical" href="https://lexoraai.online/tools">
+<meta name="theme-color" content="#111110">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lexora AI">
+<meta property="og:title" content="Free PDF Tools Online — private, in your browser | Lexora AI">
+<meta property="og:description" content="Merge, split, compress, convert, OCR, sign, edit, redact, translate — 40+ tools, free, and your files never leave your device.">
+<meta property="og:url" content="https://lexoraai.online/tools">
+<meta property="og:image" content="https://lexoraai.online/icons/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Free PDF Tools Online — private, in your browser | Lexora AI">
+<meta name="twitter:description" content="40+ free document tools. No upload — everything runs on your device.">
+<meta name="twitter:image" content="https://lexoraai.online/icons/og-card.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://lgwqqytjqoenozhjhbkr.supabase.co" crossorigin>
+<script defer src="lib/pdf.min.js"></script>
+<script defer src="lib/pdf.worker.min.js"></script>
+<script defer src="lib/ocr/tesseract.min.js"></script>
+<script defer src="lib/mammoth.browser.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="styles/theme.css">
 <link rel="stylesheet" href="styles/pages.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"BreadcrumbList","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"Home","item":"https://lexoraai.online/"},
+  {"@type":"ListItem","position":2,"name":"Tools","item":"https://lexoraai.online/tools"}]},
+ {"@type":"ItemList","name":"Lexora AI document tools","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"Merge PDF","url":"https://lexoraai.online/tools#merge"},
+  {"@type":"ListItem","position":2,"name":"Split PDF","url":"https://lexoraai.online/tools#split"},
+  {"@type":"ListItem","position":3,"name":"Compress PDF","url":"https://lexoraai.online/tools#compress"},
+  {"@type":"ListItem","position":4,"name":"PDF to Word","url":"https://lexoraai.online/tools#pdf2word"},
+  {"@type":"ListItem","position":5,"name":"PDF to Excel","url":"https://lexoraai.online/tools#pdf2excel"},
+  {"@type":"ListItem","position":6,"name":"OCR PDF","url":"https://lexoraai.online/tools#ocr"},
+  {"@type":"ListItem","position":7,"name":"Sign PDF","url":"https://lexoraai.online/tools#sign"},
+  {"@type":"ListItem","position":8,"name":"Edit PDF","url":"https://lexoraai.online/tools#edit"},
+  {"@type":"ListItem","position":9,"name":"Redact PDF","url":"https://lexoraai.online/tools#redact"},
+  {"@type":"ListItem","position":10,"name":"Translate PDF","url":"https://lexoraai.online/tools#translate"}]}
+]}
+</script>
 </head>
 <body>
 <script>if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');</script>
@@ -24,6 +60,10 @@
     <a href="index.html#plans">Plans &amp; wallet</a>
     <a href="settings.html">Settings</a>
     <div class="navSep"></div>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+    <a href="security.html">Security</a>
+    <a href="contact.html">Contact</a>
     <a href="privacy.html" target="_blank">Privacy</a>
     <a href="terms.html" target="_blank">Terms</a>
   </nav>
@@ -125,10 +165,11 @@
 </div>
 
 <script>let pdfjsLib = window['pdfjs-dist/build/pdf'];</script>
-<script src="scripts/shared.js"></script>
-<script src="scripts/app-tools.js"></script>
-<script src="scripts/tools-page.js"></script>
-<script src="scripts/select-style.js"></script>
+<script defer src="scripts/analytics.js"></script>
+<script defer src="scripts/shared.js"></script>
+<script defer src="scripts/app-tools.js"></script>
+<script defer src="scripts/tools-page.js"></script>
+<script defer src="scripts/select-style.js"></script>
 <script>
   document.getElementById('acctTheme').addEventListener('click', flipT);
   document.getElementById('topTheme').addEventListener('click', flipT);

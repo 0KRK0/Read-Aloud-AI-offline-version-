@@ -10,26 +10,44 @@ The gateway handles login, consent, the free 50-page/day cap, and ₹ wallet cha
 this server just converts.
 
 ## Contract
-- `POST /convert` — `multipart/form-data`: `file`, `tool`, `maxPages`.
+- `POST /convert` — `multipart/form-data`: `file`, `tool`, `maxPages`, and optional
+  `opts` (JSON string with tool extras — `{"url":"https://…"}` for `html2pdf`,
+  `{"lang":"hi"}` for `translate`).
   Header `Authorization: Bearer <CONVERT_SERVER_KEY>` (must equal the gateway's env).
   Returns the converted bytes + `Content-Type` (+ `X-Filename`), or a non-2xx error
   (the gateway then refunds the wallet).
 - `GET /` — health check; returns the supported tool ids.
 
-## Supported tools (starter set)
-`word2pdf_hd`, `ppt2pdf`, `excel2pdf`, `html2pdf` (LibreOffice → PDF, high fidelity),
-`pdf2word_hd` (LibreOffice → DOCX — best-effort; swap for a commercial SDK later for
-true HD), `compress_hd` / `compress_max` / `compress_web` / `compress_light`
-(Ghostscript). `maxPages` trims a PDF to its first N pages (qpdf) before converting —
-this is how the anonymous "first 50 pages free" partial conversion works.
+## Supported tools
+- LibreOffice: `word2pdf_hd`, `ppt2pdf`, `excel2pdf`
+- Chromium (real browser render): `html2pdf` — prints `opts.url` (or an uploaded
+  .html file) to PDF exactly as a browser shows it
+- pdf2docx (layout parsing): `pdf2word_hd`
+- ocrmypdf/Tesseract: `ocr_hd`
+- Ghostscript: `pdfa`, `compress_hd` / `compress_max` / `compress_web` / `compress_light`
+- camelot (`pdf2excel.py`): `pdf2excel` — best on ruled/visible tables; lattice pass
+  first, stream fallback; each table → its own .xlsx sheet
+- Our translation service (`../translate-server/` — Meta NLLB-200, MarianMT fallback,
+  see Env): `translate` — pdftotext → chunked translate (source auto-detected) →
+  clean PDF (layout-preserving comes later)
+
+`maxPages` trims a PDF to its first N pages (qpdf) before converting — this is how the
+anonymous "first 50 pages free" partial conversion works.
 
 Add more by extending the `HANDLERS` map in `server.js` (keep the ids matching the
-KIT `ptool` ids the gateway sends).
+KIT `ptool` ids the gateway sends). ALL engines are our own / open-source — never a
+paid conversion API (KRK's firm rule).
 
 ## Env
 - `CONVERT_SERVER_KEY` — **required**, the shared secret. Set the SAME value here and on
   the gateway worker.
 - `PORT` — the host sets this automatically.
+- `CHROME_BIN` — Chromium binary (the Dockerfile sets `chromium`).
+- `TRANSLATE_SERVER_URL` — required only for `translate`: the base URL of OUR
+  translation service (`online/translate-server/` — Meta NLLB-200 default, MarianMT
+  auto-fallback on small hosts; deploy it as a second Docker service on Railway, see
+  its README). No key needed — it's private. Until this is set, `translate` returns a
+  clear "translation engine not connected" error.
 
 ## Deploy (pick one)
 

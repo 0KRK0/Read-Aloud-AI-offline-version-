@@ -1,0 +1,21 @@
+# Cloudflare Pages headers — security + caching (Lexora AI)
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+# bundled third-party libs are versioned-in-place and safe to cache hard
+/lib/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/icons/*
+  Cache-Control: public, max-age=604800
+
+/favicon.svg
+  Cache-Control: public, max-age=604800
+
+# NOTE: styles/ and scripts/ intentionally keep default (short) caching —
+# they change every release and pages.css caching has bitten us before.

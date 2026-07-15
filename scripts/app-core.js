@@ -81,14 +81,29 @@ async function initAuth(){
     return;
   }
   const {data:{session:s}} = await sb.auth.getSession();
-  if(s) enterApp(s);
+  const land = $('landing');
+  const hideLanding = ()=>{ if(land) land.hidden = true; };
+  if(s){
+    hideLanding();
+    try{ localStorage.setItem('ra_returning', '1'); }catch(e){}
+    enterApp(s);
+  }
   else if(!guest && !/^(tools|scan)\./i.test(location.hostname) && !/access_token|refresh_token|error|type=/.test(location.hash)){
-    /* not logged in, not a guest, no auth tokens, and not on the tools/scan
-       subdomains (those go straight to their tool page — no login needed) → login page */
-    location.replace('login.html');
+    /* not logged in, not a guest, no auth tokens, not on the tools/scan subdomains →
+       show the PUBLIC LANDING (SEO + conversion) instead of bouncing to login.html.
+       Login is only asked for when the visitor actually needs an account. */
+    if(land) land.hidden = false;
+    else location.replace('login.html');           /* safety net for stale HTML */
     return;
   }
-  sb.auth.onAuthStateChange((ev, s2)=>{ if(s2 && !session) enterApp(s2); });
+  else hideLanding();                              /* guest / auth-token flows go into the app */
+  sb.auth.onAuthStateChange((ev, s2)=>{
+    if(s2 && !session){
+      hideLanding();
+      try{ localStorage.setItem('ra_returning', '1'); }catch(e){}
+      enterApp(s2);
+    }
+  });
 }
 /* after sending: lock the email, turn the button into a resend countdown */
 let resendInt = null, resendLeft = 0;

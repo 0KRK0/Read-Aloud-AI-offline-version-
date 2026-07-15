@@ -1,0 +1,18 @@
+# Lexora AI — lexoraai.online
+User-agent: *
+Allow: /
+Disallow: /settings
+
+# AI search & assistant crawlers are welcome (content is public and privacy-safe)
+User-agent: GPTBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://lexoraai.online/sitemap.xml

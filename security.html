@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Security at Lexora AI — on-device processing, consent-first servers</title>
+<meta name="description" content="How Lexora AI protects your documents: free tools run 100% on your device, server jobs need explicit consent and are deleted after processing, payments via PCI-compliant Razorpay.">
+<link rel="canonical" href="https://lexoraai.online/security">
+<meta name="theme-color" content="#111110">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lexora AI">
+<meta property="og:title" content="Security at Lexora AI">
+<meta property="og:description" content="On-device by default. Consent-first servers. Nothing stored.">
+<meta property="og:url" content="https://lexoraai.online/security">
+<meta property="og:image" content="https://lexoraai.online/icons/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles/theme.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body>
+<script>if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');</script>
+
+<aside id="sideNav">
+  <div class="brand"><span class="mark">L</span>Lexora <span>AI</span></div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="tools.html">Tools</a>
+    <a href="scan.html">Scan</a>
+    <a href="index.html#plans">Plans &amp; wallet</a>
+    <a href="settings.html">Settings</a>
+    <div class="navSep"></div>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+    <a href="security.html" class="active">Security</a>
+    <a href="contact.html">Contact</a>
+    <a href="privacy.html" target="_blank">Privacy</a>
+  </nav>
+  <div class="account">
+    <button id="acctTheme">Switch theme</button>
+    <button onclick="location.href='index.html'">Back to the reader</button>
+  </div>
+</aside>
+
+<div id="navVeil"></div>
+<div class="pageTop">
+  <button class="hambBtn" id="hambBtn" title="Menu" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+  <b>Security · Lexora <span>AI</span></b>
+  <span class="spacer"></span>
+</div>
+
+<main><div class="wrap" style="max-width:760px">
+  <h1 class="pageTitle">Security, in plain <span>language</span></h1>
+  <p class="pageSub">The most secure upload is the one that never happens.</p>
+
+  <section class="card" style="margin-top:18px">
+    <h2>On-device by default</h2>
+    <p>All free tools — merge, split, compress, convert, OCR, sign, edit, redact, crop, forms, compare — run entirely in your browser using local processing engines. Your files are <b>never uploaded</b>, so there is nothing on a server to breach, leak or subpoena. The AI companion also reads and understands your document on your device, sending only your question and the few passages needed to answer it.</p>
+    <h2>Consent-first servers</h2>
+    <p>A few premium features (HD conversions, whole-document Deep Research) run on our servers because browsers physically can't do them. Every one of them shows a consent screen <em>before</em> anything is uploaded, states the exact price, processes over HTTPS, and deletes the file right after the job. Deep Research indexes are deleted when you close the document and expire automatically within 24 hours.</p>
+    <h2>Accounts &amp; payments</h2>
+    <p>Login is handled by Supabase (Google, Apple or one-time email codes — we never see a password). Payments are processed by Razorpay, a PCI-DSS compliant provider; card details never touch our systems. Balances and usage are stored per-account with row-level security.</p>
+    <h2>Transport &amp; headers</h2>
+    <p>Everything is served over HTTPS with HSTS, strict referrer policy and content-type protections, via Cloudflare's global network.</p>
+    <h2>Report a concern</h2>
+    <p>Found a vulnerability or something that worries you? Please <a href="contact.html">contact us</a> — security reports are read first and answered fast.</p>
+  </section>
+</div></main>
+
+<script>
+  document.getElementById('acctTheme').addEventListener('click', function(){
+    const light = !document.body.classList.contains('light');
+    document.body.classList.toggle('light', light);
+    localStorage.setItem('ra_theme', light ? 'light' : 'dark');
+  });
+  document.getElementById('hambBtn').addEventListener('click', ()=> document.body.classList.toggle('navOpen'));
+  document.getElementById('navVeil').addEventListener('click', ()=> document.body.classList.remove('navOpen'));
+</script>
+<script defer src="scripts/analytics.js"></script>
+</body>
+</html>

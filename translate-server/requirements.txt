@@ -1,0 +1,7 @@
+flask
+waitress
+requests
+langdetect
+sentencepiece
+sacremoses
+transformers>=4.40

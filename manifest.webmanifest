@@ -1,0 +1,16 @@
+{
+  "name": "Lexora AI — Your AI Companion for Every Document",
+  "short_name": "Lexora AI",
+  "description": "Read documents aloud with an AI companion, and use 40+ private PDF, Word and image tools — files never leave your device.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#111110",
+  "theme_color": "#111110",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>About Lexora AI — a privacy-first document companion made in India</title>
+<meta name="description" content="Lexora AI is an independent, privacy-first document app made in India: a reader that speaks, an AI that explains, and 40+ tools that run entirely in your browser.">
+<link rel="canonical" href="https://lexoraai.online/about">
+<meta name="theme-color" content="#111110">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lexora AI">
+<meta property="og:title" content="About Lexora AI">
+<meta property="og:description" content="A privacy-first document companion made in India.">
+<meta property="og:url" content="https://lexoraai.online/about">
+<meta property="og:image" content="https://lexoraai.online/icons/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles/theme.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body>
+<script>if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');</script>
+
+<aside id="sideNav">
+  <div class="brand"><span class="mark">L</span>Lexora <span>AI</span></div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="tools.html">Tools</a>
+    <a href="scan.html">Scan</a>
+    <a href="index.html#plans">Plans &amp; wallet</a>
+    <a href="settings.html">Settings</a>
+    <div class="navSep"></div>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html" class="active">About</a>
+    <a href="security.html">Security</a>
+    <a href="contact.html">Contact</a>
+    <a href="privacy.html" target="_blank">Privacy</a>
+  </nav>
+  <div class="account">
+    <button id="acctTheme">Switch theme</button>
+    <button onclick="location.href='index.html'">Back to the reader</button>
+  </div>
+</aside>
+
+<div id="navVeil"></div>
+<div class="pageTop">
+  <button class="hambBtn" id="hambBtn" title="Menu" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+  <b>About · Lexora <span>AI</span></b>
+  <span class="spacer"></span>
+</div>
+
+<main><div class="wrap" style="max-width:760px">
+  <h1 class="pageTitle">Your AI companion for <span>every document</span></h1>
+  <p class="pageSub">Lexora AI is an independent, privacy-first document app made in India.</p>
+
+  <section class="card" style="margin-top:18px">
+    <h2>What it is</h2>
+    <p>Lexora AI turns any document into something you can <b>listen to</b>, <b>talk to</b> and <b>work on</b>. The reader speaks your PDFs aloud with karaoke highlighting. The AI companion explains anything you select, summarizes pages, and answers questions about the document. And a full suite of 40+ tools — merge, split, compress, convert, OCR, sign, edit, redact, crop, translate — handles the everyday document work.</p>
+    <h2>Why it's different</h2>
+    <p>Almost everything runs <b>in your browser</b>. Your files are not uploaded to be merged, compressed or signed — they never leave your device. Where a real server genuinely helps (HD conversions, whole-document research), Lexora asks for your consent first, shows the exact price, and deletes everything afterwards. Privacy isn't a setting here; it's the default architecture.</p>
+    <h2>Made in India</h2>
+    <p>Lexora AI is built in India, prices in rupees, and believes powerful document tools should cost a fraction of what the big suites charge — most of it is simply free.</p>
+    <h2>Get in touch</h2>
+    <p>Questions, ideas, problems? Visit the <a href="faq.html">FAQ</a> or <a href="contact.html">contact us</a> — a real person reads every message.</p>
+  </section>
+</div></main>
+
+<script>
+  document.getElementById('acctTheme').addEventListener('click', function(){
+    const light = !document.body.classList.contains('light');
+    document.body.classList.toggle('light', light);
+    localStorage.setItem('ra_theme', light ? 'light' : 'dark');
+  });
+  document.getElementById('hambBtn').addEventListener('click', ()=> document.body.classList.toggle('navOpen'));
+  document.getElementById('navVeil').addEventListener('click', ()=> document.body.classList.remove('navOpen'));
+</script>
+<script defer src="scripts/analytics.js"></script>
+</body>
+</html>

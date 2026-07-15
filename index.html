@@ -4,15 +4,126 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lexora AI — Your AI Companion for Every Document</title>
-<script src="lib/pdf.min.js"></script>
-<script src="lib/pdf.worker.min.js"></script>
-<script src="lib/ocr/tesseract.min.js"></script>
-<script src="lib/mammoth.browser.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta name="description" content="Read any PDF or document aloud with karaoke highlighting, ask an AI companion to explain anything, and use 40+ free PDF, Word and image tools — your files never leave your device.">
+<link rel="canonical" href="https://lexoraai.online/">
+<meta name="theme-color" content="#111110">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lexora AI">
+<meta property="og:title" content="Lexora AI — Your AI Companion for Every Document">
+<meta property="og:description" content="Read documents aloud, ask AI anything about them, and use 40+ private PDF tools — free, files never leave your device.">
+<meta property="og:url" content="https://lexoraai.online/">
+<meta property="og:image" content="https://lexoraai.online/icons/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lexora AI — Your AI Companion for Every Document">
+<meta name="twitter:description" content="Read documents aloud, ask AI anything about them, and use 40+ private PDF tools — free.">
+<meta name="twitter:image" content="https://lexoraai.online/icons/og-card.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://lgwqqytjqoenozhjhbkr.supabase.co" crossorigin>
+<script defer src="lib/pdf.min.js"></script>
+<script defer src="lib/pdf.worker.min.js"></script>
+<script defer src="lib/ocr/tesseract.min.js"></script>
+<script defer src="lib/mammoth.browser.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="styles/app.css">
 <link rel="stylesheet" href="styles/theme.css">
+<link rel="stylesheet" href="styles/landing.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"Organization","@id":"https://lexoraai.online/#org","name":"Lexora AI","url":"https://lexoraai.online/","logo":"https://lexoraai.online/icons/icon-512.png","email":"konarajeshkumar011@gmail.com","foundingLocation":{"@type":"Place","name":"India"},"sameAs":[]},
+ {"@type":"WebSite","@id":"https://lexoraai.online/#website","url":"https://lexoraai.online/","name":"Lexora AI","description":"Your AI Companion for Every Document.","publisher":{"@id":"https://lexoraai.online/#org"}},
+ {"@type":"SoftwareApplication","name":"Lexora AI","url":"https://lexoraai.online/","operatingSystem":"Web browser","applicationCategory":"UtilitiesApplication","description":"Read documents aloud with karaoke highlighting, ask an AI companion about any document, and use 40+ private PDF, Word and image tools that run entirely in your browser.","offers":{"@type":"Offer","price":"0","priceCurrency":"INR","description":"Free to use; optional AI plans from ₹49 and premium server tools at about ₹0.10 per page after a daily free allowance."},"featureList":"Read PDF aloud, AI document companion, merge PDF, split PDF, compress PDF, PDF to Word, PDF to Excel, OCR, sign PDF, edit PDF, redact PDF, crop PDF, translate PDF, scan to PDF","publisher":{"@id":"https://lexoraai.online/#org"}}
+]}
+</script>
 </head>
 <body>
+
+<!-- ============ PUBLIC LANDING (logged-out visitors at /) ============
+     Visible by default so crawlers see real content; hidden instantly for
+     returning users (inline script below) and by initAuth for sessions/guests. -->
+<section id="landing" aria-label="About Lexora AI">
+  <div class="ldWrap">
+    <div class="ldTop">
+      <span class="ldBrand"><span>L</span>exora <span>AI</span></span>
+      <span class="sp"></span>
+      <a href="tools.html">Tools</a>
+      <a href="scan.html">Scan</a>
+      <a href="faq.html">FAQ</a>
+      <a href="login.html" class="ldLogin">Log in</a>
+    </div>
+
+    <h1>Your AI companion for <em>every document</em></h1>
+    <p class="ldSub">Lexora AI reads your PDFs aloud with karaoke highlighting, answers questions about them, and gives you 40+ document tools — all free, and your files <b>never leave your device</b>.</p>
+    <div class="ldCtas">
+      <a class="ldBtn" href="login.html">Start free — no card needed</a>
+      <a class="ldBtn ghost" href="#guest" onclick="location.hash='#guest';location.reload();return false;">Try it without an account</a>
+      <a class="ldBtn ghost" href="tools.html">Browse the tools</a>
+    </div>
+    <p class="ldTrust">🔒 Privacy-first: free tools run 100% in your browser · Made in India · Pay only for what you use</p>
+
+    <h2>What Lexora AI does</h2>
+    <div class="ldGrid">
+      <div class="ldCard"><span class="ic">🔊</span><b>Reads documents aloud</b><p>Natural voices with karaoke word highlighting. Say "go to page three" and it goes.</p></div>
+      <div class="ldCard"><span class="ic">🤖</span><b>Explains anything</b><p>Select a sentence and ask. The AI companion understands your document on your device and answers in plain language.</p></div>
+      <div class="ldCard"><span class="ic">🧰</span><b>40+ document tools</b><p>Merge, split, compress, convert, OCR, sign, edit, redact, crop, translate — free, right in the browser.</p></div>
+      <div class="ldCard"><span class="ic">🔒</span><b>Private by design</b><p>Free tools never upload your files. Server features always ask first — and delete everything after.</p></div>
+    </div>
+
+    <h2>Popular tools</h2>
+    <div class="ldTools">
+      <a href="merge-pdf.html">Merge PDF<small>combine files in order</small></a>
+      <a href="compress-pdf.html">Compress PDF<small>smaller, never worse</small></a>
+      <a href="pdf-to-word.html">PDF to Word<small>editable .docx</small></a>
+      <a href="ocr-pdf.html">OCR PDF<small>make scans searchable</small></a>
+      <a href="sign-pdf.html">Sign PDF<small>draw, type or import</small></a>
+      <a href="edit-pdf.html">Edit PDF<small>text &amp; white-out</small></a>
+      <a href="translate-pdf.html">Translate PDF<small>30+ languages</small></a>
+      <a href="chat-with-pdf.html">Chat with PDF<small>ask your document</small></a>
+      <a href="split-pdf.html">Split PDF<small>extract any pages</small></a>
+      <a href="redact-pdf.html">Redact PDF<small>truly remove info</small></a>
+      <a href="scan-to-pdf.html">Scan to PDF<small>camera scanner</small></a>
+      <a href="tools.html"><b style="color:var(--accent)">All tools →</b><small>the full catalog</small></a>
+    </div>
+
+    <h2>How it works</h2>
+    <ol class="ldHow">
+      <li><b>Open a document.</b> Drop a PDF, Word file or image — or scan paper with your camera.</li>
+      <li><b>Listen and ask.</b> Press play to hear it read aloud; select anything and ask the companion to explain, summarize or find things.</li>
+      <li><b>Get things done.</b> Convert, compress, sign or edit with the tools — your files stay on your device the whole time.</li>
+    </ol>
+
+    <h2>Simple, honest pricing</h2>
+    <div class="ldPrice">
+      <div class="ldCard"><span class="amt">₹0</span><b>Free forever</b><p>The reader, the scanner, and 40+ tools. Spark AI companion with a daily limit. No card, no trial clock.</p></div>
+      <div class="ldCard"><span class="amt">₹49 / ₹99</span><b>Swift &amp; Sage AI</b><p>Sharper AI engines with a token wallet; Sage adds web search. Top up a ₹ wallet and pay from it.</p></div>
+      <div class="ldCard"><span class="amt">~₹0.10 / page</span><b>★ Premium tools</b><p>HD server conversions (PDF→Excel, translate…). 50 pages free every day — then about a penny a page.</p></div>
+    </div>
+
+    <h2>Questions, answered</h2>
+    <details><summary>Is it really free?</summary><p>Yes — the reader and all browser tools are free with no limits on file count. Paid extras are optional: AI plans from ₹49 and premium server tools past their daily free 50 pages.</p></details>
+    <details><summary>Do my files get uploaded?</summary><p>Not for the free tools — they run entirely in your browser. A few ★ premium tools use our server and always ask for your consent first, then delete everything after the job.</p></details>
+    <details><summary>Do I need an account?</summary><p>No. Use the tools and guest reading without one. An account unlocks the AI companion and the wallet.</p></details>
+    <details><summary>What formats are supported?</summary><p>PDF, Word, PowerPoint, Excel, images, text, Markdown and webpages. See <a href="tools.html">all tools</a>.</p></details>
+    <p><a href="faq.html" style="color:var(--accent)">More questions → FAQ</a></p>
+
+    <h2>Ready when you are</h2>
+    <div class="ldCtas">
+      <a class="ldBtn" href="login.html">Start free</a>
+      <a class="ldBtn ghost" href="tools.html">Use the tools without logging in</a>
+    </div>
+
+    <div class="ldFoot">
+      <a href="about.html">About</a><a href="faq.html">FAQ</a><a href="security.html">Security</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      <span style="flex:1"></span><span>© Lexora AI · Made in India</span>
+    </div>
+  </div>
+</section>
+<script>
+  /* returning users & in-app flows skip the landing instantly (no flash) */
+  try{ if(localStorage.getItem('ra_returning') === '1' || location.hash){ document.getElementById('landing').hidden = true; } }catch(e){}
+</script>
 
 <div id="login">
   <div class="card">
@@ -279,16 +390,18 @@
 </div>
 
 <button id="compReopen">💬 Companion</button>
-<script src="scripts/shared.js"></script>
-<script src="scripts/scan-engine.js"></script>
-<script src="scripts/app-core.js"></script>
-<script src="scripts/app-documents.js"></script>
-<script src="scripts/app-tools.js"></script>
-<script src="scripts/app-viewer.js"></script>
-<script src="scripts/app-companion.js"></script>
-<script src="scripts/app-wallet.js"></script>
-<script src="scripts/onboarding.js"></script>
-<script src="scripts/select-style.js"></script>
-<script src="scripts/nav.js"></script>
+<script defer src="scripts/analytics.js"></script>
+<script defer src="scripts/shared.js"></script>
+<script defer src="scripts/scan-engine.js"></script>
+<script defer src="scripts/app-core.js"></script>
+<script defer src="scripts/app-documents.js"></script>
+<script defer src="scripts/app-tools.js"></script>
+<script defer src="scripts/app-viewer.js"></script>
+<script defer src="scripts/rag.js"></script>
+<script defer src="scripts/app-companion.js"></script>
+<script defer src="scripts/app-wallet.js"></script>
+<script defer src="scripts/onboarding.js"></script>
+<script defer src="scripts/select-style.js"></script>
+<script defer src="scripts/nav.js"></script>
 </body>
 </html>

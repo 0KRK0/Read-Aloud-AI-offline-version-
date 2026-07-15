@@ -202,6 +202,20 @@ $('exportBtn').addEventListener('click', ()=>{
     saver.checked = localStorage.getItem('ra_saver') === '1';
     saver.addEventListener('change', e=> localStorage.setItem('ra_saver', e.target.checked ? '1' : '0'));
   }
+  /* document understanding: Private AI (default) / Smart AI / Deep Research */
+  let ragMode = localStorage.getItem('ra_ai_mode');
+  if(ragMode !== 'smart' && ragMode !== 'deep') ragMode = 'private';
+  const paintRag = ()=> document.querySelectorAll('#setRagRow .tierBtn')
+    .forEach(b=> b.classList.toggle('on', b.dataset.rag === ragMode));
+  document.querySelectorAll('#setRagRow .tierBtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const m = b.dataset.rag;
+      if(m === 'deep' && ragMode !== 'deep' &&
+         !confirm('Deep Research uploads the document text to our secure server (only after you OK it per document) and deletes it when you close the document. Private AI and Smart AI stay 100% on your device. Continue?')) return;
+      ragMode = m; localStorage.setItem('ra_ai_mode', m); paintRag();
+    });
+  });
+  paintRag();
 })();
 
 loadAccount();

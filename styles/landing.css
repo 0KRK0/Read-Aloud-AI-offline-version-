@@ -1,0 +1,43 @@
+/* Lexora AI — public landing (shown at / for logged-out visitors).
+   Black / white / orange, Georgia display headings, NO gradients. */
+#landing{position:fixed; inset:0; z-index:60; overflow-y:auto; background:var(--bg, #111110); color:var(--text, #faf9f5); -webkit-overflow-scrolling:touch}
+#landing .ldWrap{max-width:1020px; margin:0 auto; padding:0 20px 70px}
+#landing .ldTop{display:flex; align-items:center; gap:10px; padding:18px 0}
+#landing .ldBrand{font-family:Georgia,'Times New Roman',serif; font-size:22px; font-weight:bold}
+#landing .ldBrand span{color:var(--accent, #e07a3f)}
+#landing .ldTop .sp{flex:1}
+#landing .ldTop a{color:var(--muted, #9aa1b5); text-decoration:none; font-size:14px; margin-left:18px}
+#landing .ldTop a:hover{color:var(--accent)}
+#landing .ldTop a.ldLogin{color:var(--text); border:1px solid var(--line, #2a2a28); border-radius:9px; padding:8px 16px}
+#landing h1{font-family:Georgia,'Times New Roman',serif; font-size:clamp(34px, 6vw, 58px); line-height:1.12; margin:60px 0 18px; max-width:820px}
+#landing h1 em{color:var(--accent); font-style:normal}
+#landing .ldSub{font-size:clamp(16px, 2.2vw, 19px); color:var(--muted); max-width:640px; line-height:1.6; margin:0 0 30px}
+#landing .ldCtas{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px}
+#landing .ldBtn{display:inline-block; background:var(--accent); color:#fff; border:none; border-radius:11px; padding:15px 28px; font-size:16px; font-weight:600; text-decoration:none; cursor:pointer}
+#landing .ldBtn:hover{filter:brightness(1.07)}
+#landing .ldBtn.ghost{background:transparent; color:var(--text); border:1px solid var(--line, #2a2a28)}
+#landing .ldBtn.ghost:hover{border-color:var(--accent); color:var(--accent)}
+#landing .ldTrust{color:var(--muted); font-size:13px; margin-bottom:56px}
+#landing h2{font-family:Georgia,'Times New Roman',serif; font-size:clamp(24px, 3.4vw, 32px); margin:64px 0 20px}
+#landing .ldGrid{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:14px}
+#landing .ldCard{background:var(--panel, #1a1a19); border:1px solid var(--line, #2a2a28); border-radius:14px; padding:20px 18px}
+#landing .ldCard .ic{font-size:24px; display:block; margin-bottom:10px}
+#landing .ldCard b{display:block; font-size:15.5px; margin-bottom:7px}
+#landing .ldCard p{color:var(--muted); font-size:13.5px; line-height:1.55; margin:0}
+#landing .ldTools{display:grid; grid-template-columns:repeat(auto-fill, minmax(165px, 1fr)); gap:10px}
+#landing .ldTools a{background:var(--panel, #1a1a19); border:1px solid var(--line, #2a2a28); border-radius:11px; padding:13px 14px; color:var(--text); text-decoration:none; font-size:13.5px; font-weight:600}
+#landing .ldTools a small{display:block; color:var(--muted); font-weight:400; font-size:11.5px; margin-top:3px}
+#landing .ldTools a:hover{border-color:var(--accent)}
+#landing ol.ldHow{margin:0; padding-left:22px; max-width:640px}
+#landing ol.ldHow li{margin-bottom:12px; line-height:1.6; color:var(--muted)}
+#landing ol.ldHow li b{color:var(--text)}
+#landing .ldPrice{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px}
+#landing .ldPrice .ldCard .amt{font-family:Georgia,serif; font-size:26px; color:var(--accent); display:block; margin-bottom:6px}
+#landing details{background:var(--panel, #1a1a19); border:1px solid var(--line, #2a2a28); border-radius:11px; padding:14px 16px; margin-bottom:10px; max-width:760px}
+#landing details summary{cursor:pointer; font-weight:600; font-size:14.5px}
+#landing details p{color:var(--muted); font-size:13.5px; line-height:1.6; margin:10px 0 0}
+#landing .ldFoot{margin-top:70px; padding-top:22px; border-top:1px solid var(--line, #2a2a28); display:flex; flex-wrap:wrap; gap:8px 20px; color:var(--muted); font-size:13px}
+#landing .ldFoot a{color:var(--muted); text-decoration:none}
+#landing .ldFoot a:hover{color:var(--accent)}
+body.light #landing{background:#faf9f5; color:#111110}
+@media (max-width:600px){ #landing .ldTop a:not(.ldLogin){display:none} }

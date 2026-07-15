@@ -249,6 +249,62 @@ export default {
     }
     if (request.method !== 'POST') return json({ error: 'POST only' }, 405, cors);
 
+    /* ---------- Deep Research (opt-in): TEMPORARY per-document vector index ----------
+       The client only calls this after an explicit consent modal. Data is temporary:
+       every vector carries exp = now + 24 h, expired matches are filtered out (and the
+       client deletes on document close). Placed BEFORE the chat rate limit because
+       indexing runs in short batches.
+       Needs two Cloudflare bindings on this worker (Settings → Bindings):
+         • Vectorize index  binding name VECTORIZE
+             wrangler vectorize create lexora-rag --dimensions=768 --metric=cosine
+             wrangler vectorize create-metadata-index lexora-rag --property-name=ns --type=string
+         • Workers AI       binding name AI   (embeddings: @cf/baai/bge-base-en-v1.5)
+       Until both exist, these endpoints return 503 and the client quietly falls back
+       to the on-device Smart AI. */
+    if (url.pathname.includes('/rag/')) {
+      if (!env.VECTORIZE || !env.AI) return json({ error: 'Deep Research is not enabled yet.' }, 503, cors);
+      let rb; try { rb = await request.json(); } catch { return json({ error: 'Bad request' }, 400, cors); }
+      const docId = String(rb.docId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+      if (!docId) return json({ error: 'Missing docId' }, 400, cors);
+      const ns = uid + ':' + docId;                       /* user-scoped namespace */
+      const embed = async texts => (await env.AI.run('@cf/baai/bge-base-en-v1.5', { text: texts })).data;
+
+      if (url.pathname.endsWith('/rag/index')) {
+        const chunks = Array.isArray(rb.chunks) ? rb.chunks.slice(0, 40) : [];
+        if (!chunks.length) return json({ error: 'No chunks' }, 400, cors);
+        const texts = chunks.map(c => String(c.text || '').slice(0, 1200));
+        const vecs = await embed(texts);
+        const exp = Date.now() + 24 * 3600 * 1000;
+        await env.VECTORIZE.upsert(chunks.map((c, k) => ({
+          id: ns + ':' + (parseInt(c.i) || 0),
+          values: vecs[k],
+          metadata: { ns, page: parseInt(c.page) || 0, text: texts[k].slice(0, 900), exp }
+        })));
+        return json({ ok: true, indexed: chunks.length }, 200, cors);
+      }
+      if (url.pathname.endsWith('/rag/query')) {
+        const q = String(rb.q || '').slice(0, 2000);
+        if (!q.trim()) return json({ error: 'Missing question' }, 400, cors);
+        const [qv] = await embed([q]);
+        const res = await env.VECTORIZE.query(qv, {
+          topK: Math.min(parseInt(rb.k) || 8, 15), filter: { ns }, returnMetadata: 'all'
+        });
+        const now = Date.now();
+        const matches = (res.matches || [])
+          .filter(m => m.metadata && (!m.metadata.exp || m.metadata.exp > now))
+          .map(m => ({ page: m.metadata.page, text: m.metadata.text, score: m.score }));
+        return json({ ok: true, matches }, 200, cors);
+      }
+      if (url.pathname.endsWith('/rag/delete')) {
+        const n = Math.min(parseInt(rb.count) || 0, 2000);
+        const ids = [];
+        for (let k = 0; k <= n; k++) ids.push(ns + ':' + k);
+        try { await env.VECTORIZE.deleteByIds(ids); } catch (e) {}
+        return json({ ok: true }, 200, cors);
+      }
+      return json({ error: 'Unknown endpoint' }, 404, cors);
+    }
+
     /* rate limit */
     const rate = await checkRate(env, uid, isPaid);
     if (!rate.ok) return json({ error: rate.why }, 429, cors);
