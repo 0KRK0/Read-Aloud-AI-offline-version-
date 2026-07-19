@@ -31,8 +31,17 @@ engine for MT (LibreTranslate itself uses it):
 
 ## Env
 - `PORT` (host sets it) · `MODEL_DIR` (`/model`, baked) · `MAX_SEGMENT_CHARS` (900)
-- `MAX_CONCURRENCY` (2) · `INTRA_THREADS` (defaults to CPU count — leave alone)
+- `MAX_CONCURRENCY` — default `min(2, effective cpus)`
+- `INTRA_THREADS` — default `effective cpus ÷ MAX_CONCURRENCY` (per decode)
 - `LIBRETRANSLATE_FALLBACK_URL` — optional last resort
+
+**CPU detection is cgroup-aware** (`effective_cpus()`): `os.cpu_count()` sees the
+HOST's cores through the container boundary (48 on Railway) — the quota lives in
+cgroups. Resolution order: env override → cgroup v2 `cpu.max` → cgroup v1
+`cfs_quota/period` → `sched_getaffinity` → `cpu_count`. Threads are budgeted
+jointly: `MAX_CONCURRENCY × INTRA_THREADS ≈ effective cores`, so the box is
+saturated but never oversubscribed at any instance size (2 vCPU → 2×1;
+8 vCPU → 2×4). The boot log prints the detected value and its source.
 
 ## Deploy on Railway
 1. Redeploy this folder — the build converts the model (needs a few minutes and

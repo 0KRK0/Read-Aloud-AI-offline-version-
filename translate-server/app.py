@@ -28,9 +28,20 @@
 #   GET / -> {ok, engine, model}   GET /healthz -> 200 ready / 503 warming
 #
 # Env: PORT (host sets), MODEL_DIR (/model), MAX_SEGMENT_CHARS (900),
-#      MAX_CONCURRENCY (2), INTRA_THREADS (defaults to CPU count),
+#      MAX_CONCURRENCY (default min(2, cpus)), INTRA_THREADS (default
+#      cpus // MAX_CONCURRENCY - see effective_cpus()),
 #      LIBRETRANSLATE_FALLBACK_URL (optional last resort)
+#
+# CPU detection: os.cpu_count() sees the HOST (48 cores on Railway's machines)
+# because cgroup CPU quotas are invisible to it - v2 shipped with 48 intra
+# threads throttled onto 2 vCPUs (the classic container bug the JVM fixed with
+# UseContainerSupport and Go with automaxprocs). effective_cpus() resolves the
+# REAL budget: env override > cgroup v2 quota > cgroup v1 quota > affinity
+# mask > os.cpu_count(). Threads are then budgeted JOINTLY with concurrency:
+# MAX_CONCURRENCY decodes x INTRA_THREADS each ~= effective cores, so the
+# service is saturated but never oversubscribed - on any instance size.
 # ============================================================
+import math
 import os
 import re
 import sys
@@ -42,8 +53,39 @@ PORT = int(os.environ.get('PORT', 5000))
 MODEL_DIR = os.environ.get('MODEL_DIR', '/model')
 LT_URL = (os.environ.get('LIBRETRANSLATE_FALLBACK_URL') or '').rstrip('/')
 MAX_SEG = int(os.environ.get('MAX_SEGMENT_CHARS', '900'))
-MAX_CONC = max(1, int(os.environ.get('MAX_CONCURRENCY', '2')))
-INTRA = int(os.environ.get('INTRA_THREADS', '0')) or (os.cpu_count() or 2)
+
+
+def effective_cpus():
+    """CPUs this CONTAINER may actually use (cgroup-aware), with the source."""
+    try:                                            # cgroup v2: "200000 100000" = 2 CPUs
+        with open('/sys/fs/cgroup/cpu.max') as f:
+            quota, period = f.read().split()[:2]
+            if quota != 'max' and int(period) > 0:
+                return max(1, math.ceil(int(quota) / int(period))), 'cgroup-v2'
+    except Exception:
+        pass
+    try:                                            # cgroup v1
+        quota = int(open('/sys/fs/cgroup/cpu/cpu.cfs_quota_us').read())
+        period = int(open('/sys/fs/cgroup/cpu/cpu.cfs_period_us').read())
+        if quota > 0 and period > 0:
+            return max(1, math.ceil(quota / period)), 'cgroup-v1'
+    except Exception:
+        pass
+    try:                                            # cpuset pinning
+        n = len(os.sched_getaffinity(0))
+        if n:
+            return n, 'affinity'
+    except Exception:
+        pass
+    return (os.cpu_count() or 1), 'cpu_count'       # bare metal / last resort
+
+
+CPUS, CPU_SRC = effective_cpus()
+# concurrency first (how many requests decode at once), then split the CPU
+# budget between them. Env overrides always win; defaults scale with the box:
+#   2 vCPU  -> conc 2 x intra 1        8 vCPU  -> conc 2 x intra 4
+MAX_CONC = max(1, int(os.environ.get('MAX_CONCURRENCY', '0')) or min(2, CPUS))
+INTRA = max(1, int(os.environ.get('INTRA_THREADS', '0')) or (CPUS // MAX_CONC))
 
 app = Flask(__name__)
 
@@ -116,8 +158,9 @@ def boot():
             device='cpu', compute_type='int8',
             inter_threads=1, intra_threads=INTRA)
         state['engine'] = 'nllb'
-        log('engine: NLLB-200 int8 on CTranslate2 ready (intra_threads=%d, max_concurrency=%d)'
-            % (INTRA, MAX_CONC))
+        log('engine: NLLB-200 int8 on CTranslate2 ready '
+            '(cpus=%d via %s, max_concurrency=%d, intra_threads=%d/decode, total=%d)'
+            % (CPUS, CPU_SRC, MAX_CONC, INTRA, MAX_CONC * INTRA))
     except Exception as e:
         state['error'] = str(e)[:300]
         log('NLLB/CT2 unavailable (%s)' % e)

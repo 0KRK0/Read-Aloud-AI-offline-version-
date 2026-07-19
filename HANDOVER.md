@@ -352,7 +352,10 @@ built (Crop / Redact / Forms-fill / Compare / Edit Word free client-side; ★ PD
      converted + baked in a two-stage Docker build), `MAX_CONCURRENCY` semaphore,
      `/healthz` readiness endpoint (**set Railway healthcheck path to /healthz**),
      MarianMT tier REMOVED (chain: NLLB-CT2 → optional LibreTranslate proxy → error).
-     **Fits the 2 GB plan.** API contract unchanged — convert-server untouched; just
+     **Fits the 2 GB plan.** v2.1: cgroup-aware `effective_cpus()` (os.cpu_count saw the
+     48-core HOST through the container; quota lives in cgroups) — env override →
+     cgroup v2 → v1 → affinity → cpu_count; threads budgeted jointly
+     (`MAX_CONCURRENCY × INTRA_THREADS ≈ effective cores`, 2 vCPU → 2×1). API contract unchanged — convert-server untouched; just
      set `TRANSLATE_SERVER_URL` on it. Until then Translate returns a clean
      "translation engine not connected" error.
   5. Test each new tool once (see per-tool notes below). Then Step 6 (Own Voice TTS /
