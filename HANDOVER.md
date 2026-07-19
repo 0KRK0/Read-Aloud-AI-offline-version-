@@ -355,7 +355,16 @@ built (Crop / Redact / Forms-fill / Compare / Edit Word free client-side; ★ PD
      **Fits the 2 GB plan.** v2.1: cgroup-aware `effective_cpus()` (os.cpu_count saw the
      48-core HOST through the container; quota lives in cgroups) — env override →
      cgroup v2 → v1 → affinity → cpu_count; threads budgeted jointly
-     (`MAX_CONCURRENCY × INTRA_THREADS ≈ effective cores`, 2 vCPU → 2×1). API contract unchanged — convert-server untouched; just
+     (`MAX_CONCURRENCY × INTRA_THREADS ≈ effective cores`, 2 vCPU → 2×1).
+     v2.2 (Railway private networking fixes): convert-server gained `serviceUrl()` —
+     TRANSLATE_SERVER_URL is normalized at boot (scheme optional: `.railway.internal`/
+     localhost → http://, public → https://; internal URLs get an explicit `:8080` if
+     missing since the mesh does no port mapping) + a startup reachability probe with a
+     troubleshooting checklist in the logs. translate-server now binds `listen='*'`
+     (IPv4+IPv6) because the Railway mesh is IPv6-ONLY — 0.0.0.0 is unreachable on it.
+     Correct env form: `TRANSLATE_SERVER_URL=http://<service-name>.railway.internal:8080`
+     (⚠ verify the service name — "read-aloud-ai-offline-version" looks like the offline
+     repo's name, not the translate service). API contract unchanged — convert-server untouched; just
      set `TRANSLATE_SERVER_URL` on it. Until then Translate returns a clean
      "translation engine not connected" error.
   5. Test each new tool once (see per-tool notes below). Then Step 6 (Own Voice TTS /

@@ -43,6 +43,18 @@ jointly: `MAX_CONCURRENCY × INTRA_THREADS ≈ effective cores`, so the box is
 saturated but never oversubscribed at any instance size (2 vCPU → 2×1;
 8 vCPU → 2×4). The boot log prints the detected value and its source.
 
+## Railway private networking (how convert-server should reach this)
+- Use the **internal** hostname from THIS service's Settings → Networking →
+  Private Networking (it derives from the service name; both services must be
+  in the same project + environment or `.railway.internal` won't resolve).
+- The mesh is plain **http://** (no TLS inside) and does **no port mapping** —
+  include the explicit `:port` this service listens on (Railway injects PORT,
+  usually 8080): `TRANSLATE_SERVER_URL=http://<service>.railway.internal:8080`
+- The mesh is **IPv6-only** — app.py binds `listen='*'` (both stacks) for this;
+  a plain 0.0.0.0 bind would be unreachable internally.
+- convert-server normalizes/validates the URL at boot (scheme + port defaults,
+  startup reachability probe in its logs), so a bare hostname no longer 502s.
+
 ## Deploy on Railway
 1. Redeploy this folder — the build converts the model (needs a few minutes and
    ~4 GB build memory; Railway build machines have plenty; runtime does not need it).

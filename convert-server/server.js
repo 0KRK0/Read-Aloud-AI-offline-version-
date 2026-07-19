@@ -26,6 +26,35 @@ const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 120 * 1024 * 1024
 const KEY = process.env.CONVERT_SERVER_KEY || '';
 const PORT = process.env.PORT || 8080;
 
+/* Normalize a service URL from env so config mistakes can't take prod down:
+   accepts values with or without a scheme, with or without a trailing slash.
+   Scheme rules: Railway private mesh (*.railway.internal) and localhost speak
+   plain HTTP (no TLS inside the mesh); anything else public defaults to HTTPS.
+   Railway internal networking has NO port mapping - an internal hostname
+   without a port gets :8080 (Railway's injected PORT) plus a loud warning.
+   Returns '' (feature disabled, clean error to users) on hopeless input. */
+function serviceUrl(name, raw) {
+  let v = String(raw || '').trim().replace(/\/+$/, '');
+  if (!v) return '';
+  if (!/^https?:\/\//i.test(v)) {
+    const isPrivate = /\.railway\.internal(:\d+)?$/i.test(v)
+      || /^(localhost|127\.|\[?::1)/i.test(v);
+    v = (isPrivate ? 'http://' : 'https://') + v;
+  }
+  try {
+    const u = new URL(v);
+    if (/\.railway\.internal$/i.test(u.hostname) && !u.port) {
+      console.warn(`[config] ${name}: Railway-internal URL has no port; the private mesh does no port mapping. Defaulting to :8080 - set it explicitly if the service listens elsewhere.`);
+      u.port = '8080';
+    }
+    return u.toString().replace(/\/+$/, '');
+  } catch (e) {
+    console.error(`[config] ${name} is not a usable URL: "${raw}" (${e.message}) - feature disabled.`);
+    return '';
+  }
+}
+const TRANSLATE_URL = serviceUrl('TRANSLATE_SERVER_URL', process.env.TRANSLATE_SERVER_URL);
+
 function run(cmd, args, opts) {
   return new Promise((resolve, reject) => {
     execFile(cmd, args, { timeout: 180000, maxBuffer: 1 << 26, ...opts }, (err, stdout, stderr) => {
@@ -94,7 +123,7 @@ async function chromiumPdf(inPath, outDir, opts) {
 // target accepts ISO 639-1 or FLORES-200 codes (all NLLB languages).
 // MVP: extracted text -> translated text -> clean PDF (layout-preserving = later).
 async function translatePdf(inPath, outDir, opts) {
-  const ts = (process.env.TRANSLATE_SERVER_URL || '').replace(/\/$/, '');
+  const ts = TRANSLATE_URL;                     /* normalized + validated at boot */
   if (!ts) throw new Error('translation engine not connected (set TRANSLATE_SERVER_URL)');
   const lang = (opts && /^[a-z]{2,3}([_-][A-Za-z]{2,4})?$/.test(opts.lang || '')) ? opts.lang : 'en';
   const txtPath = path.join(outDir, 'in.txt');
@@ -208,3 +237,20 @@ app.post('/convert', upload.single('file'), async (req, res) => {
 });
 
 app.listen(PORT, () => console.log('lexora-convert listening on ' + PORT));
+
+/* startup dependency probe - non-fatal (translate is an optional feature), but
+   config mistakes surface HERE in the boot log, not as user-facing 502s. */
+(async () => {
+  if (!TRANSLATE_URL) { console.log('[config] TRANSLATE_SERVER_URL not set - translate disabled.'); return; }
+  console.log('[config] translate-server URL -> ' + TRANSLATE_URL);
+  try {
+    let r = await fetch(TRANSLATE_URL + '/healthz').catch(() => null);
+    if (!r) r = await fetch(TRANSLATE_URL + '/');
+    console.log('[config] translate-server probe: ' +
+      (r.ok ? 'READY' : (r.status === 503 ? 'warming up (503) - will be ready shortly' : 'unexpected status ' + r.status)));
+  } catch (e) {
+    console.warn('[config] translate-server UNREACHABLE at ' + TRANSLATE_URL + ' (' + e.message + '). ' +
+      'Checklist: same Railway project+environment? service name matches the .railway.internal host? ' +
+      'explicit :port on internal URLs? target binds IPv6 (listen "*")?');
+  }
+})();

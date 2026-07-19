@@ -275,5 +275,7 @@ def translate():
 if __name__ == '__main__':
     threading.Thread(target=boot, daemon=True).start()  # bind the port at once;
     from waitress import serve                          # /healthz gates readiness
-    log('lexora-translate v2 listening on %d' % PORT)
-    serve(app, host='0.0.0.0', port=PORT, threads=4)
+    log('lexora-translate v2 listening on %d (IPv4+IPv6)' % PORT)
+    # listen='*' binds BOTH stacks. Railway's private mesh (*.railway.internal)
+    # is IPv6-only - a plain 0.0.0.0 bind is unreachable over it.
+    serve(app, listen='*:%d' % PORT, threads=4)
