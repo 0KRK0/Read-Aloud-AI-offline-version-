@@ -250,9 +250,16 @@ def healthz():
 @app.post('/translate')
 def translate():
     data = request.get_json(force=True, silent=True) or {}
+    
+    log("REQUEST =", data)
+
     q = str(data.get('q') or '')
     target = str(data.get('target') or 'en')
     source = str(data.get('source') or 'auto')
+    
+    log("SOURCE =", source)
+    log("TARGET =", target)
+
     if len(q) > 20000:
         return jsonify(error='chunk too large - send <= 20000 chars per request'), 413
     if not q.strip():
@@ -269,6 +276,7 @@ def translate():
     except Exception as e:
         log('translate failed:', e)
         return jsonify(error=('translation failed: ' + str(e))[:300]), 500
+    log("OUTPUT SAMPLE =", out[:200])
     return jsonify(translatedText=out, engine=state['engine'], detectedSource=src_iso)
 
 
