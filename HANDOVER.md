@@ -235,6 +235,12 @@ digits, "beginning/top/first page" handling); **subdomain redirect loop fixed**
 both, and `scan.` added, and login skipped on those hosts).
 
 Tools: **Sign PDF**, **Edit PDF**, **Unlock (password-aware)**, **Protect PDF** built.
+Edit PDF v2 (19 July 2026): **tap-to-edit** — a text-pick layer (pdf.js getTextContent +
+Util.transform positions) sits under the items layer (edLayer is pointer-events:none,
+.edItem re-enables); clicking any existing line auto-adds a padded white-out over it +
+a pre-filled, size-matched text box on top (buildEditPickLayer / edAscii /
+editExistingText in tools-page.js). Feels like direct editing; TRUE reflow editing of
+the underlying text remains the future Lexora Layout Engine. Re-upload tools-page.js.
 
 Wallet: **universal ₹ wallet** — schema + worker-payments + frontend.
 

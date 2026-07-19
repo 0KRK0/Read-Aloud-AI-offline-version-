@@ -904,7 +904,7 @@ function editOptsHtml(){
     </div>
     <label class="f">Text size</label>
     <select id="edSize"><option value="12">Small</option><option value="16" selected>Normal</option><option value="22">Large</option><option value="30">Huge</option></select>
-    <p class="sHint">Tap ➕ Text to drop a box, then click it and type. ⬜ White-out covers something. Drag to move, pull the corner to resize. (Text uses English letters &amp; numbers.)</p>`;
+    <p class="sHint"><b>✏ Tap any existing text on the page to edit it</b> — the original is covered and a matching box appears with the text ready to change. Or: ➕ Text drops a fresh box, ⬜ White-out covers something. Drag to move, pull the corner to resize. (Text uses English letters &amp; numbers.)</p>`;
 }
 function initEditPanel(){
   editColor = '#111111'; editSize = 16;
@@ -939,9 +939,14 @@ async function renderEditPage(){
   const holder = document.createElement('div'); holder.className = 'signHolder';
   holder.style.cssText = `position:relative; width:${c.width}px; height:${c.height}px; max-width:100%`;
   const layer = document.createElement('div'); layer.className = 'signLayer'; layer.id = 'edLayer';
-  layer.style.cssText = 'position:absolute; inset:0';
+  /* container ignores events (so taps fall through to the text-pick layer);
+     the .edItem children re-enable their own pointer events via CSS */
+  layer.style.cssText = 'position:absolute; inset:0; pointer-events:none';
   layer.dataset.scale = scale;
-  holder.appendChild(c); holder.appendChild(layer); stage.appendChild(holder);
+  const pick = document.createElement('div'); pick.className = 'edPickLayer';
+  pick.style.cssText = 'position:absolute; inset:0';
+  holder.appendChild(c); holder.appendChild(pick); holder.appendChild(layer); stage.appendChild(holder);
+  try{ await buildEditPickLayer(page, vp, pick); }catch(e){ console.warn('text pick layer', e); }
   editItems.filter(it=> it.page === editPage).forEach(it=> addEditEl(it, layer));
   const nav = $('edNav');
   nav.innerHTML = editDoc.numPages > 1
@@ -992,6 +997,61 @@ function addEditEl(it, layer){
     window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
   });
 }
+/* ---- tap-to-edit: click any EXISTING line of text to replace it ----
+   pdf.js already knows where every piece of text sits; clicking one auto
+   white-outs the original and drops a pre-filled, size-matched text box on
+   top. Looks like direct editing; true reflow editing = the future engine. */
+async function buildEditPickLayer(page, vp, pick){
+  const tc = await page.getTextContent();
+  (tc.items || []).forEach(it=>{
+    const str = (it.str || '').trim();
+    if(!str) return;
+    const m = pdfjsLib.Util.transform(vp.transform, it.transform);
+    const fh = Math.hypot(m[2], m[3]) || 12;
+    const w = (it.width || 0) * vp.scale;
+    if(w < 3 || fh < 4) return;
+    const s = document.createElement('span');
+    s.className = 'edPick';
+    s.title = 'Tap to edit this text';
+    s.style.left = m[4] + 'px';
+    s.style.top = (m[5] - fh) + 'px';
+    s.style.width = w + 'px';
+    s.style.height = (fh * 1.25) + 'px';
+    s.addEventListener('click', ()=> editExistingText(str, m[4], m[5] - fh, w, fh));
+    pick.appendChild(s);
+  });
+}
+function edAscii(t){
+  let out = '';
+  for(let i = 0; i < t.length; i++){
+    const k = t.charCodeAt(i);
+    if((k >= 32 && k < 127) || k === 10) out += t[i];
+  }
+  return out;
+}
+function editExistingText(str, x, yTop, w, fh){
+  const layer = $('edLayer');
+  if(!layer) return;
+  const W = layer.clientWidth, H = layer.clientHeight;
+  const scale = +layer.dataset.scale || 1;
+  const pad = Math.max(2, fh * 0.18);
+  const white = { type:'white', page: editPage,
+    rx: Math.max(0, (x - pad) / W), ry: Math.max(0, (yTop - pad) / H),
+    rw: Math.min(1, (w + pad * 2) / W), rh: Math.min(1, (fh * 1.3 + pad) / H) };
+  editItems.push(white); addEditEl(white, layer);
+  const it = { type:'text', page: editPage,
+    rx: x / W, ry: yTop / H,
+    rw: Math.max(0.08, Math.min(0.95, (w + 40) / W)),
+    text: edAscii(str) || 'Type here',
+    size: Math.max(6, Math.round(fh / scale)),
+    color: editColor };
+  editItems.push(it); addEditEl(it, layer);
+  if(!editExistingText._said){
+    editExistingText._said = true;
+    lxToast('Original covered — type your replacement in the box. (English letters & numbers.)');
+  }
+}
+
 async function runEdit(files){
   if(!editItems.length) throw new Error('add a text box or white-out first');
   if(!(await ensurePdfLib())) throw new Error('could not load the PDF engine');
@@ -1986,7 +2046,7 @@ else show('tvHome');
     + '.signItem img{width:100%; height:100%; display:block; pointer-events:none}'
     + '.signItem .sHandle{position:absolute; right:-8px; bottom:-8px; width:16px; height:16px; background:var(--accent); border:2px solid #fff; border-radius:50%; cursor:nwse-resize}'
     + '.signItem .sDel{position:absolute; top:-11px; right:-11px; width:22px; height:22px; background:var(--warn); color:#fff; border:none; border-radius:50%; font-size:11px; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center}'
-    + '.edItem{touch-action:none}'
+    + '.edItem{touch-action:none; pointer-events:auto}'
     + '.edItem .sHandle{position:absolute; right:-8px; bottom:-8px; width:15px; height:15px; background:var(--accent); border:2px solid #fff; border-radius:50%; cursor:nwse-resize}'
     + '.edItem .sDel{position:absolute; top:-11px; right:-11px; width:21px; height:21px; background:var(--warn); color:#fff; border:none; border-radius:50%; font-size:11px; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center; z-index:2}';
   var s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
@@ -2042,6 +2102,9 @@ else show('tvHome');
     + '.ewPage h3,.ewPage h4,.ewPage h5,.ewPage h6{font-size:17px; margin:16px 0 8px}'
     + '.ewPage p{margin:0 0 10px}'
     + '.ewPage ul,.ewPage ol{margin:0 0 10px; padding-left:26px}'
+    + '.edPickLayer{position:absolute; inset:0}'
+    + '.edPick{position:absolute; cursor:text; border-radius:2px}'
+    + '.edPick:hover{background:rgba(224,122,63,.28); outline:1.5px dashed var(--accent)}'
     + '.ewPage img{max-width:100%}'
     + '.ewPage table{border-collapse:collapse} .ewPage td,.ewPage th{border:1px solid #999; padding:4px 8px}'
     + '@media (max-width:700px){.ewPage{padding:24px 18px}}';
