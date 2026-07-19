@@ -1,7 +1,9 @@
+# RUNTIME deps only — no torch (torch exists solely in the Docker build stage
+# that converts the model to CTranslate2 int8).
 flask
 waitress
 requests
 langdetect
+ctranslate2>=4.0
 sentencepiece
-sacremoses
 transformers>=4.40

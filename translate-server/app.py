@@ -1,23 +1,35 @@
 # ============================================================
-# Lexora AI - self-hosted translation service (our own engine, no paid API)
+# Lexora AI - self-hosted translation service v2 (our own engine, no paid API)
 #
-# Engine priority (automatic):
-#   1. Meta NLLB-200 (default; env NLLB_MODEL, default facebook/nllb-200-distilled-600M)
-#   2. MarianMT (Helsinki-NLP opus-mt, per language pair, lazy) - used automatically
-#      if NLLB cannot load (hardware / RAM constraints)
-#   3. LibreTranslate proxy - ONLY if neither model engine is available AND
-#      LIBRETRANSLATE_FALLBACK_URL is set
+# Runtime: Meta NLLB-200 on **CTranslate2, int8-quantized** - the industry
+# standard CPU inference engine for MT. ~650 MB resident for the 600M model,
+# 4-8x faster than fp32 torch, NO PyTorch in the runtime image. The model is
+# converted once at Docker BUILD time (see Dockerfile) into /model.
 #
-# Contract (what convert-server calls):
-#   POST /translate  {q, source:'auto'|iso, target: iso-639-1 or FLORES-200 code}
+# Engine chain (v2 - simplified so every tier can actually fire):
+#   1. NLLB-200 int8 via CTranslate2 (fits in <1 GB - works on any small host)
+#   2. LibreTranslate proxy - ONLY if LIBRETRANSLATE_FALLBACK_URL is set
+#   (MarianMT tier REMOVED: it existed for "NLLB might not fit"; int8 NLLB now
+#    fits anywhere Marian would have, so the tier was pure complexity.)
+#
+# Ops notes (the OOM-loop post-mortem):
+#   - fp32 torch NLLB needed ~3.5 GB peak -> SIGKILL on a 2 GB container right
+#     after "engine ready" (mmap'd weights page in on first inference). An
+#     in-process fallback can never catch a SIGKILL - fixed by making the
+#     workload fit, not by catching the uncatchable.
+#   - /healthz returns 503 until the model is loaded: point the Railway
+#     healthcheck at /healthz. / always answers (liveness + engine info).
+#   - MAX_CONCURRENCY (default 2) caps simultaneous decodes; extra requests
+#     queue briefly in waitress instead of multiplying activation memory.
+#
+# Contract (unchanged - convert-server needs no changes):
+#   POST /translate {q, source:'auto'|iso, target: iso-639-1 or FLORES-200}
 #     -> {translatedText, engine, detectedSource}
-#   GET /  -> {ok, engine, model} health + which engine is active
+#   GET / -> {ok, engine, model}   GET /healthz -> 200 ready / 503 warming
 #
-# Env: PORT (host sets it), NLLB_MODEL, FORCE_ENGINE (''|nllb|marian|libretranslate),
-#      LIBRETRANSLATE_FALLBACK_URL (optional last resort), MAX_SEGMENT_CHARS (900),
-#      HF_HOME (model cache dir; the Dockerfile PRE-BAKES the NLLB model here at
-#      build time, so boots load from disk - no download. Volume at /models only
-#      when built with PREBAKE=0.)
+# Env: PORT (host sets), MODEL_DIR (/model), MAX_SEGMENT_CHARS (900),
+#      MAX_CONCURRENCY (2), INTRA_THREADS (defaults to CPU count),
+#      LIBRETRANSLATE_FALLBACK_URL (optional last resort)
 # ============================================================
 import os
 import re
@@ -27,16 +39,16 @@ import threading
 from flask import Flask, jsonify, request
 
 PORT = int(os.environ.get('PORT', 5000))
-NLLB_MODEL = os.environ.get('NLLB_MODEL', 'facebook/nllb-200-distilled-600M')
-FORCE_ENGINE = (os.environ.get('FORCE_ENGINE') or '').strip().lower()
+MODEL_DIR = os.environ.get('MODEL_DIR', '/model')
 LT_URL = (os.environ.get('LIBRETRANSLATE_FALLBACK_URL') or '').rstrip('/')
 MAX_SEG = int(os.environ.get('MAX_SEGMENT_CHARS', '900'))
+MAX_CONC = max(1, int(os.environ.get('MAX_CONCURRENCY', '2')))
+INTRA = int(os.environ.get('INTRA_THREADS', '0')) or (os.cpu_count() or 2)
 
 app = Flask(__name__)
 
-# ISO 639-1 -> FLORES-200 (NLLB) codes. A raw FLORES code (e.g. "hin_Deva") is
-# accepted as-is, so ALL 200 NLLB languages work; this map covers the short codes
-# the UI and language detection use.
+# ISO 639-1 -> FLORES-200 (NLLB) codes. Raw FLORES codes (e.g. "hin_Deva") are
+# accepted as-is, so ALL 200 NLLB languages work; this map covers short codes.
 FLORES = {
     'en': 'eng_Latn', 'hi': 'hin_Deva', 'bn': 'ben_Beng', 'ta': 'tam_Taml',
     'te': 'tel_Telu', 'mr': 'mar_Deva', 'gu': 'guj_Gujr', 'kn': 'kan_Knda',
@@ -61,11 +73,11 @@ FLORES = {
     'my': 'mya_Mymr', 'ps': 'pbt_Arab', 'so': 'som_Latn', 'tg': 'tgk_Cyrl',
     'tk': 'tuk_Latn', 'uz': 'uzn_Latn',
 }
-FLORES_TO_ISO = {v: k for k, v in FLORES.items()}
 
-state = {'engine': 'loading', 'nllb': None, 'error': ''}
-marian_cache = {}
-marian_lock = threading.Lock()
+state = {'engine': 'loading', 'error': ''}
+tok = None
+translator = None
+sem = threading.Semaphore(MAX_CONC)
 
 
 def log(*a):
@@ -81,8 +93,6 @@ def to_flores(code):
 
 def to_iso(code):
     c = (code or '').strip()
-    if re.fullmatch(r'[a-z]{3}_[A-Za-z]{4}', c):
-        return FLORES_TO_ISO.get(c, 'en')
     return c.lower()[:2] if c else 'en'
 
 
@@ -94,50 +104,25 @@ def detect_lang(text):
         return 'en'
 
 
-def transformers_ok():
-    try:
-        import transformers  # noqa: F401
-        import torch  # noqa: F401
-        return True
-    except Exception:
-        return False
-
-
-def load_nllb():
-    from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-    log('loading NLLB model %s (first boot downloads it)...' % NLLB_MODEL)
-    tok = AutoTokenizer.from_pretrained(NLLB_MODEL)
-    mdl = AutoModelForSeq2SeqLM.from_pretrained(NLLB_MODEL, low_cpu_mem_usage=True)
-    mdl.eval()
-    return (tok, mdl)
-
-
 def boot():
-    """Pick the best available engine: NLLB -> MarianMT -> LibreTranslate proxy."""
-    if FORCE_ENGINE == 'marian':
-        state['engine'] = 'marian' if transformers_ok() else ('libretranslate' if LT_URL else 'none')
-        log('engine (forced): %s' % state['engine'])
-        return
-    if FORCE_ENGINE == 'libretranslate':
-        state['engine'] = 'libretranslate' if LT_URL else 'none'
-        log('engine (forced): %s' % state['engine'])
-        return
+    global tok, translator
     try:
-        state['nllb'] = load_nllb()
+        import ctranslate2
+        from transformers import AutoTokenizer   # tokenizer only - NO torch
+        log('loading tokenizer + CT2 int8 model from %s ...' % MODEL_DIR)
+        tok = AutoTokenizer.from_pretrained(os.path.join(MODEL_DIR, 'tok'))
+        translator = ctranslate2.Translator(
+            os.path.join(MODEL_DIR, 'ct2'),
+            device='cpu', compute_type='int8',
+            inter_threads=1, intra_threads=INTRA)
         state['engine'] = 'nllb'
-        log('engine: NLLB-200 ready (%s)' % NLLB_MODEL)
+        log('engine: NLLB-200 int8 on CTranslate2 ready (intra_threads=%d, max_concurrency=%d)'
+            % (INTRA, MAX_CONC))
     except Exception as e:
         state['error'] = str(e)[:300]
-        log('NLLB unavailable (%s)' % e)
-        if transformers_ok():
-            state['engine'] = 'marian'
-            log('engine: MarianMT fallback (per-language-pair, lazy download)')
-        elif LT_URL:
-            state['engine'] = 'libretranslate'
-            log('engine: LibreTranslate proxy fallback -> %s' % LT_URL)
-        else:
-            state['engine'] = 'none'
-            log('engine: NONE available')
+        log('NLLB/CT2 unavailable (%s)' % e)
+        state['engine'] = 'libretranslate' if LT_URL else 'none'
+        log('engine: %s' % state['engine'])
 
 
 def split_line(line):
@@ -147,7 +132,7 @@ def split_line(line):
     sents = re.split(r'(?<=[\.\!\?।۔。])\s+', line)
     out, cur = [], ''
     for s in sents:
-        while len(s) > MAX_SEG:                      # pathological unpunctuated runs
+        while len(s) > MAX_SEG:
             out.append(s[:MAX_SEG])
             s = s[MAX_SEG:]
         if cur and len(cur) + len(s) + 1 > MAX_SEG:
@@ -161,54 +146,16 @@ def split_line(line):
 
 
 def nllb_tx(seg, src_flores, tgt_flores):
-    import torch
-    tok, mdl = state['nllb']
     tok.src_lang = src_flores
-    with torch.no_grad():
-        inputs = tok(seg, return_tensors='pt', truncation=True, max_length=512)
-        bos = None
-        if hasattr(tok, 'lang_code_to_id') and tgt_flores in getattr(tok, 'lang_code_to_id', {}):
-            bos = tok.lang_code_to_id[tgt_flores]
-        if bos is None:
-            bos = tok.convert_tokens_to_ids(tgt_flores)
-        gen = mdl.generate(**inputs, forced_bos_token_id=bos, max_length=512, num_beams=1)
-    return tok.batch_decode(gen, skip_special_tokens=True)[0]
-
-
-def marian_model(src, tgt):
-    key = src + '-' + tgt
-    with marian_lock:
-        if key in marian_cache:
-            return marian_cache[key]
-    from transformers import MarianMTModel, MarianTokenizer
-    name = 'Helsinki-NLP/opus-mt-%s-%s' % (src, tgt)
-    log('loading MarianMT pair %s...' % name)
-    tok = MarianTokenizer.from_pretrained(name)
-    mdl = MarianMTModel.from_pretrained(name)
-    mdl.eval()
-    with marian_lock:
-        marian_cache[key] = (tok, mdl)
-    return (tok, mdl)
-
-
-def marian_run(pair, seg):
-    import torch
-    tok, mdl = pair
-    with torch.no_grad():
-        batch = tok([seg], return_tensors='pt', truncation=True, max_length=512)
-        gen = mdl.generate(**batch, max_length=512)
-    return tok.batch_decode(gen, skip_special_tokens=True)[0]
-
-
-def marian_tx(seg, src, tgt):
-    """Direct pair if it exists, otherwise pivot through English."""
-    try:
-        return marian_run(marian_model(src, tgt), seg)
-    except Exception:
-        if src != 'en' and tgt != 'en':
-            mid = marian_run(marian_model(src, 'en'), seg)
-            return marian_run(marian_model('en', tgt), mid)
-        raise
+    source = tok.convert_ids_to_tokens(tok.encode(seg))
+    with sem:                                     # cap concurrent decodes
+        res = translator.translate_batch(
+            [source], target_prefix=[[tgt_flores]],
+            beam_size=1, max_decoding_length=512, max_input_length=512)
+    target = res[0].hypotheses[0]
+    if target and target[0] == tgt_flores:
+        target = target[1:]
+    return tok.decode(tok.convert_tokens_to_ids(target), skip_special_tokens=True)
 
 
 def lt_tx(seg, src, tgt):
@@ -221,7 +168,6 @@ def lt_tx(seg, src, tgt):
 
 
 def translate_text(text, src_iso, target):
-    """Translate line-by-line (newlines preserved), sentence-packed segments."""
     eng = state['engine']
     if eng == 'nllb':
         src_f = to_flores(src_iso) or 'eng_Latn'
@@ -229,13 +175,8 @@ def translate_text(text, src_iso, target):
         if not tgt_f:
             raise ValueError('unsupported target language: %s' % target)
         tx = lambda seg: nllb_tx(seg, src_f, tgt_f)
-    elif eng == 'marian':
-        tgt_i = to_iso(target)
-        src_i = to_iso(src_iso)
-        tx = lambda seg: marian_tx(seg, src_i, tgt_i)
     elif eng == 'libretranslate':
-        tgt_i = to_iso(target)
-        tx = lambda seg: lt_tx(seg, to_iso(src_iso), tgt_i)
+        tx = lambda seg: lt_tx(seg, to_iso(src_iso), to_iso(target))
     else:
         raise RuntimeError('no translation engine available')
     out = []
@@ -248,11 +189,19 @@ def translate_text(text, src_iso, target):
 
 
 @app.get('/')
-def health():
+def root():
     return jsonify(ok=state['engine'] not in ('none', 'loading'),
                    engine=state['engine'],
-                   model=NLLB_MODEL if state['engine'] == 'nllb' else state['engine'],
+                   model='nllb-200-600M-int8-ct2' if state['engine'] == 'nllb' else state['engine'],
                    error=state['error'] or None)
+
+
+@app.get('/healthz')
+def healthz():
+    """Readiness probe - point the Railway healthcheck here."""
+    if state['engine'] == 'nllb' or state['engine'] == 'libretranslate':
+        return jsonify(ok=True), 200
+    return jsonify(ok=False, engine=state['engine'], error=state['error'] or None), 503
 
 
 @app.post('/translate')
@@ -261,10 +210,12 @@ def translate():
     q = str(data.get('q') or '')
     target = str(data.get('target') or 'en')
     source = str(data.get('source') or 'auto')
+    if len(q) > 20000:
+        return jsonify(error='chunk too large - send <= 20000 chars per request'), 413
     if not q.strip():
         return jsonify(translatedText='', engine=state['engine'], detectedSource=None)
     if state['engine'] == 'loading':
-        return jsonify(error='translation engine is warming up - try again in a minute'), 503
+        return jsonify(error='translation engine is warming up - try again shortly'), 503
     if state['engine'] == 'none':
         return jsonify(error='no translation engine available on this host'), 500
     src_iso = detect_lang(q) if source == 'auto' else to_iso(source)
@@ -279,7 +230,7 @@ def translate():
 
 
 if __name__ == '__main__':
-    threading.Thread(target=boot, daemon=True).start()   # bind the port immediately;
-    from waitress import serve                           # 503 until the model is ready
-    log('lexora-translate listening on %d' % PORT)
+    threading.Thread(target=boot, daemon=True).start()  # bind the port at once;
+    from waitress import serve                          # /healthz gates readiness
+    log('lexora-translate v2 listening on %d' % PORT)
     serve(app, host='0.0.0.0', port=PORT, threads=4)

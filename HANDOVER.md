@@ -343,15 +343,18 @@ built (Crop / Redact / Forms-fill / Compare / Edit Word free client-side; ★ PD
   3. Conversion server (Railway): redeploy `convert-server/` — the new Dockerfile adds
      chromium + poppler-utils + camelot/openpyxl/pandas and COPYs `pdf2excel.py`
      (first build ~10 min). No new env needed for pdf2excel/html2pdf.
-  4. Translate only: deploy **`online/translate-server/`** as a second Railway service
-     (our OWN engine: Meta **NLLB-200** default → **MarianMT** auto-fallback on small
-     hosts → LibreTranslate proxy only as an optional last resort). The NLLB model is
-     **PRE-BAKED into the Docker image at build time** (no cold-start download; build
-     takes a few extra minutes once, boots are instant; `--build-arg PREBAKE=0` +
-     a `/models` volume is the small-image alternative — never mount a volume over a
-     pre-baked `/models`). Give it ~4 GB RAM for NLLB-600M (less = MarianMT
-     automatically), then set `TRANSLATE_SERVER_URL` on the conversion server. Until
-     then Translate returns a clean "translation engine not connected" error.
+  4. Translate only: deploy **`online/translate-server/`** as a second Railway service.
+     **v2 (16 July): rewritten on CTranslate2 int8 after an OOM post-mortem** — v1's
+     fp32 torch NLLB needed ~3.5 GB peak and OOM-loop-crashed Railway's 2 GB container
+     right after "engine ready" (mmap'd weights paged in on first inference; SIGKILL
+     can't be caught, so the in-process Marian fallback never fired). v2: NLLB-200
+     int8 via CTranslate2 (~650 MB RAM, 4–8× faster, NO torch at runtime; model
+     converted + baked in a two-stage Docker build), `MAX_CONCURRENCY` semaphore,
+     `/healthz` readiness endpoint (**set Railway healthcheck path to /healthz**),
+     MarianMT tier REMOVED (chain: NLLB-CT2 → optional LibreTranslate proxy → error).
+     **Fits the 2 GB plan.** API contract unchanged — convert-server untouched; just
+     set `TRANSLATE_SERVER_URL` on it. Until then Translate returns a clean
+     "translation engine not connected" error.
   5. Test each new tool once (see per-tool notes below). Then Step 6 (Own Voice TTS /
      PWA / Capacitor) is the next build frontier.
 
