@@ -125,7 +125,14 @@ async function chromiumPdf(inPath, outDir, opts) {
 async function translatePdf(inPath, outDir, opts) {
   const ts = TRANSLATE_URL;                     /* normalized + validated at boot */
   if (!ts) throw new Error('translation engine not connected (set TRANSLATE_SERVER_URL)');
-  const lang = (opts && /^[a-z]{2,3}([_-][A-Za-z]{2,4})?$/.test(opts.lang || '')) ? opts.lang : 'en';
+  /* NO silent default: a missing lang means the field was lost upstream (stale
+     gateway worker without the opts passthrough was the historical culprit) —
+     fail loudly instead of translating to English and masking it. */
+  if (!(opts && /^[a-z]{2,3}([_-][A-Za-z]{2,4})?$/.test(opts.lang || ''))) {
+    throw new Error('no target language received (opts.lang missing/invalid: ' +
+      JSON.stringify(opts && opts.lang) + ') - if the frontend sent one, the gateway worker is outdated and dropping the opts field');
+  }
+  const lang = opts.lang;
   const txtPath = path.join(outDir, 'in.txt');
   await run('pdftotext', ['-layout', inPath, txtPath]);
   const text = fs.readFileSync(txtPath, 'utf8');

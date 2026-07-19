@@ -364,7 +364,14 @@ built (Crop / Redact / Forms-fill / Compare / Edit Word free client-side; ★ PD
      (IPv4+IPv6) because the Railway mesh is IPv6-ONLY — 0.0.0.0 is unreachable on it.
      Correct env form: `TRANSLATE_SERVER_URL=http://<service-name>.railway.internal:8080`
      (⚠ verify the service name — "read-aloud-ai-offline-version" looks like the offline
-     repo's name, not the translate service). API contract unchanged — convert-server untouched; just
+     repo's name, not the translate service).
+     v2.3 ("translates to English" bug post-mortem): frontend sent `opts={lang:'hi'}` but
+     translate-server received `target:'en'` — the DEPLOYED gateway worker predated the
+     `opts` passthrough and silently dropped the field; convert-server's silent `'en'`
+     default then masked the loss. Fixes: translate now REQUIRES opts.lang (loud error
+     naming the stale-worker cause instead of wrong-language output) + per-request
+     `optsReceived` log line. ⚠ RE-PASTE `worker-convert.js` to Cloudflare — that is the
+     actual fix; it's still pending from the Step-5 deploy checklist. API contract unchanged — convert-server untouched; just
      set `TRANSLATE_SERVER_URL` on it. Until then Translate returns a clean
      "translation engine not connected" error.
   5. Test each new tool once (see per-tool notes below). Then Step 6 (Own Voice TTS /
