@@ -236,16 +236,17 @@ export default {
 
     /* profile */
     let prof = null;
-    const rows = await sbGet(env, `profiles?id=eq.${uid}&select=plan,provider,model,tokens_balance,tokens_used`);
+    const rows = await sbGet(env, `profiles?id=eq.${uid}&select=plan,provider,model,tokens_balance,tokens_used,wallet_paise`);
     if (Array.isArray(rows) && rows[0]) prof = rows[0];
-    if (!prof) prof = { plan: 'free', provider: 'free', model: null, tokens_balance: 0, tokens_used: 0 };
+    if (!prof) prof = { plan: 'free', provider: 'free', model: null, tokens_balance: 0, tokens_used: 0, wallet_paise: 0 };
     const isPaid = prof.plan !== 'free' && prof.tokens_balance > 0
       && (prof.provider === 'openai' || prof.provider === 'anthropic');
 
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname.endsWith('/me')) {
       return json({ plan: prof.plan, provider: prof.provider, model: prof.model,
-        tokens_balance: prof.tokens_balance, tokens_used: prof.tokens_used, effective: isPaid ? 'paid' : 'free' }, 200, cors);
+        tokens_balance: prof.tokens_balance, tokens_used: prof.tokens_used,
+        wallet_paise: prof.wallet_paise || 0, effective: isPaid ? 'paid' : 'free' }, 200, cors);
     }
     if (request.method !== 'POST') return json({ error: 'POST only' }, 405, cors);
 

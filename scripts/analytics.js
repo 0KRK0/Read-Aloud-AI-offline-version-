@@ -44,4 +44,12 @@ var LX_CLARITY_ID = '';    /* e.g. 'abcdefghij'    (Microsoft Clarity)    */
       var y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
     })(window, document, 'clarity', 'script', LX_CLARITY_ID);
   }
+
+  /* PWA: register the minimal service worker (immutable assets only — safe).
+     Loaded on every page since analytics.js is site-wide. */
+  if('serviceWorker' in navigator && location.protocol === 'https:'){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/sw.js').catch(function(){});
+    });
+  }
 })();

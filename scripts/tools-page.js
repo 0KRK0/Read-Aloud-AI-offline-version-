@@ -168,6 +168,8 @@ const KIT = [
   }},
  {id:'compress', cat:'opt', ic:'📉', name:'Compress PDF', desc:'Reduce file size while keeping text sharp, selectable and searchable.',
   accept:'.pdf', preview:'files', action:'Compress PDF', premium:true, ptool:'compress_hd',
+  premOpts:()=>`<label class="f">HD compression profile</label>
+    <select id="oHdPreset"><option value="">Smart (balanced)</option><option value="max">Maximum shrink</option><option value="web">Web — fast loading</option><option value="light">Light — best quality</option><option value="email">Email — aims under 5 MB</option></select>`,
   opts:()=>`<label class="f">Compression level</label><select id="oQ">
     <option value="0.72|1600">Balanced — good quality</option>
     <option value="0.55|1200">Strong — smallest file</option>
@@ -196,6 +198,9 @@ const KIT = [
   }},
  {id:'ocr', cat:'opt', ic:'🔍', name:'OCR PDF', desc:'Convert a scanned PDF into a searchable, selectable document.',
   accept:'.pdf', preview:'files', action:'Make it searchable', premium:true, ptool:'ocr_hd',
+  premOpts:()=>`<label class="f">Document language</label>
+    <select id="oOcrLang"><option value="eng">English</option><option value="eng+hin">English + Hindi</option><option value="hin">Hindi</option><option value="tam">Tamil</option><option value="tel">Telugu</option><option value="ben">Bengali</option><option value="mar">Marathi</option><option value="guj">Gujarati</option><option value="kan">Kannada</option><option value="mal">Malayalam</option><option value="pan">Punjabi</option><option value="urd">Urdu</option></select>
+    <p class="sHint">HD OCR recognises Indian languages too — pick what the document is written in.</p>`,
   opts:()=>`<p class="sHint">Each page is recognised on your device (English). The text is placed invisibly right on the scan — select it, search it, copy it. Takes a moment per page.</p>`,
   run: async (files)=>{
     if(!(await ensureJsPDF())) throw new Error('could not load the PDF maker');
@@ -404,7 +409,10 @@ const KIT = [
     return `Numbered ${n} pages.`;
   }},
  {id:'unlock', cat:'sec', ic:'🔓', name:'Unlock PDF', desc:'Remove print/copy locks, or take the password off a PDF you can open.',
-  accept:'.pdf', preview:'files', action:'Unlock PDF',
+  accept:'.pdf', preview:'files', action:'Unlock PDF', premium:true, ptool:'unlock_hd',
+  premOpts:()=>`<label class="f">PDF password</label>
+    <input type="password" id="oHdPwd" placeholder="The password that opens this PDF" autocomplete="off" style="width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:11px 12px; font-size:14px; font-family:inherit; outline:none">
+    <p class="sHint">★ HD unlock keeps the text <b>selectable</b> (the free version rebuilds password-protected pages as images). The password is used for this one job only and never stored.</p>`,
   opts:()=>`<label class="f">Password <span style="color:var(--muted); font-weight:400">— only if the PDF needs one to open</span></label>
     <input type="password" id="oPwd" placeholder="Leave blank for print / copy locks" autocomplete="off" style="width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:11px 12px; font-size:14px; font-family:inherit; outline:none">
     <p class="sHint">For print/copy-locked PDFs, leave this blank. For a PDF that asks for a password to open (like a bank statement), type it here — it never leaves your device. That copy is rebuilt from the pages, so its text is no longer selectable.</p>`,
@@ -1723,6 +1731,19 @@ async function runPremium(t){
     const sel = document.getElementById('oTrLang');
     jobOpts = { lang: (sel && sel.value) || 'en' };
   }
+  if(t.ptool === 'compress_hd'){
+    const s = document.getElementById('oHdPreset');
+    if(s && s.value) jobOpts = { preset: s.value };
+  }
+  if(t.ptool === 'ocr_hd'){
+    const s = document.getElementById('oOcrLang');
+    if(s && s.value) jobOpts = { ocrlang: s.value };
+  }
+  if(t.ptool === 'unlock_hd'){
+    const p = document.getElementById('oHdPwd');
+    if(!(p && p.value)) throw new Error('type the PDF password for HD unlock — or switch to the Free version for print/copy locks');
+    jobOpts = { password: p.value };
+  }
   const token = await lxToken();
   const auth = token ? { authorization: 'Bearer ' + token } : {};
   setProg('Checking today’s free pages…', 16);
@@ -1980,6 +2001,39 @@ function saveOut(blob, name){
   outFiles.push({blob, name});
   downloadBlob(blob, name);
 }
+/* ---- AI Workspace handoff: send a finished tool result to the reader ----
+   The result blob goes into IndexedDB; index.html picks it up on load and
+   opens it in the reader (read aloud / ask the companion) — one unified flow. */
+function lxHandoffSave(blob, name){
+  return new Promise((res, rej)=>{
+    const r = indexedDB.open('lxhand', 1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore('f');
+    r.onsuccess = ()=>{
+      const tx = r.result.transaction('f', 'readwrite');
+      tx.objectStore('f').put({ blob, name, t: Date.now() }, 'doc');
+      tx.oncomplete = ()=> res(true);
+      tx.onerror = ()=> rej(tx.error);
+    };
+    r.onerror = ()=> rej(r.error);
+  });
+}
+function offerReaderHandoff(){
+  const old = document.getElementById('doneRead');
+  if(old) old.remove();
+  if(!outFiles.length || !/\.(pdf|docx|txt|md|png|jpe?g)$/i.test(outFiles[0].name)) return;
+  const rb = document.createElement('button');
+  rb.id = 'doneRead'; rb.type = 'button'; rb.className = 'btn ghost';
+  rb.style.marginLeft = '8px';
+  rb.textContent = '📖 Open in the reader — listen & ask AI';
+  rb.onclick = async ()=>{
+    try{
+      await lxHandoffSave(outFiles[0].blob, outFiles[0].name);
+      location.href = 'index.html#guest';
+    }catch(e){ lxToast('Could not hand the file over (' + (e && e.message || e) + ')'); }
+  };
+  const again = $('again');
+  if(again && again.parentNode) again.parentNode.appendChild(rb);
+}
 $('goBtn').addEventListener('click', async ()=>{
   if(!T) return;
   if(!files.length && !T.urlTool) return;
@@ -1999,6 +2053,7 @@ $('goBtn').addEventListener('click', async ()=>{
     $('doneName').textContent = T.name;
     $('again').onclick = ()=> outFiles.forEach(o=> downloadBlob(o.blob, o.name));
     $('again').style.display = outFiles.length ? 'inline-block' : 'none';
+    offerReaderHandoff();
     show('tvDone');
   }catch(e){
     console.warn('tool failed', e);

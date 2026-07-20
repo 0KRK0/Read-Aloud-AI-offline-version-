@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0b0b0a;color:#f5f3ee}
+a{color:#e07a3f;text-decoration:none} a:hover{color:#f5f3ee}
+::selection{background:rgba(224,122,63,.35)}
+</style>
+</helmet>
+
+<section id="t5" style="padding:48px;font-family:Inter,-apple-system,sans-serif">
+  <div style="margin-bottom:32px">
+    <div style="font-family:'IBM Plex Serif',serif;font-size:30px;font-weight:600">Turn 5 — Scan a paper, redesigned for both devices</div>
+    <div style="color:#9c988c;font-size:14px;margin-top:6px">Camera-first, on-device edge detection → straighten → enhance → multi-page → save/OCR. <a href="#5a">5a</a> desktop capture + edges · <a href="#5b">5b</a> mobile capture (native-first) · <a href="#5c">5c</a> multi-page review &amp; handoff</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:72px;align-items:flex-start">
+
+  <!-- ================= 5a DESKTOP SCAN ================= -->
+  <div id="5a" style="flex:none;width:1600px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">5a · DESKTOP — CAPTURE &amp; DETECT EDGES</div>
+    <div style="background:#111110;border:1px solid #2c2a26;height:900px;display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:52px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid #2c2a26">
+        <div style="display:flex;align-items:center;gap:10px;font-family:'IBM Plex Serif',serif;font-size:16px;font-weight:600"><span style="width:22px;height:22px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><span style="width:7px;height:7px;background:#111110"></span></span>Lexora <span style="color:#e07a3f">AI</span></div>
+        <div style="width:1px;height:22px;background:#2c2a26"></div>
+        <div style="font-family:'IBM Plex Serif',serif;font-size:16px;font-weight:600">Scan a paper</div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:9px;color:#9c988c;font-size:12.5px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#e07a3f" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Camera runs in your browser · nothing uploaded</div>
+      </div>
+      <div style="flex:1;display:flex;min-height:0">
+        <div style="width:64px;flex:none;border-right:1px solid #2c2a26;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px">
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;background:#211f1c;border-left:2px solid #e07a3f;color:#f5f3ee"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="12" x2="17" y2="12"></line></svg></span>
+        </div>
+        <!-- viewfinder -->
+        <div style="flex:1;background:#0a0a09;display:flex;flex-direction:column;min-width:0;padding:28px;box-sizing:border-box">
+          <div style="flex:1;position:relative;border:1px solid #2c2a26;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#1a1613">
+            <!-- faux page on desk -->
+            <div style="position:absolute;width:440px;height:560px;background:#f0ebe2;transform:perspective(1400px) rotateX(6deg) rotateZ(-3deg);top:70px;box-shadow:none"></div>
+            <div style="position:absolute;width:440px;height:560px;top:70px;transform:perspective(1400px) rotateX(6deg) rotateZ(-3deg);padding:40px 34px;box-sizing:border-box"><div style="height:12px;background:#b8b0a2;width:70%"></div><div style="height:5px;background:#cdc6ba;margin-top:18px"></div><div style="height:5px;background:#cdc6ba;margin-top:9px"></div><div style="height:5px;background:#cdc6ba;margin-top:9px;width:80%"></div></div>
+            <!-- detected quad overlay -->
+            <svg viewBox="0 0 900 620" style="position:absolute;inset:0;width:100%;height:100%">
+              <defs><mask id="scanmask"><rect width="900" height="620" fill="#fff"></rect><polygon points="238,92 664,120 636,548 214,516" fill="#000"></polygon></mask></defs>
+              <rect width="900" height="620" fill="#0a0a09" opacity="0.55" mask="url(#scanmask)"></rect>
+              <polygon points="238,92 664,120 636,548 214,516" fill="none" stroke="#e07a3f" stroke-width="2.5"></polygon>
+              <g fill="#e07a3f"><rect x="230" y="84" width="16" height="16"></rect><rect x="656" y="112" width="16" height="16"></rect><rect x="628" y="540" width="16" height="16"></rect><rect x="206" y="508" width="16" height="16"></rect></g>
+              <line x1="238" y1="92" x2="664" y2="120" stroke="#e07a3f" stroke-width="1" stroke-dasharray="4 5" opacity=".6"></line>
+            </svg>
+            <div style="position:absolute;left:50%;top:24px;transform:translateX(-50%);border:1px solid #3a3833;background:#111110;padding:8px 14px;font-size:12.5px;display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;background:#e07a3f;display:inline-block"></span>Page detected — drag the corners to adjust</div>
+          </div>
+          <!-- capture controls -->
+          <div style="flex:none;display:flex;align-items:center;gap:16px;margin-top:22px">
+            <div style="display:flex;border:1px solid #3a3833"><span style="padding:11px 16px;font-size:13px;font-weight:600;background:#e07a3f;color:#111110">Auto</span><span style="padding:11px 16px;font-size:13px;color:#9c988c;border-left:1px solid #2c2a26">Manual</span></div>
+            <div style="margin:0 auto;display:flex;align-items:center;gap:20px">
+              <button style="width:48px;height:48px;border:1px solid #3a3833;background:none;color:#9c988c;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="18" height="18"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"></path></svg></button>
+              <button style="width:76px;height:76px;background:#e07a3f;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center"><span style="width:52px;height:52px;border:3px solid #111110;display:inline-block"></span></button>
+              <button style="width:48px;height:48px;border:1px solid #3a3833;background:none;color:#9c988c;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;color:#9c988c;font-size:12.5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4l3 2"></path></svg>Auto-shutter when steady</div>
+          </div>
+        </div>
+        <!-- right: enhance -->
+        <div style="width:340px;flex:none;border-left:1px solid #2c2a26;display:flex;flex-direction:column;min-height:0">
+          <div style="flex:none;padding:16px 20px;border-bottom:1px solid #2c2a26;font-size:12px;font-weight:700;letter-spacing:.1em;color:#9c988c">ENHANCE</div>
+          <div style="flex:1;padding:20px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#2c2a26;border:1px solid #2c2a26">
+              <div style="background:#211f1c;padding:14px 12px;text-align:center;border-left:2px solid #e07a3f"><div style="height:56px;background:#faf9f5"></div><div style="font-size:12px;font-weight:600;margin-top:9px">Auto</div></div>
+              <div style="background:#111110;padding:14px 12px;text-align:center"><div style="height:56px;background:#f0ede6"></div><div style="font-size:12px;color:#9c988c;margin-top:9px">Original</div></div>
+              <div style="background:#111110;padding:14px 12px;text-align:center"><div style="height:56px;background:#ffffff"></div><div style="font-size:12px;color:#9c988c;margin-top:9px">B &amp; W</div></div>
+              <div style="background:#111110;padding:14px 12px;text-align:center"><div style="height:56px;background:#e8f0ee"></div><div style="font-size:12px;color:#9c988c;margin-top:9px">Grayscale</div></div>
+            </div>
+            <div style="margin-top:22px">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#9c988c"><span>Straighten</span><span class="tnum" style="color:#f5f3ee">−3°</span></div>
+              <div style="height:3px;background:#2c2a26;margin-top:10px;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:44%;background:#e07a3f"></span><span style="position:absolute;left:44%;top:-3px;width:9px;height:9px;background:#e07a3f"></span></div>
+            </div>
+            <div style="margin-top:20px">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#9c988c"><span>Brightness</span><span class="tnum" style="color:#f5f3ee">+12</span></div>
+              <div style="height:3px;background:#2c2a26;margin-top:10px;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:60%;background:#e07a3f"></span><span style="position:absolute;left:60%;top:-3px;width:9px;height:9px;background:#e07a3f"></span></div>
+            </div>
+            <div style="border:1px solid #2c2a26;margin-top:24px;padding:14px 16px;display:flex;align-items:center;gap:12px"><span style="width:36px;height:36px;border:1px solid #3a3833;display:inline-flex;align-items:center;justify-content:center;color:#e07a3f;flex:none"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 6 9 17l-5-5"></path></svg></span><div><div style="font-size:13px;font-weight:600">Clean up</div><div style="color:#9c988c;font-size:11.5px;margin-top:2px">remove shadows &amp; specks</div></div></div>
+          </div>
+          <div style="flex:none;padding:16px 20px;border-top:1px solid #2c2a26"><button style="width:100%;background:#e07a3f;color:#111110;border:none;padding:14px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:space-between">Add page<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
+        </div>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;max-width:960px;line-height:1.6">Desktop scan is a real capture station: live viewfinder with an on-device detected quad (draggable orange corners, registration squares), a large shutter with auto/manual and auto-shutter-when-steady, and a persistent enhance rail — presets, straighten and brightness sliders, one-tap clean-up. Everything runs in the browser; the privacy line sits in the header.</div>
+  </div>
+
+  <!-- ================= 5b MOBILE SCAN ================= -->
+  <div id="5b" style="flex:none">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">5b · MOBILE — NATIVE-FIRST CAPTURE</div>
+    <div style="width:390px;height:800px;background:#0a0a09;border:1px solid #2c2a26;display:flex;flex-direction:column;overflow:hidden;position:relative">
+      <!-- full-bleed camera -->
+      <div style="position:absolute;inset:0;background:#1a1613"></div>
+      <div style="position:absolute;left:50%;top:150px;transform:translateX(-50%) rotateZ(-2deg);width:260px;height:340px;background:#f0ebe2;padding:26px 22px;box-sizing:border-box"><div style="height:10px;background:#b8b0a2;width:70%"></div><div style="height:4px;background:#cdc6ba;margin-top:14px"></div><div style="height:4px;background:#cdc6ba;margin-top:8px"></div><div style="height:4px;background:#cdc6ba;margin-top:8px;width:80%"></div></div>
+      <svg viewBox="0 0 390 800" style="position:absolute;inset:0;width:100%;height:100%">
+        <defs><mask id="mscan"><rect width="390" height="800" fill="#fff"></rect><polygon points="70,146 320,158 300,506 90,494" fill="#000"></polygon></mask></defs>
+        <rect width="390" height="800" fill="#0a0a09" opacity="0.5" mask="url(#mscan)"></rect>
+        <polygon points="70,146 320,158 300,506 90,494" fill="none" stroke="#e07a3f" stroke-width="2.5"></polygon>
+        <g fill="#e07a3f"><rect x="62" y="138" width="15" height="15"></rect><rect x="313" y="150" width="15" height="15"></rect><rect x="293" y="498" width="15" height="15"></rect><rect x="83" y="486" width="15" height="15"></rect></g>
+      </svg>
+      <!-- top bar -->
+      <div style="position:relative;height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:12px;color:#f5f3ee;font-variant-numeric:tabular-nums"><span>9:41</span><span style="display:flex;gap:5px">●●● ▮</span></div>
+      <div style="position:relative;flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 16px"><span style="width:38px;height:38px;border:1px solid #3a3833;background:rgba(17,17,16,.7);display:inline-flex;align-items:center;justify-content:center;color:#f5f3ee"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span><span style="border:1px solid #3a3833;background:rgba(17,17,16,.7);color:#f5f3ee;font-size:12px;font-weight:600;padding:8px 14px">Auto</span><span style="width:38px;height:38px;border:1px solid #3a3833;background:rgba(17,17,16,.7);display:inline-flex;align-items:center;justify-content:center;color:#f5f3ee"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M5 3a2 2 0 0 0-2 2"></path><path d="M19 3a2 2 0 0 1 2 2"></path><path d="M21 19a2 2 0 0 1-2 2"></path><path d="M5 21a2 2 0 0 1-2-2"></path><circle cx="12" cy="12" r="3"></circle></svg></span></div>
+      <!-- detected pill -->
+      <div style="position:relative;margin:14px auto 0;border:1px solid #3a3833;background:rgba(17,17,16,.8);padding:8px 14px;font-size:12.5px;color:#f5f3ee;display:flex;align-items:center;gap:9px;width:fit-content"><span style="width:7px;height:7px;background:#e07a3f;display:inline-block"></span>Hold steady — capturing…</div>
+      <div style="flex:1"></div>
+      <!-- shutter dock -->
+      <div style="position:relative;flex:none;padding:18px 24px 12px;display:flex;align-items:center;justify-content:space-between">
+        <div style="width:52px;height:52px;border:1px solid #3a3833;background:#181714;position:relative;overflow:hidden"><div style="position:absolute;inset:8px;background:#f0ebe2"></div><span style="position:absolute;right:-1px;bottom:-1px;background:#e07a3f;color:#111110;font-size:10px;font-weight:700;padding:2px 5px" class="tnum">2</span></div>
+        <button style="width:74px;height:74px;border-radius:50%;background:none;border:4px solid #f5f3ee;cursor:pointer;display:flex;align-items:center;justify-content:center"><span style="width:58px;height:58px;border-radius:50%;background:#e07a3f;display:inline-block"></span></button>
+        <div style="width:52px;height:52px;border:1px solid #3a3833;background:#181714;display:flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="18" height="18"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"></path></svg></div>
+      </div>
+      <div style="position:relative;flex:none;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 24px 20px;color:#9c988c;font-size:12px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#e07a3f" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Stays on your phone · tap the stack to review 2 pages</div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;width:390px;line-height:1.6">Mobile is native-first: full-bleed camera, detected quad, big thumb shutter with a live page-stack thumbnail (batch scanning), flash/auto/grid toggles in reach. Auto-shutter fires when steady — no button hunting.</div>
+  </div>
+
+  <!-- ================= 5c MOBILE REVIEW ================= -->
+  <div id="5c" style="flex:none">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">5c · REVIEW — MULTI-PAGE &amp; HANDOFF</div>
+    <div style="width:390px;height:800px;background:#111110;border:1px solid #2c2a26;display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:12px;color:#9c988c;font-variant-numeric:tabular-nums"><span>9:41</span><span style="display:flex;gap:5px">●●● ▮</span></div>
+      <div style="flex:none;display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #2c2a26"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9c988c" stroke-width="1.75"><path d="m15 18-6-6 6-6"></path></svg><span style="font-size:14px;font-weight:600;flex:1">Review · 3 pages</span><span style="border:1px solid #3a3833;color:#f5f3ee;font-size:12px;font-weight:600;padding:6px 12px">Add</span></div>
+      <!-- hero page -->
+      <div style="flex:1;background:#181714;padding:18px 20px;overflow:hidden;display:flex;flex-direction:column">
+        <div style="flex:1;background:#faf9f5;border:1px solid #2c2a26;padding:26px 24px;position:relative"><div style="height:12px;background:#1a1915;width:60%"></div><div style="height:4px;background:#c9c6bd;margin-top:18px"></div><div style="height:4px;background:#c9c6bd;margin-top:9px"></div><div style="height:4px;background:#c9c6bd;margin-top:9px;width:85%"></div><div style="height:4px;background:#c9c6bd;margin-top:9px"></div><div style="height:4px;background:#c9c6bd;margin-top:9px;width:70%"></div><span class="plate" style="position:absolute;right:14px;bottom:14px;border:1px solid #e4e1d8;padding:6px 10px;font-size:11px;color:#6e6b62;background:#fff">Auto · sharp</span></div>
+        <!-- edit row -->
+        <div style="flex:none;display:flex;gap:0;border:1px solid #2c2a26;margin-top:16px">
+          <span style="flex:1;padding:12px 0;text-align:center;color:#f5f3ee;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg>Crop</span>
+          <span style="flex:1;padding:12px 0;text-align:center;color:#9c988c;font-size:12px;border-left:1px solid #2c2a26;display:flex;flex-direction:column;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>Rotate</span>
+          <span style="flex:1;padding:12px 0;text-align:center;color:#9c988c;font-size:12px;border-left:1px solid #2c2a26;display:flex;flex-direction:column;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="4"></circle><path d="M12 3v2m0 14v2M3 12h2m14 0h2"></path></svg>Enhance</span>
+          <span style="flex:1;padding:12px 0;text-align:center;color:#9c988c;font-size:12px;border-left:1px solid #2c2a26;display:flex;flex-direction:column;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>Delete</span>
+        </div>
+        <!-- page strip -->
+        <div style="flex:none;display:flex;gap:10px;margin-top:16px;align-items:center">
+          <div style="width:54px;height:70px;background:#faf9f5;border:2px solid #e07a3f;position:relative"><span style="position:absolute;left:3px;top:3px;background:#e07a3f;color:#111110;font-size:10px;font-weight:700;padding:1px 5px" class="tnum">1</span></div>
+          <div style="width:54px;height:70px;background:#faf9f5;border:1px solid #3a3833;position:relative"><span style="position:absolute;left:3px;top:3px;background:#211f1c;color:#f5f3ee;font-size:10px;font-weight:700;padding:1px 5px" class="tnum">2</span></div>
+          <div style="width:54px;height:70px;background:#faf9f5;border:1px solid #3a3833;position:relative"><span style="position:absolute;left:3px;top:3px;background:#211f1c;color:#f5f3ee;font-size:10px;font-weight:700;padding:1px 5px" class="tnum">3</span></div>
+          <div style="width:54px;height:70px;border:1px dashed #3a3833;display:flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
+        </div>
+      </div>
+      <!-- save / handoff -->
+      <div style="flex:none;border-top:1px solid #2c2a26;padding:16px">
+        <div style="display:flex;gap:1px;background:#2c2a26;border:1px solid #2c2a26">
+          <span style="flex:1;background:#211f1c;color:#f5f3ee;font-size:12px;font-weight:600;padding:10px 0;text-align:center;border-left:2px solid #e07a3f">PDF</span>
+          <span style="flex:1;background:#111110;color:#9c988c;font-size:12px;padding:10px 0;text-align:center">JPG</span>
+          <span style="flex:1;background:#111110;color:#e07a3f;font-size:12px;padding:10px 0;text-align:center">★ Searchable PDF</span>
+        </div>
+        <button style="width:100%;background:#e07a3f;color:#111110;border:none;padding:15px;font-size:14.5px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;margin-top:12px;display:flex;align-items:center;justify-content:space-between">Save 3 pages<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <span style="flex:1;border:1px solid #3a3833;color:#f5f3ee;font-size:12.5px;font-weight:600;padding:11px 0;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>Read aloud</span>
+          <span style="flex:1;border:1px solid #3a3833;color:#f5f3ee;font-size:12.5px;font-weight:600;padding:11px 0;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>OCR text</span>
+        </div>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;width:390px;line-height:1.6">Review is where scan meets the workspace: reorder/crop/rotate/enhance per page, a live page strip, then save as PDF/JPG or ★ searchable PDF — and hand straight off to Read aloud or OCR. Same shared-border grammar as every other surface.</div>
+  </div>
+
+  </div>
+</section>
+
+<section id="t4" style="padding:48px;font-family:Inter,-apple-system,sans-serif">
+  <div style="margin-bottom:32px">
+    <div style="font-family:'IBM Plex Serif',serif;font-size:30px;font-weight:600">Turn 4 — Wallet, settings &amp; mobile</div>
+    <div style="color:#9c988c;font-size:14px;margin-top:6px"><a href="#4a">4a</a> plans &amp; wallet · <a href="#4b">4b</a> settings — AI Engine · <a href="#4c">4c</a> mobile reader · <a href="#4d">4d</a> mobile tools + light theme</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:72px;align-items:flex-start">
+
+  <!-- ================= 4a PLANS & WALLET ================= -->
+  <div id="4a" style="flex:none;width:1180px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">4a · PLANS &amp; WALLET</div>
+    <div style="background:#111110;border:1px solid #2c2a26;padding:48px 56px">
+      <div style="display:flex;align-items:flex-end;gap:20px">
+        <div><div style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#e07a3f">PAY FOR WHAT YOU USE</div><div style="font-family:'IBM Plex Serif',serif;font-size:38px;font-weight:600;margin-top:10px">Plans &amp; wallet</div></div>
+        <div style="margin-left:auto;text-align:right"><div style="font-size:12px;color:#9c988c;letter-spacing:.06em">₹ WALLET BALANCE</div><div style="font-family:'IBM Plex Serif',serif;font-size:40px;font-weight:600;color:#e07a3f;font-variant-numeric:tabular-nums">₹337.00</div></div>
+      </div>
+      <!-- top up -->
+      <div style="border:1px solid #2c2a26;margin-top:28px;padding:24px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#9c988c">TOP UP ONCE — SPEND ON ANYTHING</div>
+        <div style="display:flex;gap:12px;margin-top:16px;align-items:stretch">
+          <span style="flex:1;text-align:center;border:1px solid #3a3833;padding:14px;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums">₹49</span>
+          <span style="flex:1;text-align:center;border:1px solid #3a3833;padding:14px;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums">₹99</span>
+          <span style="flex:1;text-align:center;border:2px solid #e07a3f;padding:14px;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:#e07a3f">₹199</span>
+          <span style="flex:1;text-align:center;border:1px solid #3a3833;padding:14px;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums">₹499</span>
+          <span style="flex:1.4;display:flex;border:1px solid #3a3833"><span style="padding:14px 4px 14px 14px;color:#9c988c">₹</span><span style="flex:1;padding:14px 0;color:#9c988c;font-size:14px">Custom</span></span>
+          <button style="background:#e07a3f;color:#111110;border:none;padding:0 28px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Add to wallet</button>
+        </div>
+        <div style="color:#9c988c;font-size:12.5px;margin-top:14px">Premium tools and AI engines charge from here — about a penny a page. No subscription lock-in.</div>
+      </div>
+      <!-- plans -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:20px">
+        <div style="background:#111110;padding:28px 26px">
+          <div style="display:flex;align-items:center;gap:10px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e07a3f" stroke-width="1.75"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><b style="font-size:16px">Swift</b><span style="margin-left:auto;border:1px solid #3a3833;color:#9c988c;font-size:11px;font-weight:600;padding:3px 8px">CURRENT</span></div>
+          <div style="font-family:'IBM Plex Serif',serif;font-size:32px;font-weight:600;margin-top:16px;font-variant-numeric:tabular-nums">₹49</div>
+          <div style="color:#9c988c;font-size:13px;margin-top:8px;line-height:1.55">Quick, clever answers for everyday reading.</div>
+          <button style="width:100%;background:none;color:#9c988c;border:1px solid #2c2a26;padding:12px;font-size:13.5px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;margin-top:20px">Active</button>
+        </div>
+        <div style="background:#111110;padding:28px 26px;border-top:2px solid #e07a3f;margin-top:-1px">
+          <div style="display:flex;align-items:center;gap:10px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e07a3f" stroke-width="1.75"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7Z"></path><line x1="9" y1="21" x2="15" y2="21"></line></svg><b style="font-size:16px">Sage</b></div>
+          <div style="font-family:'IBM Plex Serif',serif;font-size:32px;font-weight:600;margin-top:16px;font-variant-numeric:tabular-nums">₹99</div>
+          <div style="color:#9c988c;font-size:13px;margin-top:8px;line-height:1.55">Deepest explanations plus live web search.</div>
+          <button style="width:100%;background:#e07a3f;color:#111110;border:none;padding:13px;font-size:13.5px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;margin-top:20px">Pay ₹99 from wallet</button>
+        </div>
+        <div style="background:#111110;padding:28px 26px">
+          <div style="display:flex;align-items:center;gap:10px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e07a3f" stroke-width="1.75"><rect x="3" y="3" width="18" height="18"></rect><path d="M9 3v18"></path><path d="M15 3v18"></path></svg><b style="font-size:16px">Premium tools</b></div>
+          <div style="font-family:'IBM Plex Serif',serif;font-size:32px;font-weight:600;margin-top:16px;font-variant-numeric:tabular-nums">~₹0.10<span style="font-size:15px;color:#9c988c"> /pg</span></div>
+          <div style="color:#9c988c;font-size:13px;margin-top:8px;line-height:1.55">HD conversions, OCR, translate. 50 pages free daily.</div>
+          <button style="width:100%;background:none;color:#f5f3ee;border:1px solid #3a3833;padding:12px;font-size:13.5px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;margin-top:20px">See rates</button>
+        </div>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;max-width:900px;line-height:1.6">Wallet-first, not subscription-first: one ₹ balance funds both AI engines and premium tools. The ₹ figure is the hero; the current plan is marked, the recommended upgrade carries the single orange rule.</div>
+  </div>
+
+  <!-- ================= 4b SETTINGS — AI ENGINE ================= -->
+  <div id="4b" style="flex:none;width:1180px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">4b · SETTINGS — AI ENGINE</div>
+    <div style="background:#111110;border:1px solid #2c2a26;height:720px;display:flex;overflow:hidden">
+      <div style="width:240px;flex:none;border-right:1px solid #2c2a26;padding:28px 0">
+        <div style="padding:0 24px 16px;font-family:'IBM Plex Serif',serif;font-size:22px;font-weight:600">Settings</div>
+        <div style="font-size:13.5px">
+          <div style="padding:11px 24px;color:#9c988c">Profile</div>
+          <div style="padding:11px 24px;color:#9c988c">Wallet</div>
+          <div style="padding:11px 24px;color:#9c988c">Purchases</div>
+          <div style="padding:11px 24px;color:#9c988c">Usage</div>
+          <div style="padding:11px 24px;background:#211f1c;color:#f5f3ee;font-weight:600;border-left:2px solid #e07a3f">AI Engine</div>
+          <div style="padding:11px 24px;color:#9c988c">Voice &amp; reading</div>
+          <div style="padding:11px 24px;color:#9c988c">Privacy</div>
+        </div>
+      </div>
+      <div style="flex:1;padding:36px 44px;overflow:hidden">
+        <div style="font-family:'IBM Plex Serif',serif;font-size:26px;font-weight:600">AI Engine</div>
+        <div style="color:#9c988c;font-size:13.5px;margin-top:8px;line-height:1.55">Choose the model behind the companion. Faster engines cost less per answer; deeper ones read more of the document at once.</div>
+        <div style="display:flex;flex-direction:column;gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:24px">
+          <div style="background:#111110;padding:18px 20px;display:flex;align-items:center;gap:16px;border-left:2px solid #e07a3f">
+            <span style="width:18px;height:18px;border:1px solid #e07a3f;flex:none;display:flex;align-items:center;justify-content:center"><span style="width:9px;height:9px;background:#e07a3f"></span></span>
+            <div style="flex:1"><div style="font-size:14.5px;font-weight:600">Swift <span style="color:#9c988c;font-weight:400;font-size:12.5px">· ₹49 · active</span></div><div style="color:#9c988c;font-size:12.5px;margin-top:3px">Fast, everyday answers. Best for reading along and quick questions.</div></div>
+            <div style="text-align:right;font-size:12px;color:#9c988c;font-variant-numeric:tabular-nums">10.34M / 10.47M<br>tokens left</div>
+          </div>
+          <div style="background:#111110;padding:18px 20px;display:flex;align-items:center;gap:16px">
+            <span style="width:18px;height:18px;border:1px solid #3a3833;flex:none"></span>
+            <div style="flex:1"><div style="font-size:14.5px;font-weight:600">Sage <span style="color:#9c988c;font-weight:400;font-size:12.5px">· ₹99</span></div><div style="color:#9c988c;font-size:12.5px;margin-top:3px">Deeper reasoning + live web search for research-grade answers.</div></div>
+            <span style="border:1px solid #3a3833;color:#f5f3ee;font-size:12.5px;font-weight:600;padding:8px 14px">Switch</span>
+          </div>
+          <div style="background:#111110;padding:18px 20px;display:flex;align-items:center;gap:16px">
+            <span style="width:18px;height:18px;border:1px solid #3a3833;flex:none"></span>
+            <div style="flex:1"><div style="font-size:14.5px;font-weight:600">On-device <span style="color:#9c988c;font-weight:400;font-size:12.5px">· free · offline</span></div><div style="color:#9c988c;font-size:12.5px;margin-top:3px">Runs entirely in your browser. No wallet cost, works with no connection.</div></div>
+            <span style="border:1px solid #3a3833;color:#f5f3ee;font-size:12.5px;font-weight:600;padding:8px 14px">Switch</span>
+          </div>
+        </div>
+        <div style="border:1px solid #2c2a26;margin-top:24px;padding:20px">
+          <div style="display:flex;align-items:center"><div style="flex:1"><div style="font-size:14px;font-weight:600">Ground answers in the open document (RAG)</div><div style="color:#9c988c;font-size:12.5px;margin-top:3px">The companion cites the page and passage it used.</div></div><span style="width:44px;height:24px;border:1px solid #e07a3f;position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;bottom:2px;width:18px;background:#e07a3f"></span></span></div>
+          <div style="height:1px;background:#2c2a26;margin:18px 0"></div>
+          <div style="display:flex;align-items:center"><div style="flex:1"><div style="font-size:14px;font-weight:600">Ask before any server upload</div><div style="color:#9c988c;font-size:12.5px;margin-top:3px">Premium tools confirm with you before a file leaves the device.</div></div><span style="width:44px;height:24px;border:1px solid #e07a3f;position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;bottom:2px;width:18px;background:#e07a3f"></span></span></div>
+        </div>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;max-width:900px;line-height:1.6">Settings reuse the tool-flow grammar: radio rows in a shared-border list, live token meter inline, privacy toggles drawn as square switches. On-device engine is a first-class option, not a footnote.</div>
+  </div>
+
+  <!-- ================= 4c MOBILE READER ================= -->
+  <div id="4c" style="flex:none">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">4c · MOBILE READER</div>
+    <div style="width:390px;height:800px;background:#111110;border:1px solid #2c2a26;display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:12px;color:#9c988c;font-variant-numeric:tabular-nums"><span>9:41</span><span style="display:flex;gap:5px">●●● ▮</span></div>
+      <div style="flex:none;display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid #2c2a26"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9c988c" stroke-width="1.75"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg><span style="font-size:13.5px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">visa payment.pdf</span><span style="border:1px solid #3a3833;color:#9c988c;font-size:10.5px;font-weight:600;padding:4px 8px">99%</span></div>
+      <div style="flex:1;background:#181714;padding:18px 16px;overflow:hidden">
+        <div style="background:#faf9f5;color:#1a1915;padding:24px 22px;font-size:13px;line-height:1.8;border:1px solid #2c2a26;height:100%;box-sizing:border-box">
+          <b style="font-family:'IBM Plex Serif',serif;font-size:16px">Payment successful</b>
+          <p style="margin:12px 0 0">This email confirms the amount paid and the <span style="background:rgba(224,122,63,.35)">application's reference number.</span> <span style="border-bottom:2px solid #e07a3f">We</span> cannot provide an invoice, but this email provides confirmation that we have received your payment.</p>
+          <p style="margin:10px 0 0;color:#44423c">If you have not already, you must book an appointment at a visa application centre to provide biometrics.</p>
+        </div>
+      </div>
+      <!-- mobile playbar -->
+      <div style="flex:none;border-top:1px solid #2c2a26">
+        <div style="padding:12px 16px 0"><div style="display:flex;justify-content:space-between;font-size:11px;color:#9c988c;font-variant-numeric:tabular-nums"><span>Sentence 12 / 37</span><span>Ravi · 1.0×</span></div><div style="height:3px;background:#2c2a26;margin-top:6px;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:32%;background:#e07a3f"></span></div></div>
+        <div style="display:flex;align-items:center;gap:0;padding:12px 8px">
+          <button style="flex:1;height:48px;background:none;border:none;color:#9c988c;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg></button>
+          <button style="width:64px;height:56px;background:#e07a3f;border:none;color:#111110;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="22" height="22" fill="#111110" stroke="#111110"><rect x="7" y="5" width="3.5" height="14"></rect><rect x="13.5" y="5" width="3.5" height="14"></rect></svg></button>
+          <button style="flex:1;height:48px;background:none;border:none;color:#9c988c;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg></button>
+          <button style="flex:1;height:48px;background:none;border:none;border-left:1px solid #2c2a26;color:#e07a3f;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg></button>
+        </div>
+      </div>
+      <!-- bottom tabs -->
+      <div style="flex:none;display:flex;border-top:1px solid #2c2a26">
+        <div style="flex:1;padding:10px 0;text-align:center;color:#e07a3f"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg><div style="font-size:10px;font-weight:600;margin-top:3px">Reader</div></div>
+        <div style="flex:1;padding:10px 0;text-align:center;color:#9c988c"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg><div style="font-size:10px;margin-top:3px">Tools</div></div>
+        <div style="flex:1;padding:10px 0;text-align:center;color:#9c988c"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"></path></svg><div style="font-size:10px;margin-top:3px">Companion</div></div>
+        <div style="flex:1;padding:10px 0;text-align:center;color:#9c988c"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6"></path></svg><div style="font-size:10px;margin-top:3px">More</div></div>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;width:390px;line-height:1.6">Mobile keeps the same instrument: karaoke page, one big play target, thumb-reachable transport, companion promoted to a tab. Hit targets ≥48px.</div>
+  </div>
+
+  <!-- ================= 4d MOBILE TOOLS — LIGHT ================= -->
+  <div id="4d" style="flex:none">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">4d · MOBILE TOOLS — LIGHT THEME</div>
+    <div style="width:390px;height:800px;background:#faf9f5;border:1px solid #e4e1d8;display:flex;flex-direction:column;overflow:hidden;color:#1a1915">
+      <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:12px;color:#6e6b62;font-variant-numeric:tabular-nums"><span>9:41</span><span style="display:flex;gap:5px">●●● ▮</span></div>
+      <div style="flex:none;padding:14px 18px;border-bottom:1px solid #e4e1d8"><div style="display:flex;align-items:center;gap:9px;font-family:'IBM Plex Serif',serif;font-size:17px;font-weight:600"><span style="width:22px;height:22px;background:#c96431;display:inline-flex;align-items:center;justify-content:center"><span style="width:7px;height:7px;background:#faf9f5"></span></span>Tools</div><div style="display:flex;align-items:center;border:1px solid #e4e1d8;margin-top:14px"><span style="padding:0 12px;color:#6e6b62;display:flex"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span><span style="padding:11px 0;color:#6e6b62;font-size:13px">Search 40+ tools</span></div></div>
+      <div style="flex:1;overflow:hidden;padding:18px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#6e6b62">POPULAR</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#e4e1d8;border:1px solid #e4e1d8;margin-top:12px">
+          <div style="background:#ffffff;padding:18px 16px"><span style="display:inline-flex;width:36px;height:36px;border:1px solid #e4e1d8;align-items:center;justify-content:center;color:#c96431"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg></span><div style="font-size:13.5px;font-weight:600;margin-top:12px">Merge PDF</div><div style="color:#6e6b62;font-size:11.5px;margin-top:3px">combine in order</div></div>
+          <div style="background:#ffffff;padding:18px 16px;position:relative"><span style="position:absolute;right:12px;top:12px;color:#c96431;font-size:11px;font-weight:700">★</span><span style="display:inline-flex;width:36px;height:36px;border:1px solid #e4e1d8;align-items:center;justify-content:center;color:#c96431"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></span><div style="font-size:13.5px;font-weight:600;margin-top:12px">Compress</div><div style="color:#6e6b62;font-size:11.5px;margin-top:3px">smaller, sharp</div></div>
+          <div style="background:#ffffff;padding:18px 16px;position:relative"><span style="position:absolute;right:12px;top:12px;color:#c96431;font-size:11px;font-weight:700">★</span><span style="display:inline-flex;width:36px;height:36px;border:1px solid #e4e1d8;align-items:center;justify-content:center;color:#c96431"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span><div style="font-size:13.5px;font-weight:600;margin-top:12px">PDF to Word</div><div style="color:#6e6b62;font-size:11.5px;margin-top:3px">editable .docx</div></div>
+          <div style="background:#ffffff;padding:18px 16px;position:relative"><span style="position:absolute;right:12px;top:12px;color:#c96431;font-size:11px;font-weight:700">★</span><span style="display:inline-flex;width:36px;height:36px;border:1px solid #e4e1d8;align-items:center;justify-content:center;color:#c96431"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span><div style="font-size:13.5px;font-weight:600;margin-top:12px">OCR PDF</div><div style="color:#6e6b62;font-size:11.5px;margin-top:3px">make searchable</div></div>
+        </div>
+        <div style="border:1px solid #e4e1d8;margin-top:18px;padding:16px;display:flex;align-items:center;gap:13px"><span style="display:inline-flex;width:40px;height:40px;background:#c96431;align-items:center;justify-content:center;color:#faf9f5;flex:none"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="12" x2="17" y2="12"></line></svg></span><div style="flex:1"><div style="font-size:14px;font-weight:600">Scan a paper</div><div style="color:#6e6b62;font-size:12px;margin-top:2px">camera → clean PDF, on device</div></div><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#6e6b62" stroke-width="1.75"><path d="m9 18 6-6-6-6"></path></svg></div>
+      </div>
+      <div style="flex:none;display:flex;border-top:1px solid #e4e1d8">
+        <div style="flex:1;padding:10px 0;text-align:center;color:#6e6b62"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg><div style="font-size:10px;margin-top:3px">Reader</div></div>
+        <div style="flex:1;padding:10px 0;text-align:center;color:#c96431"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg><div style="font-size:10px;font-weight:600;margin-top:3px">Tools</div></div>
+        <div style="flex:1;padding:10px 0;text-align:center;color:#6e6b62"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"></path></svg><div style="font-size:10px;margin-top:3px">Companion</div></div>
+        <div style="flex:1;padding:10px 0;text-align:center;color:#6e6b62"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6"></path></svg><div style="font-size:10px;margin-top:3px">More</div></div>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;width:390px;line-height:1.6">Light theme, same language: ground #faf9f5, accent deepens to #c96431 for AA, rules become #e4e1d8. Two-up tool grid, thumb tab bar, scan promoted as the mobile-native action.</div>
+  </div>
+
+  </div>
+</section>
+
+<section id="t3" style="padding:48px;font-family:Inter,-apple-system,sans-serif">
+  <div style="margin-bottom:32px">
+    <div style="font-family:'IBM Plex Serif',serif;font-size:30px;font-weight:600">Turn 3 — Tools catalog &amp; the tool flow</div>
+    <div style="color:#9c988c;font-size:14px;margin-top:6px">One workspace, forty tools — <a href="#3a">3a</a> tools catalog (filter + grid) · <a href="#3b">3b</a> tool flow, four states (drop → options → progress → done) · <a href="#3c">3c</a> job queue &amp; background processing</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:72px;align-items:flex-start">
+
+  <!-- ================= 3a TOOLS CATALOG ================= -->
+  <div id="3a" style="flex:none;width:1600px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">3a · TOOLS CATALOG</div>
+    <div style="background:#111110;border:1px solid #2c2a26;height:960px;display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:52px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid #2c2a26">
+        <div style="display:flex;align-items:center;gap:10px;font-family:'IBM Plex Serif',serif;font-size:16px;font-weight:600"><span style="width:22px;height:22px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><span style="width:7px;height:7px;background:#111110"></span></span>Lexora <span style="color:#e07a3f">AI</span></div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:14px"><span style="border:1px solid #3a3833;color:#9c988c;font-size:11.5px;font-weight:600;letter-spacing:.06em;padding:5px 10px">SWIFT · 99%</span><span style="width:30px;height:30px;border:1px solid #3a3833;display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:#e07a3f;font-weight:700">R</span></div>
+      </div>
+      <div style="flex:1;display:flex;min-height:0">
+        <div style="width:64px;flex:none;border-right:1px solid #2c2a26;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px">
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;background:#211f1c;border-left:2px solid #e07a3f;color:#f5f3ee"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="12" x2="17" y2="12"></line></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:44px 56px;min-width:0;overflow:hidden">
+          <div style="display:flex;align-items:flex-end;gap:24px">
+            <div><div style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#e07a3f">40+ DOCUMENT TOOLS</div><div style="font-family:'IBM Plex Serif',serif;font-size:38px;font-weight:600;margin-top:10px">Tools</div></div>
+            <div style="margin-left:auto;display:flex;align-items:center;border:1px solid #3a3833;min-width:320px"><span style="padding:0 12px;color:#9c988c;display:flex"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span><span style="padding:11px 0;color:#9c988c;font-size:13.5px">Search tools — "compress", "sign", "translate"…</span></div>
+          </div>
+          <!-- filters -->
+          <div style="display:flex;gap:0;border:1px solid #3a3833;width:fit-content;margin-top:26px">
+            <span style="padding:10px 18px;font-size:13px;font-weight:600;background:#e07a3f;color:#111110">All</span>
+            <span style="padding:10px 18px;font-size:13px;color:#9c988c;border-left:1px solid #2c2a26">PDF</span>
+            <span style="padding:10px 18px;font-size:13px;color:#9c988c;border-left:1px solid #2c2a26">Word &amp; Office</span>
+            <span style="padding:10px 18px;font-size:13px;color:#9c988c;border-left:1px solid #2c2a26">Images</span>
+            <span style="padding:10px 18px;font-size:13px;color:#9c988c;border-left:1px solid #2c2a26">Scan &amp; AI</span>
+            <span style="padding:10px 18px;font-size:13px;color:#e07a3f;border-left:1px solid #2c2a26">★ Premium</span>
+          </div>
+          <!-- grid -->
+          <div style="flex:1;overflow:hidden;margin-top:24px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#9c988c">ORGANIZE &amp; EDIT</div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:12px">
+              <sc-for list="{{ toolsEdit }}" as="t" hint-placeholder-count="5">
+                <div style="background:#111110;padding:18px 18px 20px;position:relative">
+                  <sc-if value="{{ t.premium }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;right:12px;top:12px;color:#e07a3f;font-size:11px;font-weight:700">★</span></sc-if>
+                  <span style="display:inline-flex;width:36px;height:36px;border:1px solid #3a3833;align-items:center;justify-content:center;color:#e07a3f">{{ t.icon }}</span>
+                  <div style="font-size:14px;font-weight:600;margin-top:14px">{{ t.name }}</div>
+                  <div style="color:#9c988c;font-size:12px;line-height:1.5;margin-top:5px">{{ t.desc }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#9c988c;margin-top:26px">CONVERT &amp; AI</div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:12px">
+              <sc-for list="{{ toolsConvert }}" as="t" hint-placeholder-count="5">
+                <div style="background:#111110;padding:18px 18px 20px;position:relative">
+                  <sc-if value="{{ t.premium }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;right:12px;top:12px;color:#e07a3f;font-size:11px;font-weight:700">★</span></sc-if>
+                  <span style="display:inline-flex;width:36px;height:36px;border:1px solid #3a3833;align-items:center;justify-content:center;color:#e07a3f">{{ t.icon }}</span>
+                  <div style="font-size:14px;font-weight:600;margin-top:14px">{{ t.name }}</div>
+                  <div style="color:#9c988c;font-size:12px;line-height:1.5;margin-top:5px">{{ t.desc }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;max-width:900px;line-height:1.6">Tools live inside the same shell as the reader — same rail, same chrome. Segmented filter, one search field, tools grouped by intent in shared-border grids. ★ marks the few server-backed premium tools; everything else is on-device and free.</div>
+  </div>
+
+  <!-- ================= 3b TOOL FLOW ================= -->
+  <div id="3b" style="flex:none;width:100%">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">3b · TOOL FLOW — COMPRESS PDF (★ PREMIUM) · DROP → OPTIONS → PROGRESS → DONE</div>
+    <div style="display:flex;gap:28px;flex-wrap:wrap">
+
+      <!-- STATE 1 DROP -->
+      <div style="width:520px;flex:none">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#9c988c;margin-bottom:10px">① DROP</div>
+        <div style="background:#111110;border:1px solid #2c2a26;height:600px;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:24px 28px;border-bottom:1px solid #2c2a26"><div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#9c988c"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m15 18-6-6 6-6"></path></svg>All tools</div><div style="font-family:'IBM Plex Serif',serif;font-size:26px;font-weight:600;margin-top:10px">Compress PDF <span style="color:#e07a3f;font-size:13px;vertical-align:middle">★</span></div><div style="color:#9c988c;font-size:13px;margin-top:6px;line-height:1.5">Reduce file size while keeping text sharp, selectable and searchable.</div></div>
+          <div style="flex:1;margin:24px 28px;border:1px dashed #3a3833;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+            <span style="display:inline-flex;width:52px;height:52px;border:1px solid #3a3833;align-items:center;justify-content:center;color:#e07a3f"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12"></path><path d="m8 11 4 4 4-4"></path><path d="M4 21h16"></path></svg></span>
+            <div style="font-family:'IBM Plex Serif',serif;font-size:19px;font-weight:600;margin-top:18px">Drop a PDF here</div>
+            <div style="color:#9c988c;font-size:13px;margin-top:6px">or</div>
+            <button style="background:#e07a3f;color:#111110;border:none;padding:11px 20px;font-size:13.5px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;margin-top:12px">Choose a file</button>
+          </div>
+          <div style="padding:16px 28px;border-top:1px solid #2c2a26;display:flex;align-items:center;gap:9px;color:#9c988c;font-size:12px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#e07a3f" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Uploaded only for this job, then deleted from our server.</div>
+        </div>
+      </div>
+
+      <!-- STATE 2 OPTIONS -->
+      <div style="width:520px;flex:none">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#9c988c;margin-bottom:10px">② OPTIONS</div>
+        <div style="background:#111110;border:1px solid #2c2a26;height:600px;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:20px 28px;border-bottom:1px solid #2c2a26"><div style="font-family:'IBM Plex Serif',serif;font-size:22px;font-weight:600">Compress PDF</div></div>
+          <div style="flex:1;padding:24px 28px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:14px;border:1px solid #2c2a26;padding:14px 16px">
+              <span style="width:44px;height:56px;background:#faf9f5;flex:none;display:block;position:relative"><span style="position:absolute;inset:8px 8px auto;height:3px;background:#c96431"></span><span style="position:absolute;inset:16px 8px auto;height:2px;background:#c9c6bd"></span><span style="position:absolute;inset:22px 8px auto;height:2px;background:#c9c6bd"></span></span>
+              <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">JUN2026_AA3781518.pdf</div><div style="color:#9c988c;font-size:12px;margin-top:3px;font-variant-numeric:tabular-nums">393 KB · 12 pages</div></div>
+              <span style="color:#9c988c;cursor:pointer"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+            </div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#9c988c;margin-top:24px">COMPRESSION LEVEL</div>
+            <div style="display:flex;flex-direction:column;gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:12px">
+              <div style="background:#111110;padding:14px 16px;display:flex;align-items:center;gap:13px"><span style="width:16px;height:16px;border:1px solid #3a3833;flex:none"></span><span style="flex:1"><span style="display:block;font-size:13.5px;font-weight:600">Light</span><span style="display:block;color:#9c988c;font-size:12px">best quality · ~15% smaller</span></span></div>
+              <div style="background:#111110;padding:14px 16px;display:flex;align-items:center;gap:13px;border-left:2px solid #e07a3f"><span style="width:16px;height:16px;border:1px solid #e07a3f;flex:none;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;background:#e07a3f"></span></span><span style="flex:1"><span style="display:block;font-size:13.5px;font-weight:600">Recommended</span><span style="display:block;color:#9c988c;font-size:12px">balanced · ~55% smaller · text stays sharp</span></span></div>
+              <div style="background:#111110;padding:14px 16px;display:flex;align-items:center;gap:13px"><span style="width:16px;height:16px;border:1px solid #3a3833;flex:none"></span><span style="flex:1"><span style="display:block;font-size:13.5px;font-weight:600">Strong</span><span style="display:block;color:#9c988c;font-size:12px">smallest · ~75% smaller</span></span></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;border:1px solid #2c2a26;padding:12px 16px"><span style="font-size:13px;color:#9c988c">Estimated cost</span><span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">Free today · 12 / 50 pages</span></div>
+          </div>
+          <div style="padding:16px 28px;border-top:1px solid #2c2a26"><button style="width:100%;background:#e07a3f;color:#111110;border:none;padding:14px;font-size:14.5px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:space-between">Compress PDF<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button></div>
+        </div>
+      </div>
+
+      <!-- STATE 3 PROGRESS -->
+      <div style="width:520px;flex:none">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#9c988c;margin-bottom:10px">③ PROGRESS</div>
+        <div style="background:#111110;border:1px solid #2c2a26;height:600px;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:20px 28px;border-bottom:1px solid #2c2a26"><div style="font-family:'IBM Plex Serif',serif;font-size:22px;font-weight:600">Compressing…</div></div>
+          <div style="flex:1;padding:28px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <!-- node motif as progress -->
+            <svg viewBox="0 0 320 180" style="width:280px">
+              <line x1="60" y1="40" x2="160" y2="90" stroke="#e07a3f" stroke-width="1.5"></line>
+              <line x1="260" y1="36" x2="160" y2="90" stroke="#e07a3f" stroke-width="1.5"></line>
+              <line x1="80" y1="150" x2="160" y2="90" stroke="#2c2a26" stroke-width="1.5"></line>
+              <line x1="250" y1="146" x2="160" y2="90" stroke="#2c2a26" stroke-width="1.5"></line>
+              <g transform="translate(44,20)"><path d="M0 0h24l9 9v30H0z" fill="#111110" stroke="#e07a3f" stroke-width="1.5"></path></g>
+              <g transform="translate(244,16)"><path d="M0 0h24l9 9v30H0z" fill="#111110" stroke="#e07a3f" stroke-width="1.5"></path></g>
+              <g transform="translate(64,130)"><path d="M0 0h24l9 9v30H0z" fill="#111110" stroke="#3a3833" stroke-width="1.5"></path></g>
+              <g transform="translate(234,126)"><path d="M0 0h24l9 9v30H0z" fill="#111110" stroke="#3a3833" stroke-width="1.5"></path></g>
+              <rect x="148" y="78" width="24" height="24" fill="#e07a3f"></rect>
+            </svg>
+            <div style="width:100%;margin-top:28px"><div style="display:flex;justify-content:space-between;font-size:12px;color:#9c988c;font-variant-numeric:tabular-nums"><span>Page 7 of 12</span><span>58%</span></div><div style="height:3px;background:#2c2a26;margin-top:8px;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:58%;background:#e07a3f"></span></div></div>
+            <div style="color:#9c988c;font-size:13px;margin-top:20px;text-align:center;line-height:1.6">Working on our server — this stays private and is deleted right after.<br>You can leave this page; we'll keep it in your job queue.</div>
+          </div>
+          <div style="padding:16px 28px;border-top:1px solid #2c2a26;display:flex;gap:12px"><button style="flex:1;background:none;color:#f5f3ee;border:1px solid #3a3833;padding:12px;font-size:13.5px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Run in background</button><button style="background:none;color:#9c988c;border:1px solid #2c2a26;padding:12px 18px;font-size:13.5px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Cancel</button></div>
+        </div>
+      </div>
+
+      <!-- STATE 4 DONE -->
+      <div style="width:520px;flex:none">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#9c988c;margin-bottom:10px">④ DONE</div>
+        <div style="background:#111110;border:1px solid #2c2a26;height:600px;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:20px 28px;border-bottom:1px solid #2c2a26;display:flex;align-items:center;gap:10px"><span style="width:22px;height:22px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#111110" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg></span><div style="font-family:'IBM Plex Serif',serif;font-size:22px;font-weight:600">Done</div></div>
+          <div style="flex:1;padding:24px 28px">
+            <div style="display:flex;align-items:stretch;gap:0;border:1px solid #2c2a26">
+              <div style="flex:1;padding:18px;text-align:center;border-right:1px solid #2c2a26"><div style="font-size:11.5px;color:#9c988c;letter-spacing:.06em">BEFORE</div><div style="font-family:'IBM Plex Serif',serif;font-size:26px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums">393 KB</div></div>
+              <div style="flex:1;padding:18px;text-align:center"><div style="font-size:11.5px;color:#e07a3f;letter-spacing:.06em">AFTER</div><div style="font-family:'IBM Plex Serif',serif;font-size:26px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums;color:#e07a3f">176 KB</div></div>
+            </div>
+            <div style="text-align:center;font-size:13px;color:#9c988c;margin-top:14px">55% smaller · text still selectable</div>
+            <button style="width:100%;background:#e07a3f;color:#111110;border:none;padding:14px;font-size:14.5px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;margin-top:22px;display:flex;align-items:center;justify-content:space-between">Download<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+            <div style="display:flex;flex-direction:column;gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:16px">
+              <div style="background:#111110;padding:13px 16px;display:flex;align-items:center;gap:12px;font-size:13.5px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#9c988c" stroke-width="1.75"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>Open in the reader</div>
+              <div style="background:#111110;padding:13px 16px;display:flex;align-items:center;gap:12px;font-size:13.5px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#9c988c" stroke-width="1.75"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg>Merge with another PDF</div>
+            </div>
+          </div>
+          <div style="padding:14px 28px;border-top:1px solid #2c2a26;color:#9c988c;font-size:12px;text-align:center">Deleted from our server. The copy is yours.</div>
+        </div>
+      </div>
+
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:16px;max-width:960px;line-height:1.6">Every tool follows one four-state spine so 40 tools feel like one. Progress uses the node motif as a live graphic, offers "run in background" (feeds the job queue), and the done state always chains forward — open in reader, or hand off to the next tool. Privacy is stated at every step.</div>
+  </div>
+
+  <!-- ================= 3c JOB QUEUE ================= -->
+  <div id="3c" style="flex:none;width:1600px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">3c · JOB QUEUE &amp; BACKGROUND PROCESSING</div>
+    <div style="background:#111110;border:1px solid #2c2a26;height:620px;display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:52px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid #2c2a26">
+        <div style="display:flex;align-items:center;gap:10px;font-family:'IBM Plex Serif',serif;font-size:16px;font-weight:600"><span style="width:22px;height:22px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><span style="width:7px;height:7px;background:#111110"></span></span>Lexora <span style="color:#e07a3f">AI</span></div>
+        <div style="width:1px;height:22px;background:#2c2a26"></div>
+        <div style="font-family:'IBM Plex Serif',serif;font-size:16px;font-weight:600">Jobs</div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12.5px;color:#9c988c"><span style="width:8px;height:8px;background:#e07a3f;display:inline-block"></span>1 running · 2 done · deleted after 1 hour</div>
+      </div>
+      <div style="flex:1;padding:28px 40px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr;background:#2c2a26;border:1px solid #2c2a26;gap:1px">
+          <div style="background:#181714;padding:12px 18px;font-size:11.5px;font-weight:700;letter-spacing:.08em;color:#9c988c">JOB</div>
+          <div style="background:#181714;padding:12px 18px;font-size:11.5px;font-weight:700;letter-spacing:.08em;color:#9c988c">STATUS</div>
+          <div style="background:#181714;padding:12px 18px;font-size:11.5px;font-weight:700;letter-spacing:.08em;color:#9c988c">COST</div>
+          <div style="background:#181714;padding:12px 18px;font-size:11.5px;font-weight:700;letter-spacing:.08em;color:#9c988c">ACTION</div>
+          <sc-for list="{{ jobs }}" as="j" hint-placeholder-count="4">
+            <div style="background:#111110;padding:16px 18px;display:flex;align-items:center;gap:12px"><span style="display:inline-flex;width:32px;height:32px;border:1px solid #3a3833;align-items:center;justify-content:center;color:#e07a3f;flex:none">{{ j.icon }}</span><span style="min-width:0"><span style="display:block;font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ j.name }}</span><span style="display:block;color:#9c988c;font-size:12px;margin-top:2px">{{ j.file }}</span></span></div>
+            <div style="background:#111110;padding:16px 18px;display:flex;align-items:center">{{ j.statusEl }}</div>
+            <div style="background:#111110;padding:16px 18px;display:flex;align-items:center;font-size:13px;font-variant-numeric:tabular-nums;color:#9c988c">{{ j.cost }}</div>
+            <div style="background:#111110;padding:16px 18px;display:flex;align-items:center"><span style="border:1px solid #3a3833;color:#f5f3ee;font-size:12.5px;font-weight:600;padding:7px 14px">{{ j.action }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;max-width:900px;line-height:1.6">Any premium job can be sent to the background; the queue is a themed table with live status. This same surface scales to future long-running work — Deep Research runs, batch translation, Voice Studio renders — without a new pattern.</div>
+  </div>
+
+  </div>
+</section>
+
+<section id="t2" style="padding:48px;font-family:Inter,-apple-system,sans-serif">
+  <div style="margin-bottom:32px">
+    <div style="font-family:'IBM Plex Serif',serif;font-size:30px;font-weight:600">Turn 2 — Workspace · Reader + Companion (final direction)</div>
+    <div style="color:#9c988c;font-size:14px;margin-top:6px">Direction B locked with A's grid discipline — <a href="#2a">2a</a> reader, document playing (dense) · <a href="#2b">2b</a> focus reading mode (airy) · <a href="#2c">2c</a> workspace home / empty state</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:72px;align-items:flex-start">
+
+  <!-- ================= 2a READER DENSE ================= -->
+  <div id="2a" style="flex:none;width:1600px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">2a · READER — DOCUMENT PLAYING</div>
+    <div style="background:#111110;border:1px solid #2c2a26;height:940px;display:flex;flex-direction:column;overflow:hidden">
+      <!-- top bar -->
+      <div style="height:52px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid #2c2a26">
+        <div style="display:flex;align-items:center;gap:10px;font-family:'IBM Plex Serif',serif;font-size:16px;font-weight:600"><span style="width:22px;height:22px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><span style="width:7px;height:7px;background:#111110"></span></span>Lexora <span style="color:#e07a3f">AI</span></div>
+        <div style="width:1px;height:22px;background:#2c2a26"></div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:500"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#9c988c" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>visa payment.pdf <span style="color:#9c988c;font-weight:400">· 1 page · on this device</span></div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+          <span style="border:1px solid #3a3833;color:#9c988c;font-size:11.5px;font-weight:600;letter-spacing:.06em;padding:5px 10px">SWIFT · 99%</span>
+          <span style="display:flex;gap:2px">
+            <span style="width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #2c2a26;color:#9c988c"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span>
+            <span style="width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #2c2a26;color:#9c988c;border-left:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3v12"></path><path d="m8 11 4 4 4-4"></path><path d="M4 21h16"></path></svg></span>
+            <span style="width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #2c2a26;color:#9c988c;border-left:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+          </span>
+          <span style="width:30px;height:30px;border:1px solid #3a3833;display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:#e07a3f;font-weight:700">R</span>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;min-height:0">
+        <!-- rail -->
+        <div style="width:64px;flex:none;border-right:1px solid #2c2a26;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px">
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;background:#211f1c;border-left:2px solid #e07a3f;color:#f5f3ee"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="12" x2="17" y2="12"></line></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></span>
+          <div style="width:24px;height:1px;background:#2c2a26;margin:6px 0"></div>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 12a9 9 0 1 1-9-9"></path><path d="M12 7v5l3 3"></path></svg></span>
+          <span style="margin-top:auto;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+        </div>
+        <!-- doc area -->
+        <div style="flex:1;background:#181714;display:flex;flex-direction:column;min-width:0;position:relative">
+          <div style="flex:1;display:flex;justify-content:center;overflow:hidden;padding:28px 28px 0">
+            <div style="width:680px;background:#faf9f5;color:#1a1915;padding:44px 48px;box-sizing:border-box;font-size:13px;line-height:1.7;box-shadow:none;border:1px solid #2c2a26">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-family:'IBM Plex Serif',serif;font-size:17px">Payment successful</b><span style="font-size:10.5px;color:#6e6b62">gov.uk · 26 Jun 2026</span></div>
+              <div style="height:1px;background:#e4e1d8;margin:14px 0 16px"></div>
+              <p style="margin:0">Date: 26 Jun 2026<br>Name: Rajesh kumar Kona<br>Visa type: Student visa<br>Fee paid: <span style="background:rgba(224,122,63,.35)">72590.00 INR</span><br>Reference: <span style="border-bottom:2px solid #e07a3f">UKVI_3PG0060288469</span></p>
+              <p style="margin:14px 0 0">This email confirms the amount paid and the application's reference number. <span style="background:rgba(224,122,63,.35)">We cannot provide an invoice,</span> but this email provides confirmation that we have received your payment.</p>
+              <b style="display:block;font-family:'IBM Plex Serif',serif;font-size:15px;margin-top:20px">What you must do next</b>
+              <p style="margin:8px 0 0">If you have not already, you must book an appointment at a visa application centre (VAC) to provide your fingerprints and photo (biometrics).</p>
+              <p style="margin:8px 0 0;color:#6e6b62">You must complete this step before your application can progress. Bring your passport and the reference number above to the appointment.</p>
+            </div>
+          </div>
+          <!-- playbar -->
+          <div style="flex:none;margin:20px auto 20px;border:1px solid #3a3833;background:#111110;display:flex;align-items:stretch;position:relative">
+            <span style="position:absolute;left:-9px;top:-9px;color:#e07a3f;font-size:13px;line-height:1">+</span>
+            <span style="position:absolute;right:-9px;bottom:-9px;color:#e07a3f;font-size:13px;line-height:1">+</span>
+            <button style="width:52px;background:none;border:none;border-right:1px solid #2c2a26;color:#9c988c;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg></button>
+            <button style="width:64px;background:#e07a3f;border:none;color:#111110;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="20" height="20" fill="#111110" stroke="#111110" stroke-width="1"><rect x="7" y="5" width="3.5" height="14"></rect><rect x="13.5" y="5" width="3.5" height="14"></rect></svg></button>
+            <button style="width:52px;background:none;border:none;border-right:1px solid #2c2a26;color:#9c988c;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg></button>
+            <div style="display:flex;flex-direction:column;justify-content:center;padding:0 20px;border-right:1px solid #2c2a26;min-width:280px">
+              <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#9c988c"><span style="font-variant-numeric:tabular-nums;color:#f5f3ee;font-weight:600">Sentence 12 / 37</span><span>·</span><span>Page 1 of 1</span><span style="margin-left:auto;font-variant-numeric:tabular-nums">1.0×</span></div>
+              <div style="height:3px;background:#2c2a26;margin-top:8px;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:32%;background:#e07a3f"></span><span style="position:absolute;left:32%;top:-3px;width:9px;height:9px;background:#e07a3f"></span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:0 18px;border-right:1px solid #2c2a26;font-size:13px;color:#f5f3ee"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#9c988c" stroke-width="1.75"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>Ravi · en-IN<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#9c988c" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+            <button style="width:56px;background:none;border:none;color:#e07a3f;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg></button>
+          </div>
+        </div>
+        <!-- companion -->
+        <div style="width:380px;flex:none;border-left:1px solid #2c2a26;display:flex;flex-direction:column;min-height:0">
+          <div style="flex:none;display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #2c2a26">
+            <span style="width:24px;height:24px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#111110" stroke-width="2.2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"></path></svg></span>
+            <b style="font-size:14px">Companion</b>
+            <span style="margin-left:auto;color:#9c988c;font-size:12px">grounded in this document</span>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#9c988c" stroke-width="1.75"><path d="m9 18 6-6-6-6"></path></svg>
+          </div>
+          <div style="flex:1;overflow:hidden;padding:18px;display:flex;flex-direction:column;gap:14px">
+            <div style="background:#211f1c;padding:13px 15px;font-size:13.5px;line-height:1.6">"visa payment.pdf" is open — 1 page. I'm reading from sentence 12. Select any text to have it explained.</div>
+            <div style="border:1px solid #e07a3f;padding:13px 15px;font-size:13.5px;line-height:1.6;margin-left:36px">Why can't they provide an invoice?</div>
+            <div style="background:#211f1c;padding:13px 15px;font-size:13.5px;line-height:1.6">UK Visas &amp; Immigration treats this email itself as the proof of payment — government fees aren't invoiced like commercial purchases. For your records, this email plus the reference <span style="color:#e07a3f">UKVI_3PG0060288469</span> is what a university or bank will accept.<div style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #2c2a26"><span style="font-size:11.5px;color:#9c988c;border:1px solid #2c2a26;padding:4px 9px">¶ p.1 · "We cannot provide an invoice"</span></div></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">
+              <span style="border:1px solid #3a3833;color:#9c988c;font-size:12px;padding:6px 12px">Summarize this page</span>
+              <span style="border:1px solid #3a3833;color:#9c988c;font-size:12px;padding:6px 12px">What do I do next?</span>
+              <span style="border:1px solid #3a3833;color:#9c988c;font-size:12px;padding:6px 12px">Translate to Telugu</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;gap:8px;padding:14px 18px;border-top:1px solid #2c2a26;align-items:center">
+            <span style="width:38px;height:38px;border:1px solid #3a3833;display:inline-flex;align-items:center;justify-content:center;color:#9c988c;flex:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg></span>
+            <div style="flex:1;background:#181714;border:1px solid #3a3833;padding:10px 13px;color:#9c988c;font-size:13px">Ask about this document…</div>
+            <span style="width:38px;height:38px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center;flex:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#111110" stroke-width="2"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;max-width:900px;line-height:1.6">Dense workspace chrome: 64px icon rail (reader / tools / scan / research / jobs / privacy), document title in the top bar with an on-device badge, and a playbar rebuilt as a single ruled instrument — transport, karaoke progress, voice, and push-to-talk in one bar with registration marks. Companion cites its source with a ¶ chip.</div>
+  </div>
+
+  <!-- ================= 2b FOCUS MODE ================= -->
+  <div id="2b" style="flex:none;width:1600px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">2b · FOCUS READING MODE (COMPANION COLLAPSED)</div>
+    <div style="background:#111110;border:1px solid #2c2a26;height:800px;display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:52px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid #2c2a26">
+        <div style="display:flex;align-items:center;gap:10px;font-family:'IBM Plex Serif',serif;font-size:16px;font-weight:600"><span style="width:22px;height:22px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><span style="width:7px;height:7px;background:#111110"></span></span>Lexora <span style="color:#e07a3f">AI</span></div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:12px;color:#9c988c;font-size:13px"><span>Focus mode</span><span style="width:34px;height:20px;border:1px solid #e07a3f;position:relative"><span style="position:absolute;right:2px;top:2px;bottom:2px;width:14px;background:#e07a3f"></span></span></div>
+      </div>
+      <div style="flex:1;display:flex;min-height:0;position:relative">
+        <div style="flex:1;background:#181714;display:flex;justify-content:center;overflow:hidden;padding:40px">
+          <div style="width:760px;background:#faf9f5;color:#1a1915;padding:56px 64px;box-sizing:border-box;font-size:15px;line-height:1.85;border:1px solid #2c2a26">
+            <b style="font-family:'IBM Plex Serif',serif;font-size:22px">What you must do next</b>
+            <p style="margin:18px 0 0">If you have not already, you must <span style="background:rgba(224,122,63,.35)">book an appointment at a visa</span> <span style="border-bottom:2px solid #e07a3f">application</span> centre (VAC) to provide your fingerprints and photo (biometrics).</p>
+            <p style="margin:14px 0 0;color:#44423c">You must complete this step before your application can progress. Bring your passport and the payment reference to the appointment. Appointments are released daily; early morning slots are the least busy.</p>
+            <p style="margin:14px 0 0;color:#44423c">Once your biometrics are captured, your application moves to a decision queue. Standard processing for student visas is three weeks from the biometric appointment.</p>
+          </div>
+        </div>
+        <!-- collapsed companion tab -->
+        <div style="position:absolute;right:0;top:50%;transform:translateY(-50%);border:1px solid #2c2a26;border-right:none;background:#111110;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <span style="width:22px;height:22px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#111110" stroke-width="2.2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"></path></svg></span>
+          <span style="writing-mode:vertical-rl;font-size:11.5px;font-weight:600;letter-spacing:.08em;color:#9c988c">COMPANION</span>
+        </div>
+        <!-- selection popover -->
+        <div style="position:absolute;left:46%;top:200px;border:1px solid #3a3833;background:#111110;display:flex">
+          <span style="padding:10px 16px;font-size:13px;font-weight:600;color:#f5f3ee;border-right:1px solid #2c2a26">Explain</span>
+          <span style="padding:10px 16px;font-size:13px;color:#9c988c;border-right:1px solid #2c2a26">Translate</span>
+          <span style="padding:10px 16px;font-size:13px;color:#9c988c;border-right:1px solid #2c2a26">Read from here</span>
+          <span style="padding:10px 16px;font-size:13px;color:#e07a3f">Ask…</span>
+        </div>
+      </div>
+      <!-- mini playbar -->
+      <div style="flex:none;height:64px;display:flex;align-items:center;gap:0;border-top:1px solid #2c2a26">
+        <button style="width:64px;height:100%;background:#e07a3f;border:none;color:#111110;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="20" height="20" fill="#111110" stroke="#111110" stroke-width="1"><rect x="7" y="5" width="3.5" height="14"></rect><rect x="13.5" y="5" width="3.5" height="14"></rect></svg></button>
+        <div style="flex:1;padding:0 24px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:#9c988c;font-variant-numeric:tabular-nums"><span>Sentence 24 / 37 · "book an appointment at a visa…"</span><span>Ravi · en-IN · 1.25×</span></div>
+          <div style="height:3px;background:#2c2a26;margin-top:8px;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:64%;background:#e07a3f"></span></div>
+        </div>
+        <button style="width:64px;height:100%;background:none;border:none;border-left:1px solid #2c2a26;color:#e07a3f;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg></button>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;max-width:900px;line-height:1.6">Focus mode strips the rail and companion to a vertical tab; the playbar flattens into the frame's bottom edge. The karaoke pair — orange wash for the spoken sentence, 2px underline for the current word — is the motif's "thread" scale at work. Selecting text raises the four-action popover.</div>
+  </div>
+
+  <!-- ================= 2c WORKSPACE HOME ================= -->
+  <div id="2c" style="flex:none;width:1600px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">2c · WORKSPACE HOME — EMPTY STATE</div>
+    <div style="background:#111110;border:1px solid #2c2a26;height:880px;display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:52px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid #2c2a26">
+        <div style="display:flex;align-items:center;gap:10px;font-family:'IBM Plex Serif',serif;font-size:16px;font-weight:600"><span style="width:22px;height:22px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><span style="width:7px;height:7px;background:#111110"></span></span>Lexora <span style="color:#e07a3f">AI</span></div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:14px"><span style="border:1px solid #3a3833;color:#9c988c;font-size:11.5px;font-weight:600;letter-spacing:.06em;padding:5px 10px">SWIFT · 99%</span><span style="width:30px;height:30px;border:1px solid #3a3833;display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:#e07a3f;font-weight:700">R</span></div>
+      </div>
+      <div style="flex:1;display:flex;min-height:0">
+        <div style="width:64px;flex:none;border-right:1px solid #2c2a26;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px">
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;background:#211f1c;border-left:2px solid #e07a3f;color:#f5f3ee"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="12" x2="17" y2="12"></line></svg></span>
+          <span style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;color:#9c988c"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:56px 72px;min-width:0">
+          <div style="max-width:760px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#e07a3f">GOOD MORNING, RAJESH</div>
+            <div style="font-family:'IBM Plex Serif',serif;font-size:44px;font-weight:600;letter-spacing:-.015em;margin-top:14px">Open a document, or just ask.</div>
+          </div>
+          <!-- drop zone with node motif -->
+          <div style="flex:1;border:1px dashed #3a3833;margin-top:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;min-height:0">
+            <svg viewBox="0 0 400 200" style="width:340px;opacity:.9">
+              <line x1="80" y1="50" x2="200" y2="110" stroke="#3a3833"></line><line x1="320" y1="42" x2="200" y2="110" stroke="#3a3833"></line><line x1="110" y1="170" x2="200" y2="110" stroke="#e07a3f" stroke-width="1.5"></line>
+              <g transform="translate(62,28)"><path d="M0 0h24l9 9v30H0z" fill="#111110" stroke="#9c988c" stroke-width="1.5"></path><line x1="6" y1="17" x2="27" y2="17" stroke="#3a3833" stroke-width="2"></line><line x1="6" y1="25" x2="27" y2="25" stroke="#3a3833" stroke-width="2"></line></g>
+              <g transform="translate(302,20)"><path d="M0 0h24l9 9v30H0z" fill="#111110" stroke="#9c988c" stroke-width="1.5"></path><line x1="6" y1="17" x2="27" y2="17" stroke="#3a3833" stroke-width="2"></line></g>
+              <g transform="translate(92,148)"><path d="M0 0h24l9 9v30H0z" fill="#111110" stroke="#e07a3f" stroke-width="1.5"></path><line x1="6" y1="17" x2="27" y2="17" stroke="#e07a3f" stroke-width="2"></line></g>
+              <rect x="188" y="98" width="24" height="24" fill="#e07a3f"></rect>
+            </svg>
+            <div style="font-family:'IBM Plex Serif',serif;font-size:24px;font-weight:600;margin-top:20px">Drop a file anywhere</div>
+            <div style="color:#9c988c;font-size:14px;margin-top:8px">PDF · Word · Text · Images — stays on this device</div>
+            <div style="display:flex;gap:12px;margin-top:24px">
+              <button style="background:#e07a3f;color:#111110;border:none;padding:13px 22px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Choose a file</button>
+              <button style="background:none;color:#f5f3ee;border:1px solid #3a3833;padding:12px 22px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:9px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="12" x2="17" y2="12"></line></svg>Scan a paper</button>
+            </div>
+          </div>
+          <!-- recents -->
+          <div style="flex:none;margin-top:28px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#9c988c">RECENT ON THIS DEVICE</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:12px">
+              <div style="background:#111110;padding:16px 18px;display:flex;align-items:center;gap:13px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e07a3f" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span><span style="display:block;font-size:13.5px;font-weight:600">visa payment.pdf</span><span style="display:block;color:#9c988c;font-size:12px;margin-top:2px">sentence 12 of 37 · resume</span></span></div>
+              <div style="background:#111110;padding:16px 18px;display:flex;align-items:center;gap:13px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#9c988c" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span><span style="display:block;font-size:13.5px;font-weight:600">JUN2026_AA3781518.pdf</span><span style="display:block;color:#9c988c;font-size:12px;margin-top:2px">merged yesterday</span></span></div>
+              <div style="background:#111110;padding:16px 18px;display:flex;align-items:center;gap:13px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#9c988c" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span><span style="display:block;font-size:13.5px;font-weight:600">pictures (searchable).pdf</span><span style="display:block;color:#9c988c;font-size:12px;margin-top:2px">OCR · 3 days ago</span></span></div>
+            </div>
+          </div>
+        </div>
+        <!-- companion at home -->
+        <div style="width:380px;flex:none;border-left:1px solid #2c2a26;display:flex;flex-direction:column">
+          <div style="flex:none;display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #2c2a26">
+            <span style="width:24px;height:24px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#111110" stroke-width="2.2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"></path></svg></span>
+            <b style="font-size:14px">Companion</b><span style="margin-left:auto;color:#9c988c;font-size:12px">ready</span>
+          </div>
+          <div style="flex:1;padding:18px;display:flex;flex-direction:column;gap:14px">
+            <div style="background:#211f1c;padding:13px 15px;font-size:13.5px;line-height:1.6">Namaste, Rajesh. Open a document and we'll go through it together — or ask me to pick up "visa payment.pdf" where we stopped.</div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
+              <span style="border:1px solid #3a3833;color:#9c988c;font-size:12.5px;padding:9px 13px">Resume visa payment.pdf from sentence 12</span>
+              <span style="border:1px solid #3a3833;color:#9c988c;font-size:12.5px;padding:9px 13px">What's the status of my OCR job?</span>
+              <span style="border:1px solid #3a3833;color:#9c988c;font-size:12.5px;padding:9px 13px">Merge my two June statements</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;gap:8px;padding:14px 18px;border-top:1px solid #2c2a26;align-items:center">
+            <span style="width:38px;height:38px;border:1px solid #3a3833;display:inline-flex;align-items:center;justify-content:center;color:#9c988c;flex:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg></span>
+            <div style="flex:1;background:#181714;border:1px solid #3a3833;padding:10px 13px;color:#9c988c;font-size:13px">Ask anything, or say what to do…</div>
+            <span style="width:38px;height:38px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center;flex:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#111110" stroke-width="2"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="color:#9c988c;font-size:13px;margin-top:12px;max-width:900px;line-height:1.6">Home is the workspace, not a landing: the drop zone carries the node constellation, the companion proposes actions (resume, job status, tool commands) — AI woven through, not bolted on. Recents live in a shared-border grid.</div>
+  </div>
+
+  </div>
+</section>
+
+<section id="t1" style="padding:48px;font-family:Inter,-apple-system,sans-serif">
+  <div style="margin-bottom:32px">
+    <div style="font-family:'IBM Plex Serif',serif;font-size:30px;font-weight:600">Lexora AI — redesign · turn 1</div>
+    <div style="color:#9c988c;font-size:14px;margin-top:6px">Modernist foundation · black / white / orange, no gradients · IBM Plex Serif + Inter · Lucide icons · document-node motif — <a href="#1a">1a</a> foundations · <a href="#1b">1b</a> landing A (clean productivity) · <a href="#1c">1c</a> landing B (premium AI workspace)</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:72px;align-items:flex-start">
+
+  <!-- ================= 1a FOUNDATIONS ================= -->
+  <div id="1a" style="flex:none;width:1180px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">1a · FOUNDATIONS</div>
+    <div style="background:#111110;border:1px solid #2c2a26;padding:56px;box-sizing:border-box">
+      <div style="font-family:'IBM Plex Serif',serif;font-size:40px;font-weight:600;letter-spacing:-.01em">Lexora design language</div>
+      <div style="color:#9c988c;font-size:15px;margin-top:10px;max-width:640px;line-height:1.6">Flat, architectural, warm. Structure is drawn with rules and grids, never with shadows or gradients. One accent — Lexora orange — used as a line, a mark and the single primary action.</div>
+
+      <div style="height:2px;background:#3a3833;margin:40px 0 32px"></div>
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#9c988c">01 — COLOR · BLACK / WHITE / ORANGE ONLY</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:16px">
+        <div style="background:#111110;padding:18px 14px 44px"><div style="font-size:12px;font-weight:600">--bg</div><div style="color:#9c988c;font-size:11.5px;margin-top:2px">#111110</div></div>
+        <div style="background:#181714;padding:18px 14px 44px"><div style="font-size:12px;font-weight:600">--surface</div><div style="color:#9c988c;font-size:11.5px;margin-top:2px">#181714</div></div>
+        <div style="background:#211f1c;padding:18px 14px 44px"><div style="font-size:12px;font-weight:600">--surface-2</div><div style="color:#9c988c;font-size:11.5px;margin-top:2px">#211f1c</div></div>
+        <div style="background:#2c2a26;padding:18px 14px 44px"><div style="font-size:12px;font-weight:600">--line / --line-strong</div><div style="color:#9c988c;font-size:11.5px;margin-top:2px">#2c2a26 · #3a3833</div></div>
+        <div style="background:#f5f3ee;padding:18px 14px 44px"><div style="font-size:12px;font-weight:600;color:#1a1915">--text</div><div style="color:#6e6b62;font-size:11.5px;margin-top:2px">#f5f3ee / #1a1915</div></div>
+        <div style="background:#e07a3f;padding:18px 14px 44px"><div style="font-size:12px;font-weight:700;color:#111110">--accent</div><div style="color:#111110;font-size:11.5px;margin-top:2px;opacity:.75">#e07a3f · light #c96431</div></div>
+      </div>
+      <div style="color:#9c988c;font-size:13px;margin-top:12px;line-height:1.6">Light theme mirrors the same roles on <b style="color:#f5f3ee">#faf9f5</b> with surfaces <b style="color:#f5f3ee">#ffffff / #f1efe9</b>, lines <b style="color:#f5f3ee">#e4e1d8</b>, muted <b style="color:#f5f3ee">#6e6b62</b>. Accent deepens to #c96431 for AA contrast. Never a gradient; elevation is a rule, not a shadow.</div>
+
+      <div style="height:2px;background:#3a3833;margin:36px 0 32px"></div>
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#9c988c">02 — TYPE · IBM PLEX SERIF + INTER (SELF-HOSTED)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:20px">
+        <div>
+          <div style="font-family:'IBM Plex Serif',serif;font-size:52px;font-weight:600;letter-spacing:-.015em;line-height:1.1">Every document, understood.</div>
+          <div style="color:#9c988c;font-size:12.5px;margin-top:10px">Display · IBM Plex Serif 600 · 52/40/28 · -0.015em</div>
+          <div style="font-family:'IBM Plex Serif',serif;font-size:26px;font-weight:600;margin-top:22px">Section heading — Plex Serif 600</div>
+          <div style="color:#9c988c;font-size:12.5px;margin-top:6px">Headings carry the brand's bookish warmth; everything else is Inter.</div>
+        </div>
+        <div>
+          <div style="font-size:16px;line-height:1.65;max-width:420px">Body — Inter 400 at 15–16px, line-height 1.6. Interface labels are Inter 500–600 at 13–14px. Kickers are 11–12px, 700, letter-spaced caps.</div>
+          <div style="font-size:13px;font-weight:600;margin-top:18px">UI label · Inter 600 · 13px</div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#e07a3f;margin-top:10px">KICKER · INTER 700 · 12PX</div>
+          <div style="font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;margin-top:14px">₹337.00 · 10.34M <span style="color:#9c988c;font-size:12.5px;font-weight:400">numbers always tabular</span></div>
+        </div>
+      </div>
+
+      <div style="height:2px;background:#3a3833;margin:36px 0 32px"></div>
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#9c988c">03 — SIGNATURE MOTIF · DOCUMENT NODES</div>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:40px;margin-top:20px;align-items:center">
+        <svg viewBox="0 0 560 260" style="width:100%;border:1px solid #2c2a26">
+          <line x1="120" y1="70" x2="280" y2="130" stroke="#3a3833" stroke-width="1"></line>
+          <line x1="440" y1="52" x2="280" y2="130" stroke="#3a3833" stroke-width="1"></line>
+          <line x1="150" y1="210" x2="280" y2="130" stroke="#3a3833" stroke-width="1"></line>
+          <line x1="430" y1="200" x2="280" y2="130" stroke="#e07a3f" stroke-width="1.5"></line>
+          <line x1="120" y1="70" x2="440" y2="52" stroke="#2c2a26" stroke-width="1"></line>
+          <g transform="translate(102,48)"><path d="M0 0h26l10 10v34H0z" fill="#111110" stroke="#9c988c" stroke-width="1.5"></path><path d="M26 0v10h10" fill="none" stroke="#9c988c" stroke-width="1.5"></path><line x1="7" y1="20" x2="29" y2="20" stroke="#3a3833" stroke-width="2"></line><line x1="7" y1="28" x2="29" y2="28" stroke="#3a3833" stroke-width="2"></line></g>
+          <g transform="translate(422,30)"><path d="M0 0h26l10 10v34H0z" fill="#111110" stroke="#9c988c" stroke-width="1.5"></path><path d="M26 0v10h10" fill="none" stroke="#9c988c" stroke-width="1.5"></path><line x1="7" y1="20" x2="29" y2="20" stroke="#3a3833" stroke-width="2"></line></g>
+          <g transform="translate(132,188)"><path d="M0 0h26l10 10v34H0z" fill="#111110" stroke="#9c988c" stroke-width="1.5"></path><path d="M26 0v10h10" fill="none" stroke="#9c988c" stroke-width="1.5"></path><line x1="7" y1="20" x2="29" y2="20" stroke="#3a3833" stroke-width="2"></line></g>
+          <g transform="translate(412,178)"><path d="M0 0h26l10 10v34H0z" fill="#111110" stroke="#e07a3f" stroke-width="1.5"></path><path d="M26 0v10h10" fill="none" stroke="#e07a3f" stroke-width="1.5"></path><line x1="7" y1="20" x2="29" y2="20" stroke="#e07a3f" stroke-width="2"></line></g>
+          <rect x="268" y="118" width="24" height="24" fill="#e07a3f"></rect>
+          <circle cx="120" cy="70" r="3" fill="#e07a3f"></circle>
+          <circle cx="440" cy="52" r="3" fill="#9c988c"></circle>
+          <circle cx="150" cy="210" r="3" fill="#9c988c"></circle>
+          <circle cx="430" cy="200" r="3" fill="#e07a3f"></circle>
+        </svg>
+        <div style="color:#9c988c;font-size:13.5px;line-height:1.65">Documents are nodes; understanding is the connection. Square orange node = the AI. Hairline connectors, dot junctions, folded-corner document glyphs — always geometric, never blobs or waves.<br><br>Used at three scales: <b style="color:#f5f3ee">constellation</b> (hero, empty states), <b style="color:#f5f3ee">thread</b> (progress, karaoke trail, connectors between steps), <b style="color:#f5f3ee">mark</b> (the brand square + dot, favicons, bullets).</div>
+      </div>
+
+      <div style="height:2px;background:#3a3833;margin:36px 0 32px"></div>
+      <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#9c988c">04 — SHAPE, RULES &amp; CONTROLS</div>
+      <div style="display:flex;gap:40px;margin-top:20px;flex-wrap:wrap">
+        <div style="flex:1;min-width:360px">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <button style="background:#e07a3f;color:#111110;border:none;padding:13px 22px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:26px;text-align:left">Start free<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
+            <button style="background:none;color:#f5f3ee;border:1px solid #3a3833;padding:12px 22px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Secondary</button>
+            <button style="background:none;color:#9c988c;border:none;padding:12px 10px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Ghost</button>
+            <span style="border:1px solid #e07a3f;color:#e07a3f;font-size:11.5px;font-weight:700;letter-spacing:.06em;padding:4px 10px">★ PREMIUM</span>
+            <span style="background:#211f1c;color:#9c988c;font-size:11.5px;font-weight:600;letter-spacing:.06em;padding:5px 10px">FREE · ON-DEVICE</span>
+          </div>
+          <input placeholder="you@example.com" style="width:100%;box-sizing:border-box;background:#181714;border:1px solid #3a3833;color:#f5f3ee;padding:13px 14px;font-size:14px;font-family:Inter,sans-serif;margin-top:16px">
+          <div style="display:flex;margin-top:16px;border:1px solid #3a3833;width:fit-content">
+            <span style="padding:10px 18px;font-size:13px;font-weight:600;background:#e07a3f;color:#111110">Private</span>
+            <span style="padding:10px 18px;font-size:13px;color:#9c988c;border-left:1px solid #3a3833">Smart</span>
+            <span style="padding:10px 18px;font-size:13px;color:#9c988c;border-left:1px solid #3a3833">Deep</span>
+          </div>
+        </div>
+        <div style="flex:1;min-width:360px;color:#9c988c;font-size:13.5px;line-height:1.7">
+          <b style="color:#f5f3ee">Radius 0.</b> Every surface is square-cornered; buttons are flat fills or 1px outlines with flush-left labels.<br>
+          <b style="color:#f5f3ee">Rules do the organizing:</b> 2px `--line-strong` between major sections, 1px `--line` inside grids. Cells share borders — no floating cards.<br>
+          <b style="color:#f5f3ee">Registration marks</b> (Industry accent) frame only the highest-value plates: product mock, consent modal, premium quote.<br>
+          <b style="color:#f5f3ee">Icons:</b> Lucide, stroke 1.75, 20px in UI · emoji retired everywhere.<br>
+          <b style="color:#f5f3ee">Motion:</b> CSS transitions ≤180ms on color/border only.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 1b LANDING A ================= -->
+  <div id="1b" style="flex:none;width:1440px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">1b · LANDING — A · CLEAN PRODUCTIVITY</div>
+    <div style="background:#111110;border:1px solid #2c2a26;overflow:hidden">
+      <!-- nav -->
+      <div style="display:flex;align-items:center;gap:36px;padding:0 56px;height:68px;border-bottom:2px solid #3a3833">
+        <div style="display:flex;align-items:center;gap:11px;font-family:'IBM Plex Serif',serif;font-size:19px;font-weight:600"><span style="width:26px;height:26px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;background:#111110"></span></span>Lexora <span style="color:#e07a3f">AI</span></div>
+        <div style="display:flex;gap:28px;font-size:14px;font-weight:500;color:#9c988c;margin-left:24px"><span>Tools</span><span>Scan</span><span>Pricing</span><span>FAQ</span></div>
+        <div style="margin-left:auto;display:flex;gap:14px;align-items:center">
+          <span style="font-size:14px;font-weight:600;color:#f5f3ee">Log in</span>
+          <button style="background:#e07a3f;color:#111110;border:none;padding:11px 20px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Start free</button>
+        </div>
+      </div>
+      <!-- hero -->
+      <div style="display:grid;grid-template-columns:1.1fr .9fr;border-bottom:2px solid #3a3833">
+        <div style="padding:88px 56px 72px;border-right:1px solid #2c2a26">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#e07a3f">PRIVACY-FIRST · MADE IN INDIA</div>
+          <div style="font-family:'IBM Plex Serif',serif;font-size:64px;font-weight:600;line-height:1.06;letter-spacing:-.015em;margin-top:22px">Your AI companion for every document.</div>
+          <div style="color:#9c988c;font-size:17px;line-height:1.65;margin-top:24px;max-width:520px">Lexora reads your PDFs aloud with word-by-word highlighting, answers questions about them, and gives you 40+ document tools — free, and your files <b style="color:#f5f3ee">never leave your device</b>.</div>
+          <div style="display:flex;gap:14px;margin-top:36px">
+            <button style="background:#e07a3f;color:#111110;border:none;padding:16px 24px;font-size:15px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:40px;text-align:left">Start free — no card needed<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
+            <button style="background:none;color:#f5f3ee;border:1px solid #3a3833;padding:15px 24px;font-size:15px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Try without an account</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;color:#9c988c;font-size:13.5px;margin-top:26px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#e07a3f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="0"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Free tools run 100% in your browser — pay only for what you use.</div>
+        </div>
+        <div style="position:relative;display:flex;align-items:center;justify-content:center;padding:40px">
+          <svg viewBox="0 0 520 420" style="width:100%;max-width:520px">
+            <line x1="110" y1="90" x2="260" y2="210" stroke="#3a3833" stroke-width="1"></line>
+            <line x1="420" y1="70" x2="260" y2="210" stroke="#3a3833" stroke-width="1"></line>
+            <line x1="120" y1="330" x2="260" y2="210" stroke="#3a3833" stroke-width="1"></line>
+            <line x1="415" y1="320" x2="260" y2="210" stroke="#e07a3f" stroke-width="1.5"></line>
+            <line x1="110" y1="90" x2="420" y2="70" stroke="#2c2a26" stroke-width="1"></line>
+            <line x1="120" y1="330" x2="415" y2="320" stroke="#2c2a26" stroke-width="1"></line>
+            <g transform="translate(88,60)"><path d="M0 0h30l12 12v40H0z" fill="#111110" stroke="#9c988c" stroke-width="1.5"></path><path d="M30 0v12h12" fill="none" stroke="#9c988c" stroke-width="1.5"></path><line x1="8" y1="24" x2="34" y2="24" stroke="#3a3833" stroke-width="2.5"></line><line x1="8" y1="33" x2="34" y2="33" stroke="#3a3833" stroke-width="2.5"></line><line x1="8" y1="42" x2="26" y2="42" stroke="#e07a3f" stroke-width="2.5"></line></g>
+            <g transform="translate(398,40)"><path d="M0 0h30l12 12v40H0z" fill="#111110" stroke="#9c988c" stroke-width="1.5"></path><path d="M30 0v12h12" fill="none" stroke="#9c988c" stroke-width="1.5"></path><line x1="8" y1="24" x2="34" y2="24" stroke="#3a3833" stroke-width="2.5"></line><line x1="8" y1="33" x2="34" y2="33" stroke="#3a3833" stroke-width="2.5"></line></g>
+            <g transform="translate(98,300)"><path d="M0 0h30l12 12v40H0z" fill="#111110" stroke="#9c988c" stroke-width="1.5"></path><path d="M30 0v12h12" fill="none" stroke="#9c988c" stroke-width="1.5"></path><line x1="8" y1="24" x2="34" y2="24" stroke="#3a3833" stroke-width="2.5"></line></g>
+            <g transform="translate(393,290)"><path d="M0 0h30l12 12v40H0z" fill="#111110" stroke="#e07a3f" stroke-width="1.5"></path><path d="M30 0v12h12" fill="none" stroke="#e07a3f" stroke-width="1.5"></path><line x1="8" y1="24" x2="34" y2="24" stroke="#e07a3f" stroke-width="2.5"></line><line x1="8" y1="33" x2="34" y2="33" stroke="#e07a3f" stroke-width="2.5"></line></g>
+            <rect x="242" y="192" width="36" height="36" fill="#e07a3f"></rect>
+            <g transform="translate(250,200)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#111110" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"></path></svg></g>
+            <circle cx="110" cy="90" r="3.5" fill="#e07a3f"></circle>
+            <circle cx="420" cy="70" r="3.5" fill="#9c988c"></circle>
+            <circle cx="120" cy="330" r="3.5" fill="#9c988c"></circle>
+            <circle cx="415" cy="320" r="3.5" fill="#e07a3f"></circle>
+          </svg>
+        </div>
+      </div>
+      <!-- stat row -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #3a3833">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <div style="padding:28px 56px 28px 32px;border-right:1px solid #2c2a26">
+            <div style="font-family:'IBM Plex Serif',serif;font-size:34px;font-weight:600;font-variant-numeric:tabular-nums">{{ s.n }}</div>
+            <div style="color:#9c988c;font-size:13px;margin-top:4px">{{ s.l }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <!-- features -->
+      <div style="padding:64px 56px;border-bottom:2px solid #3a3833">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#e07a3f">WHAT LEXORA DOES</div>
+        <div style="font-family:'IBM Plex Serif',serif;font-size:36px;font-weight:600;margin-top:12px">One workspace, not forty tools.</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:36px">
+          <sc-for list="{{ features }}" as="f" hint-placeholder-count="4">
+            <div style="background:#111110;padding:28px 24px 32px">
+              <span style="display:inline-flex;width:40px;height:40px;border:1px solid #3a3833;align-items:center;justify-content:center;color:#e07a3f">{{ f.icon }}</span>
+              <div style="font-size:16px;font-weight:600;margin-top:18px">{{ f.name }}</div>
+              <div style="color:#9c988c;font-size:13.5px;line-height:1.6;margin-top:8px">{{ f.desc }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <!-- popular tools -->
+      <div style="padding:64px 56px;border-bottom:2px solid #3a3833">
+        <div style="display:flex;align-items:baseline;gap:20px">
+          <div style="font-family:'IBM Plex Serif',serif;font-size:36px;font-weight:600">Popular tools</div>
+          <span style="margin-left:auto;color:#e07a3f;font-size:14px;font-weight:600">All 40+ tools →</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:32px">
+          <sc-for list="{{ toolsA }}" as="t" hint-placeholder-count="8">
+            <div style="background:#111110;padding:20px 22px;display:flex;align-items:center;gap:14px">
+              <span style="color:#e07a3f;flex:none">{{ t.icon }}</span>
+              <span style="min-width:0"><span style="display:block;font-size:14.5px;font-weight:600">{{ t.name }}</span><span style="display:block;color:#9c988c;font-size:12.5px;margin-top:2px">{{ t.desc }}</span></span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <!-- pricing -->
+      <div style="padding:64px 56px;border-bottom:2px solid #3a3833">
+        <div style="font-family:'IBM Plex Serif',serif;font-size:36px;font-weight:600">Simple, honest pricing</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#2c2a26;border:1px solid #2c2a26;margin-top:32px">
+          <div style="background:#111110;padding:32px 28px">
+            <div style="font-family:'IBM Plex Serif',serif;font-size:40px;font-weight:600">₹0</div>
+            <div style="font-size:15px;font-weight:600;margin-top:8px">Free forever</div>
+            <div style="color:#9c988c;font-size:13.5px;line-height:1.6;margin-top:10px">The reader, the scanner, and 40+ on-device tools. Spark AI with a daily limit. No card, no trial clock.</div>
+          </div>
+          <div style="background:#111110;padding:32px 28px;border-top:2px solid #e07a3f;margin-top:-1px">
+            <div style="font-family:'IBM Plex Serif',serif;font-size:40px;font-weight:600">₹49<span style="color:#9c988c;font-size:18px"> / ₹99</span></div>
+            <div style="font-size:15px;font-weight:600;margin-top:8px">Swift &amp; Sage AI</div>
+            <div style="color:#9c988c;font-size:13.5px;line-height:1.6;margin-top:10px">Sharper AI engines with a token wallet; Sage adds live web search. Top up a ₹ wallet, pay from it.</div>
+          </div>
+          <div style="background:#111110;padding:32px 28px">
+            <div style="font-family:'IBM Plex Serif',serif;font-size:40px;font-weight:600">~₹0.10<span style="color:#9c988c;font-size:18px"> / page</span></div>
+            <div style="font-size:15px;font-weight:600;margin-top:8px">★ Premium tools</div>
+            <div style="color:#9c988c;font-size:13.5px;line-height:1.6;margin-top:10px">HD server conversions — PDF→Excel, translate, OCR. 50 pages free daily, then about a penny a page.</div>
+          </div>
+        </div>
+      </div>
+      <!-- privacy band -->
+      <div style="padding:56px;display:flex;align-items:center;gap:28px;border-bottom:2px solid #3a3833;background:#181714">
+        <span style="display:inline-flex;width:56px;height:56px;border:1px solid #e07a3f;align-items:center;justify-content:center;flex:none"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#e07a3f" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+        <div style="flex:1"><div style="font-family:'IBM Plex Serif',serif;font-size:24px;font-weight:600">Your files never leave your device.</div><div style="color:#9c988c;font-size:14px;margin-top:6px;max-width:640px;line-height:1.6">Free tools run entirely in your browser. The few ★ premium tools that use our server always ask first — and delete everything after the job.</div></div>
+        <button style="background:none;color:#f5f3ee;border:1px solid #3a3833;padding:13px 22px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;flex:none">How privacy works</button>
+      </div>
+      <!-- footer -->
+      <div style="padding:28px 56px;display:flex;gap:24px;color:#9c988c;font-size:13px">
+        <span>About</span><span>FAQ</span><span>Security</span><span>Contact</span><span>Privacy</span><span>Terms</span>
+        <span style="margin-left:auto">© Lexora AI · Made in India</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 1c LANDING B ================= -->
+  <div id="1c" style="flex:none;width:1440px">
+    <div style="display:inline-block;background:#e07a3f;color:#111110;font-weight:700;font-size:12px;padding:4px 10px;letter-spacing:.08em;margin-bottom:12px">1c · LANDING — B · PREMIUM AI WORKSPACE</div>
+    <div style="background:#111110;border:1px solid #2c2a26;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:36px;padding:0 72px;height:68px;border-bottom:1px solid #2c2a26">
+        <div style="display:flex;align-items:center;gap:11px;font-family:'IBM Plex Serif',serif;font-size:19px;font-weight:600"><span style="width:26px;height:26px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;background:#111110"></span></span>Lexora <span style="color:#e07a3f">AI</span></div>
+        <div style="margin-left:auto;display:flex;gap:28px;font-size:14px;font-weight:500;color:#9c988c;align-items:center"><span>Workspace</span><span>Tools</span><span>Pricing</span><span style="color:#f5f3ee;font-weight:600">Log in</span><button style="background:#e07a3f;color:#111110;border:none;padding:11px 20px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Open workspace</button></div>
+      </div>
+      <!-- hero: centered copy over faint constellation, then product plate -->
+      <div style="position:relative;padding:96px 72px 0;border-bottom:2px solid #3a3833;overflow:hidden">
+        <svg viewBox="0 0 1300 700" style="position:absolute;inset:0;width:100%;height:100%;opacity:.35" preserveAspectRatio="xMidYMin slice">
+          <line x1="80" y1="120" x2="650" y2="330" stroke="#2c2a26"></line><line x1="1220" y1="90" x2="650" y2="330" stroke="#2c2a26"></line><line x1="180" y1="560" x2="650" y2="330" stroke="#2c2a26"></line><line x1="1150" y1="540" x2="650" y2="330" stroke="#2c2a26"></line>
+          <line x1="80" y1="120" x2="1220" y2="90" stroke="#211f1c"></line>
+          <circle cx="80" cy="120" r="3" fill="#e07a3f"></circle><circle cx="1220" cy="90" r="3" fill="#9c988c"></circle><circle cx="180" cy="560" r="3" fill="#9c988c"></circle><circle cx="1150" cy="540" r="3" fill="#e07a3f"></circle>
+          <g transform="translate(60,96)"><path d="M0 0h24l9 9v30H0z" fill="none" stroke="#3a3833" stroke-width="1.5"></path></g>
+          <g transform="translate(1200,66)"><path d="M0 0h24l9 9v30H0z" fill="none" stroke="#3a3833" stroke-width="1.5"></path></g>
+          <g transform="translate(160,536)"><path d="M0 0h24l9 9v30H0z" fill="none" stroke="#3a3833" stroke-width="1.5"></path></g>
+          <g transform="translate(1130,516)"><path d="M0 0h24l9 9v30H0z" fill="none" stroke="#e07a3f" stroke-width="1.5"></path></g>
+        </svg>
+        <div style="position:relative;max-width:840px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#e07a3f">THE AI DOCUMENT WORKSPACE</div>
+          <div style="font-family:'IBM Plex Serif',serif;font-size:72px;font-weight:600;line-height:1.04;letter-spacing:-.02em;margin-top:22px">Where documents become conversations.</div>
+          <div style="color:#9c988c;font-size:18px;line-height:1.65;margin-top:24px;max-width:600px">Read aloud, ask anything, translate, sign, redact — one calm workspace with an AI companion woven through it. Private by architecture: your files stay on your device.</div>
+          <div style="display:flex;gap:14px;margin-top:36px;align-items:center">
+            <button style="background:#e07a3f;color:#111110;border:none;padding:16px 24px;font-size:15px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:40px;text-align:left">Open the workspace — free<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
+            <span style="color:#9c988c;font-size:13.5px">No account · no card · no upload</span>
+          </div>
+        </div>
+        <!-- product plate with registration marks -->
+        <div style="position:relative;margin:64px auto 0;max-width:1180px">
+          <span style="position:absolute;left:-14px;top:-14px;color:#e07a3f;font-size:16px;line-height:1">+</span>
+          <span style="position:absolute;right:-14px;top:-14px;color:#e07a3f;font-size:16px;line-height:1">+</span>
+          <div style="border:1px solid #3a3833;border-bottom:none;background:#181714;display:flex;height:460px;overflow:hidden">
+            <div style="width:220px;flex:none;border-right:1px solid #2c2a26;padding:18px 14px;font-size:13px">
+              <div style="display:flex;align-items:center;gap:9px;font-family:'IBM Plex Serif',serif;font-size:15px;font-weight:600;padding:2px 8px 16px"><span style="width:20px;height:20px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><span style="width:6px;height:6px;background:#111110"></span></span>Lexora AI</div>
+              <div style="padding:8px 10px;background:#211f1c;color:#f5f3ee;font-weight:600;border-left:2px solid #e07a3f">Reader</div>
+              <div style="padding:8px 10px;color:#9c988c">AI Workspace</div>
+              <div style="padding:8px 10px;color:#9c988c">Tools</div>
+              <div style="padding:8px 10px;color:#9c988c">Scan</div>
+              <div style="padding:8px 10px;color:#9c988c">Deep Research</div>
+            </div>
+            <div style="flex:1;background:#211f1c;display:flex;justify-content:center;padding:22px">
+              <div style="width:380px;background:#faf9f5;color:#1a1915;padding:26px 28px;font-size:10.5px;line-height:1.7">
+                <div style="font-family:'IBM Plex Serif',serif;font-size:15px;font-weight:600">Payment successful</div>
+                <p style="margin:8px 0 0">This email confirms the amount paid and the application's <span style="background:rgba(224,122,63,.45)">reference number</span>. We cannot provide an invoice, but this email provides confirmation that we have received your payment.</p>
+                <p style="margin:6px 0 0">If you have not already, you must book an appointment at a visa application centre to provide your biometrics.</p>
+                <div style="height:5px;background:#e4e1d8;margin-top:12px"></div><div style="height:5px;background:#e4e1d8;margin-top:5px"></div><div style="height:5px;background:#e4e1d8;margin-top:5px;width:70%"></div>
+              </div>
+            </div>
+            <div style="width:300px;flex:none;border-left:1px solid #2c2a26;padding:16px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:center;gap:9px;padding-bottom:12px;border-bottom:1px solid #2c2a26"><span style="width:22px;height:22px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#111110" stroke-width="2.2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"></path></svg></span><b style="font-size:13px">Companion</b><span style="margin-left:auto;color:#9c988c;font-size:11px">Swift · 99%</span></div>
+              <div style="background:#211f1c;padding:11px 13px;font-size:12px;line-height:1.55;color:#f5f3ee">"visa payment.pdf" is open — 1 page. Where shall we start?</div>
+              <div style="border:1px solid #e07a3f;padding:11px 13px;font-size:12px;line-height:1.55;color:#f5f3ee;margin-left:24px">Explain the reference number</div>
+              <div style="margin-top:auto;display:flex;gap:8px"><div style="flex:1;background:#181714;border:1px solid #3a3833;padding:9px 11px;color:#9c988c;font-size:11.5px">Ask about this document…</div><span style="width:34px;height:34px;background:#e07a3f;display:inline-flex;align-items:center;justify-content:center;flex:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#111110" stroke-width="2"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- capability rows -->
+      <div style="border-bottom:2px solid #3a3833">
+        <sc-for list="{{ caps }}" as="c" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-columns:80px 1fr 1.2fr;border-bottom:1px solid #2c2a26;align-items:center">
+            <div style="padding:36px 0 36px 72px;font-variant-numeric:tabular-nums;color:#e07a3f;font-weight:700;font-size:13px">{{ c.no }}</div>
+            <div style="padding:36px 32px"><div style="font-family:'IBM Plex Serif',serif;font-size:26px;font-weight:600">{{ c.name }}</div><div style="color:#9c988c;font-size:14px;line-height:1.6;margin-top:8px;max-width:380px">{{ c.desc }}</div></div>
+            <div style="padding:24px 72px 24px 0;color:#9c988c;font-size:13px">{{ c.tags }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <!-- roadmap strip -->
+      <div style="padding:48px 72px;border-bottom:2px solid #3a3833">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#e07a3f">BUILT TO GROW</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+          <sc-for list="{{ roadmap }}" as="r" hint-placeholder-count="8">
+            <span style="border:1px solid #3a3833;color:#9c988c;font-size:13px;font-weight:500;padding:9px 16px">{{ r }}</span>
+          </sc-for>
+        </div>
+      </div>
+      <!-- pricing band -->
+      <div style="padding:64px 72px;display:flex;align-items:center;gap:48px;border-bottom:2px solid #3a3833;background:#181714">
+        <div style="flex:1"><div style="font-family:'IBM Plex Serif',serif;font-size:34px;font-weight:600">Free forever. AI from ₹49.</div><div style="color:#9c988c;font-size:14.5px;margin-top:8px;line-height:1.6;max-width:520px">Every on-device tool is free with no limits. Top up a ₹ wallet once — AI plans and premium server tools spend from it, about a penny a page.</div></div>
+        <div style="display:flex;gap:14px;flex:none">
+          <button style="background:#e07a3f;color:#111110;border:none;padding:15px 24px;font-size:15px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Start free</button>
+          <button style="background:none;color:#f5f3ee;border:1px solid #3a3833;padding:14px 24px;font-size:15px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">See pricing</button>
+        </div>
+      </div>
+      <div style="padding:28px 72px;display:flex;gap:24px;color:#9c988c;font-size:13px">
+        <span>About</span><span>FAQ</span><span>Security</span><span>Contact</span><span>Privacy</span><span>Terms</span>
+        <span style="margin-left:auto">© Lexora AI · Made in India · 🔒 your documents never leave your device</span>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const ic = (paths) => React.createElement('svg', {viewBox:'0 0 24 24', width:20, height:20, fill:'none', stroke:'currentColor', strokeWidth:1.75, strokeLinecap:'round', strokeLinejoin:'round', dangerouslySetInnerHTML:{__html:paths}});
+    const I = {
+      volume: ic('<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>'),
+      chat: ic('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
+      grid: ic('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>'),
+      lock: ic('<rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'),
+      merge: ic('<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/>'),
+      scissors: ic('<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>'),
+      compress: ic('<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>'),
+      filetext: ic('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'),
+      search: ic('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
+      pen: ic('<path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/>'),
+      lang: ic('<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>'),
+      scan: ic('<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/>')
+    };
+    return {
+      stats: [
+        {n:'40+', l:'document tools, free in the browser'},
+        {n:'100%', l:'of free tools run on your device'},
+        {n:'0', l:'files uploaded without your consent'},
+        {n:'₹0', l:'to start — no card, no trial clock'}
+      ],
+      features: [
+        {icon:I.volume, name:'Reads documents aloud', desc:'Natural voices with word-by-word karaoke highlighting. Say "go to page three" and it goes.'},
+        {icon:I.chat, name:'Explains anything', desc:'Select a sentence and ask. The companion understands your document on your device and answers plainly.'},
+        {icon:I.grid, name:'40+ document tools', desc:'Merge, split, compress, convert, OCR, sign, edit, redact, crop, translate — right in the browser.'},
+        {icon:I.lock, name:'Private by design', desc:'Free tools never upload your files. Server features always ask first — and delete everything after.'}
+      ],
+      toolsA: [
+        {icon:I.merge, name:'Merge PDF', desc:'combine files in order'},
+        {icon:I.compress, name:'Compress PDF', desc:'smaller, never worse'},
+        {icon:I.filetext, name:'PDF to Word', desc:'editable .docx'},
+        {icon:I.search, name:'OCR PDF', desc:'make scans searchable'},
+        {icon:I.pen, name:'Sign PDF', desc:'draw, type or import'},
+        {icon:I.lang, name:'Translate PDF', desc:'30+ languages'},
+        {icon:I.scissors, name:'Split PDF', desc:'extract any pages'},
+        {icon:I.scan, name:'Scan to PDF', desc:'camera scanner'}
+      ],
+      caps: [
+        {no:'01', name:'The reader', desc:'Karaoke highlighting follows every word. Voice control turns pages, changes speed, finds topics.', tags:'Read aloud · Own Voice TTS · Voice Studio'},
+        {no:'02', name:'The companion', desc:'Chat with any PDF. Explanations, summaries, navigation — grounded in your document, on your device.', tags:'Chat with PDF · RAG search · Deep Research'},
+        {no:'03', name:'The tools', desc:'Forty-plus tools that feel like one: merge, sign, redact, translate with layout preserved, OCR anything.', tags:'Edit PDF · Layout-preserving translation · Job queue'}
+      ],
+      roadmap: ['AI Workspace','Deep Research','RAG search','Own Voice TTS','Voice Studio','Layout Engine','Job Queue','Team Workspace','Mobile App'],
+      toolsEdit: [
+        {icon:I.merge, name:'Merge PDF', desc:'combine in any order', premium:false},
+        {icon:I.scissors, name:'Split PDF', desc:'extract any pages', premium:false},
+        {icon:ic('<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'), name:'Remove pages', desc:'tap pages to delete', premium:false},
+        {icon:ic('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>'), name:'Organize', desc:'reorder & rotate', premium:false},
+        {icon:ic('<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>'), name:'Rotate PDF', desc:'turn several at once', premium:false}
+      ],
+      toolsConvert: [
+        {icon:I.compress, name:'Compress PDF', desc:'smaller, still sharp', premium:true},
+        {icon:I.filetext, name:'PDF to Word', desc:'editable .docx', premium:true},
+        {icon:ic('<rect x="3" y="3" width="18" height="18" rx="0"/><path d="M8 8h3v8H8z"/><path d="M13 8h3v8h-3z"/>'), name:'PDF to Excel', desc:'tables to sheets', premium:true},
+        {icon:I.search, name:'OCR PDF', desc:'make scans searchable', premium:true},
+        {icon:I.lang, name:'Translate PDF', desc:'layout preserved · 30+', premium:true}
+      ],
+      jobs: [
+        {icon:I.compress, name:'Compress PDF', file:'JUN2026_AA3781518.pdf', cost:'Free', action:'Cancel',
+         statusEl: React.createElement('span',{style:{display:'flex',alignItems:'center',gap:'10px',fontSize:'13px'}},
+           React.createElement('span',{style:{width:'80px',height:'3px',background:'#2c2a26',position:'relative',display:'inline-block'}},
+             React.createElement('span',{style:{position:'absolute',left:0,top:0,bottom:0,width:'58%',background:'#e07a3f'}})),
+           React.createElement('span',{style:{color:'#e07a3f',fontVariantNumeric:'tabular-nums'}},'58%'))},
+        {icon:I.search, name:'OCR PDF', file:'pictures (searchable).pdf', cost:'₹4.20', action:'Download',
+         statusEl: React.createElement('span',{style:{fontSize:'12.5px',fontWeight:600,border:'1px solid #2c2a26',padding:'5px 11px',color:'#f5f3ee'}},'Done')},
+        {icon:I.lang, name:'Translate PDF', file:'contract_EN→TE.pdf', cost:'₹9.80', action:'Download',
+         statusEl: React.createElement('span',{style:{fontSize:'12.5px',fontWeight:600,border:'1px solid #2c2a26',padding:'5px 11px',color:'#f5f3ee'}},'Done')},
+        {icon:I.filetext, name:'PDF to Word', file:'notes.pdf', cost:'—', action:'Retry',
+         statusEl: React.createElement('span',{style:{fontSize:'12.5px',fontWeight:600,color:'#9c988c'}},'Queued')}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

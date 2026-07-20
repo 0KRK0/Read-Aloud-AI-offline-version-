@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ghostscript qpdf \
       python3 python3-pip \
       tesseract-ocr \
+      tesseract-ocr-hin tesseract-ocr-tam tesseract-ocr-tel tesseract-ocr-ben \
+      tesseract-ocr-mar tesseract-ocr-guj tesseract-ocr-kan tesseract-ocr-mal \
+      tesseract-ocr-pan tesseract-ocr-urd \
       chromium \
       poppler-utils \
       libgl1 libglib2.0-0 \

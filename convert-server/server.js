@@ -88,10 +88,57 @@ async function pdf2docx(inPath, outDir) {
 }
 // OCR a scanned PDF into a searchable/selectable PDF (ocrmypdf → Tesseract). --skip-text
 // leaves pages that already have text alone, so it won't error on mixed documents.
-async function ocrmypdf(inPath, outDir) {
+// opts.ocrlang: tesseract codes like "eng", "hin", "eng+hin" (validated; langs must
+// be installed in the Dockerfile).
+async function ocrmypdf(inPath, outDir, opts) {
   const out = path.join(outDir, 'out.pdf');
-  await run('ocrmypdf', ['--skip-text', inPath, out], { timeout: 240000 });
+  const lang = (opts && /^[a-z]{3}(\+[a-z]{3}){0,3}$/.test(opts.ocrlang || '')) ? opts.ocrlang : 'eng';
+  await run('ocrmypdf', ['--skip-text', '-l', lang, inPath, out], { timeout: 240000 });
   return out;
+}
+// "Email size" compress: try /ebook first; if still over ~4.5 MB fall back to
+// /screen and keep whichever is smaller (never bigger than the better of the two).
+async function ghostscriptEmail(inPath, outDir) {
+  const eb = await ghostscript(inPath, outDir, '/ebook');
+  const ebSize = fs.statSync(eb).size;
+  if (ebSize <= 4.5 * 1024 * 1024) return eb;
+  const keep = path.join(outDir, 'ebook.pdf');
+  fs.renameSync(eb, keep);
+  const sc = await ghostscript(inPath, outDir, '/screen');
+  return fs.statSync(sc).size < ebSize ? sc : keep;
+}
+// Text-preserving password removal (Phase-2): qpdf --decrypt rewrites the PDF
+// without encryption while keeping the real text layer selectable — unlike the
+// client fallback which rebuilds pages as images. Password only lives in this
+// one job and is masked in logs.
+async function qpdfDecrypt(inPath, outDir, opts) {
+  const pw = String((opts && opts.password) || '');
+  if (!pw) throw new Error('password required for text-preserving unlock');
+  const out = path.join(outDir, 'unlocked.pdf');
+  await run('qpdf', ['--password=' + pw, '--decrypt', inPath, out]);
+  return out;
+}
+// Reflow extracted text for translation: pdftotext hard-wraps lines mid-sentence
+// and hyphenates across lines, which used to garble spacing in the translated
+// output. Join wrapped lines inside paragraphs, de-hyphenate, collapse runs of
+// spaces — paragraph breaks (blank lines) are kept.
+function reflowForTranslation(raw) {
+  return raw.replace(/\r/g, '').split(/\n{2,}/).map(par =>
+    par.split('\n').map(l => l.trim()).filter(Boolean).join(' ')
+       .replace(/(\w)- (\w)/g, '$1$2')
+       .replace(/\s{2,}/g, ' ')
+  ).filter(Boolean).join('\n\n');
+}
+// fetch with retry for transient upstream failures (5xx / 429 / network): the
+// translate chunks are idempotent, so one flaky chunk no longer kills a job.
+async function fetchRetry(url, init, tries) {
+  for (let a = 0; ; a++) {
+    try {
+      const r = await fetch(url, init);
+      if (r.ok || a >= tries || (r.status < 500 && r.status !== 429)) return r;
+    } catch (e) { if (a >= tries) throw e; }
+    await new Promise(rs => setTimeout(rs, 800 * (a + 1)));
+  }
 }
 // PDF -> PDF/A archival format via Ghostscript (our own, no third-party API).
 async function pdfaGs(inPath, outDir) {
@@ -134,8 +181,8 @@ async function translatePdf(inPath, outDir, opts) {
   }
   const lang = opts.lang;
   const txtPath = path.join(outDir, 'in.txt');
-  await run('pdftotext', ['-layout', inPath, txtPath]);
-  const text = fs.readFileSync(txtPath, 'utf8');
+  await run('pdftotext', [inPath, txtPath]);            /* reading order, not -layout */
+  const text = reflowForTranslation(fs.readFileSync(txtPath, 'utf8'));
   if (!text.trim()) throw new Error('no extractable text in this PDF - run OCR on it first');
   // translate in ~4000-char chunks, split on blank lines so sentences stay whole
   // (the translation service re-segments per sentence internally)
@@ -148,10 +195,10 @@ async function translatePdf(inPath, outDir, opts) {
   if (cur) chunks.push(cur);
   let outText = '';
   for (const ch of chunks) {
-    const r = await fetch(ts + '/translate', {
+    const r = await fetchRetry(ts + '/translate', {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ q: ch, source: 'auto', target: lang })
-    });
+    }, 2);
     if (!r.ok) throw new Error('translation failed (' + r.status + '): ' + (await r.text().catch(() => '')).slice(0, 200));
     const j = await r.json();
     outText += (j.translatedText || '') + '\n\n';
@@ -174,11 +221,16 @@ const HANDLERS = {
   excel2pdf:    (i, o) => soffice(i, o, 'pdf'),
   html2pdf:     (i, o, x) => chromiumPdf(i, o, x),   // real Chromium render (URL or .html file)
   pdf2word_hd:  (i, o) => pdf2docx(i, o),   // pdf2docx — our layout-parsing engine
-  ocr_hd:       (i, o) => ocrmypdf(i, o),   // searchable-PDF OCR (Tesseract)
+  ocr_hd:       (i, o, x) => ocrmypdf(i, o, x),   // searchable-PDF OCR (multi-language)
   pdfa:         (i, o) => pdfaGs(i, o),
   pdf2excel:    (i, o) => pdf2excel(i, o),  // camelot — ruled tables work best
   translate:    (i, o, x) => translatePdf(i, o, x),  // our translate-server (NLLB-200)
-  compress_hd:  (i, o) => ghostscript(i, o, '/ebook'),
+  unlock_hd:    (i, o, x) => qpdfDecrypt(i, o, x),   // text-preserving password removal
+  compress_hd:  (i, o, x) => {                       // opts.preset picks the profile
+    const p = x && x.preset;
+    if (p === 'email') return ghostscriptEmail(i, o);
+    return ghostscript(i, o, ({ max: '/screen', web: '/screen', light: '/printer' })[p] || '/ebook');
+  },
   compress_max: (i, o) => ghostscript(i, o, '/screen'),
   compress_web: (i, o) => ghostscript(i, o, '/screen'),
   compress_light: (i, o) => ghostscript(i, o, '/printer')
@@ -214,6 +266,8 @@ app.post('/convert', upload.single('file'), async (req, res) => {
   const maxPages = parseInt((req.body && req.body.maxPages) || '0') || 0;
   let opts = {};
   try { opts = JSON.parse(String((req.body && req.body.opts) || '{}').slice(0, 2000)) || {}; } catch (e) {}
+  console.log(JSON.stringify({ req: tool, maxPages, optsReceived: !!(req.body && req.body.opts),
+    opts: (opts && opts.password) ? { ...opts, password: '***' } : opts }));
   const handler = HANDLERS[tool];
   if (!req.file) return res.status(400).json({ error: 'no file' });
   if (!handler) { rmrf(req.file.path); return res.status(501).json({ error: 'tool not supported: ' + tool }); }

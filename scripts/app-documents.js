@@ -27,6 +27,34 @@ function openFile(file){
   say(`I cannot read .${ext} files yet. I understand PDF, Word (DOCX), text files, and images of pages.`);
 }
 
+/* ---------- AI Workspace handoff: a tool result sent from tools.html ----------
+   tools-page.js stores the finished output in IndexedDB ('lxhand'); if a fresh
+   one (<10 min) exists when the reader loads, open it automatically. The record
+   is deleted on pickup so it never re-opens by surprise. */
+window.addEventListener('load', ()=>{
+  try{
+    const r = indexedDB.open('lxhand', 1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore('f');
+    r.onsuccess = ()=>{
+      try{
+        const tx = r.result.transaction('f', 'readwrite');
+        const q = tx.objectStore('f').get('doc');
+        q.onsuccess = ()=>{
+          const v = q.result;
+          if(!v) return;
+          tx.objectStore('f').delete('doc');
+          if(v.blob && Date.now() - (v.t || 0) < 10 * 60 * 1000){
+            setTimeout(()=>{
+              say(`Opening "${v.name}" from the tools…`, 'sys');
+              openFile(new File([v.blob], v.name || 'document.pdf', { type: v.blob.type || 'application/pdf' }));
+            }, 600);
+          }
+        };
+      }catch(e){}
+    };
+  }catch(e){}
+});
+
 async function openDocx(file){
   say(`Opening "${file.name}" — one moment…`,'sys');
   try{

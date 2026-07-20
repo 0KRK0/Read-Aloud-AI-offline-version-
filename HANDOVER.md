@@ -314,24 +314,39 @@ Wallet: **universal ₹ wallet** — schema + worker-payments + frontend.
 
 ---
 
-## 10. MESSAGE TO PASTE INTO THE NEW CHAT
+## 10. MESSAGE TO PASTE INTO THE NEW CHAT (current as of 19 July 2026)
 
-> Continue the Lexora AI project. Read `HANDOVER.md` in the attached `online/` folder
-> first — it has the full status, architecture, every file, the business model, traps,
-> and the Phase-4 roadmap. Phases 1–3 are DONE (Claude theme + modular refactor;
-> tools; Sign/Edit/Unlock/Protect PDF; the universal ₹ wallet backend+frontend). Your
-> job is **Phase 4**: the server-side conversion engine and the **★ premium tools**
-> (only the ones that truly need a server — HD PDF→Word/PPT/Excel, advanced compress,
-> HD OCR, PDF/A, translate, true Edit PDF, etc.) with a **50-page/day free cap** per
-> ★ tool, **explicit consent** before any upload, and **wallet charging** (~₹0.10/page,
-> the `/wallet/deduct` endpoint + `tool_pages_today` already exist). Also move the ₹
-> wallet into its own view and let it buy subscriptions (`/wallet/buysub`). Keep the
-> standing rules: hide provider names in the UI (Spark/Swift/Sage); black/white/orange
-> no-gradient theme; client-side tools stay private; recalibrate wallet economics if
-> model prices changed. IMPORTANT dev traps: the bash mount serves stale/truncated
-> snapshots (use the Read/Grep tools as truth; never `cat >>` append to Edit-touched
-> files — it corrupts them); Sign/Edit CSS is injected from tools-page.js on purpose.
-> First thing to verify: Protect PDF's `@cantoo/pdf-lib` `encrypt()` call actually works.
+> Continue the Lexora AI project. The `online/` folder is connected. Read
+> `online/HANDOVER.md` IN FULL first — complete status, architecture, file map,
+> business model, dev traps, and §11's live progress tracker. Also read
+> `STRUCTURE.md` (why pages live at root) before touching files.
+> WHERE THINGS STAND: Phases 1–4 of the original plan are CODE-COMPLETE, plus the
+> roadmap's Phase 2 (polish), Phase 3 (PWA; Capacitor = docs/CAPACITOR-GUIDE.md),
+> and Phase 4 v1 (tool→reader handoff). That includes: all 40+ client tools (incl.
+> Crop/Redact/Forms/Compare/Edit Word + tap-to-edit in Edit PDF); the ★ premium
+> stack (gateway worker → convert-server on Railway → translate-server v2 on
+> CTranslate2 int8, cgroup-aware, IPv6-bound); the Hybrid-RAG companion (Private/
+> Smart/Deep Research — rag.js + /rag endpoints); public landing + 43 SEO pages
+> (seo-data.js/seo-page.js template system); trust pages, robots/sitemap/_headers/
+> PWA; wallet incl. /wallet/buysub and wallet_paise on /me. Phase 5 (Own Voice) is
+> a SEPARATE project — founding doc `LEXORA-VOICE-HANDOVER.md`; Lexora needs
+> nothing until its P3.
+> WHAT'S NEXT, in order: (1) the Phase-1 LAUNCH checklist is still pending on KRK
+> (deploys + env fixes + end-to-end tests — top of §11 + Step 5e notes; the
+> translate-language fix requires re-pasting worker-convert.js); (2) implement the
+> UI redesign when KRK brings mockups back (brief: docs/UI-REDESIGN-BRIEF.md —
+> CSS-first, tokens first, element IDs must survive); (3) then Phase 4 v2
+> (workspace chains) or Phase 6 (Layout Engine) — KRK decides.
+> STANDING RULES: our OWN engines only, never a paid API; free client tools stay
+> 100% private (no consent); ★ tools = consent modal + 50 pages/day free +
+> ₹0.10/page; hide provider names (Spark/Swift/Sage); black/white/orange, no
+> gradients. CRITICAL SANDBOX TRAPS (§7): the bash mount serves STALE/truncated
+> copies of edited files — Read/Grep are the source of truth, verify syntax by
+> reconstructing changed code into /tmp for node --check; NEVER `cat >>` append to
+> project files (it corrupts them — use Edit/Write only); bash writes do NOT sync
+> to the real disk (new binaries must be handed to KRK via outputs); editor CSS is
+> JS-injected from tools-page.js on purpose. Mark §11 steps ⏳/✅ as you work so
+> this handover stays a live continuation point.
 
 ---
 
@@ -680,7 +695,43 @@ the conversion SERVER itself is external infra KRK must provision):
     /merge-pdf. Testimonials: the landing intentionally shows use-cases instead of fabricated
     quotes — swap in real user quotes when collected.
 
-- **Step 6 — Own Voice TTS / PWA / Capacitor:** ⬜ later.
+- **Step 5e — Roadmap Phases 2/3/4 build (19 July 2026):** ✅ BUILT (deploy pending).
+  **Phase 2 – Polish:**
+  - Translate quality: `pdftotext` now runs WITHOUT -layout + `reflowForTranslation()`
+    (joins hard-wrapped lines, de-hyphenates, collapses spaces — fixes translated
+    word-spacing/formatting). Translate chunks retry transient failures (`fetchRetry`,
+    2 retries on 5xx/429/network).
+  - `compress_hd` takes `opts.preset` (smart/max/web/light/**email** — email tries
+    /ebook then /screen aiming ≤4.5 MB); HD compress got a profile select (premOpts).
+  - `ocr_hd` takes `opts.ocrlang` (validated tesseract codes); Dockerfile installs 10
+    Indian-language packs; OCR premium got a language select.
+  - **NEW ★ `unlock_hd`** — text-preserving password removal via `qpdf --decrypt`
+    (free client unlock still rebuilds as images; HD keeps text selectable). Unlock
+    tool got the premium toggle + password field; passwords masked in convert-server
+    logs, required loudly in runPremium.
+  - Gateway `/me` now returns **`wallet_paise`** (profiles select + response).
+  **Phase 3 – Mobile:** `sw.js` service worker (DELIBERATELY minimal: cache-first for
+  lib/+icons/+favicon ONLY — can never serve a stale app; registered site-wide from
+  analytics.js on https) → PWA is installable with instant repeat loads.
+  `docs/CAPACITOR-GUIDE.md` = exact Android/iOS wrap recipe (native builds need
+  KRK's machine — Android Studio/Xcode; config points the shell at the live site).
+  **Phase 4 – AI Workspace (v1):** tool→reader **handoff**: finished tool results get
+  an "📖 Open in the reader" button (tvDone) → blob into IndexedDB `lxhand` →
+  index.html picks fresh (<10 min) handoffs on load, opens via `openFile()`, record
+  deleted on pickup (`lxHandoffSave`/`offerReaderHandoff` in tools-page.js + the
+  load listener in app-documents.js). OCR→listen, translate→listen, unlock→ask-AI
+  now one flow. Also `STRUCTURE.md` (why pages stay at root: filenames ARE the
+  URLs; folder conventions for future files) and `docs/` folder started.
+  **TO DEPLOY:** Pages re-upload (sw.js, STRUCTURE.md, docs/, edited tools-page.js /
+  app-documents.js / analytics.js) + re-paste worker-gateway.js + redeploy
+  convert-server (new Dockerfile langs + handlers).
+  NOT done from Phases 2–4 (needs other machines/deeper work): native Android/iOS
+  builds (guide ready), deeper DOCX/table fidelity (engine-level, Layout-Engine
+  territory), full workspace UI (multi-step chains).
+
+- **Step 6 — Own Voice TTS / PWA / Capacitor:** Voice = separate project (see
+  `LEXORA-VOICE-HANDOVER.md`, founding doc DONE — consider Phase 5 half-started);
+  PWA ✅ done (Step 5e); Capacitor = KRK-machine task with docs/CAPACITOR-GUIDE.md.
 
 ### The conversion-server contract (what KRK's server must implement)
 `worker-convert.js` forwards to `CONVERT_SERVER_URL/convert` as `multipart/form-data`
