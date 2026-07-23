@@ -1,16 +1,12 @@
 'use strict';
 /* Lexora AI — settings page (standalone, Phase 2) */
 const $ = id => document.getElementById(id);
-const CONFIG = {
-  SUPABASE_URL: 'https://lgwqqytjqoenozhjhbkr.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_lK4DQ5LVguBYO-4afNbbVw_J_WLNlWv',
-  API_URL: 'https://readaloudai.konarajeshkumar011.workers.dev'
-};
-const ENGINE = { openai:'Swift', anthropic:'Sage', free:'Spark', bedrock:'Spark' };
-const sb = window.supabase ? supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
+/* endpoints, the one Supabase client, and engine names all come from the core layer */
+const ENGINE = Lx.plans.ENGINE;
+const sb = Lx.sb;
 let session = null;
 
-const fmtTokens = n => n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1000 ? Math.round(n/1000)+'k' : String(n||0);
+const fmtTokens = n => Lx.fmt.tokens(n);
 const fmtDate = s => new Date(s).toLocaleString(undefined, {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
@@ -112,11 +108,10 @@ $('profSave').addEventListener('click', async ()=>{
 async function loadWallet(){
   let money = 0;
   try{ const { data } = await sb.from('profiles').select('wallet_paise').eq('id', session.user.id).single(); if(data && typeof data.wallet_paise === 'number') money = data.wallet_paise; }catch(e){}
-  const moneyHtml = `<div class="row" style="justify-content:space-between; align-items:baseline; margin-bottom:16px"><b>💠 ₹ Wallet balance</b><span style="font-size:22px; font-weight:800; color:var(--accent)">₹${(money/100).toFixed(2)}</span></div>`;
+  const moneyHtml = `<div class="row" style="justify-content:space-between; align-items:baseline; margin-bottom:16px"><b style="font-size:11.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)">₹ Wallet balance</b><span class="tnum" style="font-family:var(--font-display); font-size:26px; font-weight:600; color:var(--accent); font-variant-numeric:tabular-nums">${Lx.fmt.rupees(money)}</span></div>`;
   try{
-    const r = await fetch(CONFIG.API_URL + '/me', {headers:{authorization:'Bearer ' + session.access_token}});
-    if(!r.ok) throw new Error('server ' + r.status);
-    const me = await r.json(); meCache = me;
+    const me = await Lx.api.gateway.me(); meCache = me;
+    if(typeof window.paintCharacter === 'function') window.paintCharacter();
     const paid = me.effective === 'paid';
     const max = Math.max((me.tokens_balance||0) + (me.tokens_used||0), 1);
     const pct = Math.max(0, Math.min(100, Math.round((me.tokens_balance||0) / max * 100)));
@@ -183,7 +178,7 @@ $('exportBtn').addEventListener('click', ()=>{
 
 /* ---------- AI engine: tier + token saver (moved here from the plans modal) ---------- */
 (function(){
-  const TIER_LABEL = { core:'Core', plus:'Plus', ultra:'Ultra' };
+  const TIER_LABEL = Lx.plans.TIER_LABEL;   /* → domain/metering.js */
   let tier = localStorage.getItem('ra_tier') || 'core';
   if(!TIER_LABEL[tier]) tier = 'core';
   const paint = ()=> document.querySelectorAll('#setTierRow .tierBtn')
@@ -216,6 +211,23 @@ $('exportBtn').addEventListener('click', ()=>{
     });
   });
   paintRag();
+
+  /* AI character (design package §05B) — reflects the CURRENT engine; the chosen
+     card carries the accent border. Switching to Swift/Sage is a paid action, so a
+     non-current card routes to Plans & wallet rather than flipping locally. */
+  window.paintCharacter = function(){
+    let cur = 'Spark';
+    try{ if(meCache && meCache.effective === 'paid' && meCache.provider) cur = ENGINE[meCache.provider] || 'Swift'; }catch(e){}
+    document.querySelectorAll('#setCharRow .tierBtn')
+      .forEach(b=> b.classList.toggle('on', b.dataset.engine === cur));
+  };
+  document.querySelectorAll('#setCharRow .tierBtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      if(b.classList.contains('on')) return;      /* already the current character */
+      location.href = 'index.html#plans';         /* switching pays from the ₹ wallet */
+    });
+  });
+  window.paintCharacter();
 })();
 
 loadAccount();

@@ -8,21 +8,11 @@
 toolBusy = (msg, pct)=> setProg(msg, pct);
 toolDone = ()=>{};
 
-/* ===== ★ Premium config (Phase 4) — same Supabase as app-core.js + the
-   deployed conversion gateway (worker-convert.js). Auth is OPTIONAL: anonymous
-   users get the free daily pages; the token is only added when logged in. ===== */
-const LX = {
-  SUPABASE_URL: 'https://lgwqqytjqoenozhjhbkr.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_lK4DQ5LVguBYO-4afNbbVw_J_WLNlWv',
-  CONVERT_URL: 'https://readaloud-convert.konarajeshkumar011.workers.dev'
-};
-const lxSb = (window.supabase && window.supabase.createClient)
-  ? window.supabase.createClient(LX.SUPABASE_URL, LX.SUPABASE_ANON_KEY) : null;
-async function lxToken(){
-  if(!lxSb) return null;
-  try{ const {data:{session:s}} = await lxSb.auth.getSession(); return s ? s.access_token : null; }
-  catch(e){ return null; }
-}
+/* ★ Premium runs go through the core layer (core/*): Lx.config (endpoints),
+   Lx.auth (tokens), Lx.api.convert (quote/run). Auth is OPTIONAL — anonymous
+   users get the free daily pages; the token is added only when logged in
+   (handled inside Lx.api.convert). The old duplicated LX / lxSb / lxToken
+   config was fully retired. */
 /* toast (app-wallet.js isn't loaded on this page — same look, #lxToast styles in theme.css) */
 if(typeof window.lxToast !== 'function') window.lxToast = function(msg){
   let el = document.getElementById('lxToast');
@@ -1744,18 +1734,13 @@ async function runPremium(t){
     if(!(p && p.value)) throw new Error('type the PDF password for HD unlock — or switch to the Free version for print/copy locks');
     jobOpts = { password: p.value };
   }
-  const token = await lxToken();
-  const auth = token ? { authorization: 'Bearer ' + token } : {};
   setProg('Checking today’s free pages…', 16);
   let q;
-  try{
-    const r = await fetch(LX.CONVERT_URL + '/quote', {
-      method: 'POST',
-      headers: Object.assign({ 'content-type': 'application/json' }, auth),
-      body: JSON.stringify({ tool: t.ptool, pages })
-    });
-    q = await r.json();
-  }catch(e){ throw new Error('could not reach the premium service — check your connection and try again'); }
+  try{ q = await Lx.api.convert.quote(t.ptool, pages); }   /* core: auth-optional */
+  catch(e){
+    if(e && e.status) throw new Error(e.message || 'could not get a price for this job');
+    throw new Error('could not reach the premium service — check your connection and try again');
+  }
   if(!q || !q.ok) throw new Error((q && q.error) || 'could not get a price for this job');
 
   const act = await consentModal(t, q, est);
@@ -1772,7 +1757,7 @@ async function runPremium(t){
   fd.append('consent', '1');
   if(jobOpts) fd.append('opts', JSON.stringify(jobOpts));
   let r;
-  try{ r = await fetch(LX.CONVERT_URL + '/convert', { method: 'POST', headers: auth, body: fd }); }
+  try{ r = await Lx.api.convert.run(fd); }   /* core: multipart, auth-optional, returns raw Response */
   catch(e){ throw new Error('the upload failed — check your connection (you were not charged)'); }
   if(r.status === 503) throw new Error('★ Premium is launching very soon — use the free version for now.');
   if(r.status === 402){

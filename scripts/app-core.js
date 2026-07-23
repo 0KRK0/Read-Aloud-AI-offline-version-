@@ -1,11 +1,16 @@
 
 'use strict';
-/* ================= CONFIG ================= */
+/* ================= CONFIG =================
+   Endpoints now live in ONE place: core/config.js (Lx.config).
+   CONFIG stays as a compatibility alias (API_URL/PAY_URL/CONVERT_URL)
+   so not-yet-migrated consumers keep working; it is NOT a second source
+   of truth — every value is read from Lx.config. */
 const CONFIG = {
-  SUPABASE_URL: 'https://lgwqqytjqoenozhjhbkr.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_lK4DQ5LVguBYO-4afNbbVw_J_WLNlWv',
-  API_URL: 'https://readaloudai.konarajeshkumar011.workers.dev',
-  PAY_URL: 'https://readaloudai-pay.konarajeshkumar011.workers.dev'   // e.g. https://readaloudai-pay.konarajeshkumar011.workers.dev
+  SUPABASE_URL:      Lx.config.SUPABASE_URL,
+  SUPABASE_ANON_KEY: Lx.config.SUPABASE_ANON_KEY,
+  API_URL:           Lx.config.GATEWAY_URL,
+  PAY_URL:           Lx.config.PAY_URL,
+  CONVERT_URL:       Lx.config.CONVERT_URL
 };
 /* ========================================== */
 
@@ -68,8 +73,9 @@ function friendlyName(name, kind){
 let fitScale = 1;
 function dpr(){ return Math.min(window.devicePixelRatio || 1, 2); }
 
-const configured = !CONFIG.SUPABASE_URL.startsWith('PASTE');
-const sb = configured ? supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
+/* single Supabase client + configured flag come from the core layer */
+const configured = Lx.config.configured;
+const sb = Lx.sb;
 
 /* ---------------- Auth ---------------- */
 async function initAuth(){
@@ -224,6 +230,7 @@ function say(text, who='bot'){
   $('chat').appendChild(m);
   $('chat').scrollTop = $('chat').scrollHeight;
   if(who==='bot' && window.innerWidth<=900 && !$('assistCol').classList.contains('open')) $('fabDot').style.display='block';
+  return m;
 }
 let progEl = null;
 function sayProgress(t){

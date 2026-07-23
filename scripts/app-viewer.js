@@ -562,6 +562,7 @@ function speakLine(i, attempt){ /* speaks SENTENCE i; the visual marker follows 
   /* audio pointer: the sentence · visual pointer: synced by word boundaries */
   u.onboundary = e=>{
     if(typeof e.charIndex !== 'number') return;
+    renderPbSent(sen.text, e.charIndex);
     let p = sen.parts.find(pt=> e.charIndex >= pt.from && e.charIndex < pt.to);
     if(!p){ for(let k = sen.parts.length-1; k >= 0; k--){ if(e.charIndex >= sen.parts[k].from){ p = sen.parts[k]; break; } } }
     if(p && p.line !== curLi){
@@ -617,6 +618,25 @@ function updateProgress(){
   $('readProgFill').style.width = sentences.length ? Math.round((Math.max(current,0)+1) / sentences.length * 100) + '%' : '0%';
   const pg = sentences[Math.max(current,0)]?.page;
   if(pg && $('pageSel').value != pg) $('pageSel').value = pg;
+  renderPbSent(sentences.length && current>=0 ? sentences[current].text : '', -1);
+}
+/* Live-sentence readout in the playbar (design package §05 "live sentence").
+   Shows the sentence being read; the active word glows when a boundary lands. */
+function renderPbSent(text, charIndex){
+  const el = $('pbSent');
+  if(!el) return;
+  if(!text){ el.textContent = ''; return; }
+  if(typeof charIndex !== 'number' || charIndex < 0){ el.textContent = text; return; }
+  let end = text.indexOf(' ', charIndex);
+  if(end < 0) end = text.length;
+  const before = text.slice(0, charIndex);
+  const word   = text.slice(charIndex, end);
+  const after  = text.slice(end);
+  el.textContent = '';
+  el.appendChild(document.createTextNode(before));
+  const w = document.createElement('span'); w.className = 'pbWord'; w.textContent = word;
+  el.appendChild(w);
+  el.appendChild(document.createTextNode(after));
 }
 function goPage(p){
   if(p<1 || p>numPages) return false;

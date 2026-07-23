@@ -2,7 +2,7 @@
 let me = null;
 let walletPaise = 0;
 /* ---------------- Universal ₹ wallet (money balance) ---------------- */
-function fmtRs(paise){ return '₹' + ((paise || 0) / 100).toFixed(2); }
+function fmtRs(paise){ return Lx.fmt.rupees(paise); }   /* → utils/format.js */
 function renderWalletMoney(){ const el = $('walletMoney'); if(el) el.textContent = fmtRs(walletPaise); renderWalletButtons(); }
 async function fetchWallet(){
   if(!session || !sb) return;
@@ -12,77 +12,69 @@ async function fetchWallet(){
   }catch(e){}
   renderWalletMoney();
 }
-/* show a "Pay ₹X from wallet" button on each plan card the balance can cover */
+/* every paid engine card ALWAYS shows an action button:
+   • wallet can cover it → orange "Switch to <Engine>" (pays from ₹ wallet)
+   • not enough         → ghost "Buy ₹X" (Razorpay top-up/checkout) */
 function renderWalletButtons(){
+  const paidCur = (me && me.effective === 'paid') ? me.provider : null;
   document.querySelectorAll('.planCard[data-plan^="sub_"]').forEach(c=>{
-    const price = PLAN_INR[c.dataset.plan] || (c.dataset.plan === 'sub_claude_99' ? 99 : 49);
+    const price = Lx.plans.priceInr(c.dataset.plan);
+    const name = ((c.querySelector('b') || {}).textContent || 'plan').trim();
+    const prov = c.dataset.plan === 'sub_claude_99' ? 'anthropic' : 'openai';
+    const afford = walletPaise >= price * 100;
+    /* price line: only claim "· from wallet" when the balance can actually cover it */
+    const priceEl = c.querySelector('.price');
+    if(priceEl){
+      const verb = (paidCur && prov === paidCur) ? 'top up' : 'switch';
+      priceEl.innerHTML = '₹' + price +
+        '<small style="font-weight:400"> ' + verb + (afford ? ' · from wallet' : '') + '</small>';
+    }
+    /* action button */
     let fw = c.querySelector('.fromWallet');
-    if(walletPaise >= price * 100){
-      if(!fw){
-        fw = document.createElement('button'); fw.type = 'button'; fw.className = 'fromWallet';
-        c.appendChild(fw);
-        fw.addEventListener('click', e=>{ e.stopPropagation(); buyFromWallet(c.dataset.plan); });
-      }
-      fw.textContent = `Pay ₹${price} from your wallet`;
-      fw.style.display = '';
-    }else if(fw){ fw.style.display = 'none'; }
+    if(!fw){ fw = document.createElement('button'); fw.type = 'button'; c.appendChild(fw); }
+    if(afford){
+      fw.className = 'fromWallet';
+      /* full label on desktop, short on mobile (CSS toggles the spans) */
+      fw.innerHTML = '<span class="bL">Switch to ' + name + '</span><span class="bS">Switch</span>';
+      fw.onclick = e=>{ e.stopPropagation(); buyFromWallet(c.dataset.plan); };
+    }else{
+      fw.className = 'fromWallet insuff';
+      fw.textContent = 'Buy ₹' + price;
+      fw.onclick = e=>{ e.stopPropagation(); buy(c.dataset.plan); };
+    }
+    fw.style.display = '';
   });
 }
 async function buyFromWallet(planKey){
   $('plans').style.display = 'none';
   sayProgress('Paying from your ₹ wallet…');
   try{
-    const { data:{ session:s } } = await sb.auth.getSession();
-    const r = await fetch(CONFIG.PAY_URL + '/wallet/buysub', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + s.access_token },
-      body: JSON.stringify({ plan: planKey })
-    });
-    const v = await r.json();
+    const v = await Lx.api.payments.walletBuysub({ plan: planKey });
     removeProgress();
-    if(v.ok){
-      walletPaise = v.wallet_paise; renderWalletMoney();
-      say(`✅ Done — paid from your ₹ wallet. You're on the ${ENGINE[v.provider] || 'Swift'} plan with ${fmtTokens(v.tokens_balance)} tokens. Wallet: ${fmtRs(v.wallet_paise)}.`);
-      await fetchMe();
-    }else if(v.error === 'insufficient'){
+    walletPaise = v.wallet_paise; renderWalletMoney();
+    say(`✅ Done — paid from your ₹ wallet. You're on the ${ENGINE[v.provider] || 'Swift'} plan with ${fmtTokens(v.tokens_balance)} tokens. Wallet: ${fmtRs(v.wallet_paise)}.`);
+    await fetchMe();
+  }catch(e){
+    removeProgress();
+    /* the worker returns 402 {error:'insufficient'} → core throws an ApiError */
+    if(e && (e.status === 402 || e.message === 'insufficient')){
       say("Your ₹ wallet doesn't have enough for that — top up and try again.");
       openPlans();
-    }else say('Could not complete (' + (v.error || 'unknown') + ').');
-  }catch(e){ removeProgress(); say('Wallet payment error: ' + e.message); }
+    }else say('Wallet payment error: ' + (e && e.message || 'unknown') + '.');
+  }
 }
-function fmtTokens(n){ return n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1000 ? Math.round(n/1000)+'k' : String(n); }
+function fmtTokens(n){ return Lx.fmt.tokens(n); }   /* → utils/format.js */
 async function fetchMe(){
   if(!session || !configured) return;
-  try{
-    const token = await authToken();
-    if(!token) return;
-    const r = await fetch(CONFIG.API_URL + '/me', {headers:{authorization:'Bearer '+token}});
-    if(r.ok){ me = await r.json(); renderWallet(); }
-  }catch(e){}
+  try{ me = await Lx.api.gateway.me(); renderWallet(); }catch(e){}
 }
-const PLAN_SIZES = { sub_openai_49: 500000, sub_claude_99: 120000 };
-const PLAN_INR = { sub_openai_49: 49, sub_claude_99: 99 };
-const RATE_INR = { openai: 49/500000, anthropic: 99/120000 };
-/* live plan config from the payments worker — env-configured prices, no redeploy drift */
-(async ()=>{
-  try{
-    if(!configured || CONFIG.PAY_URL.startsWith('PASTE')) return;
-    const r = await fetch(CONFIG.PAY_URL + '/config');
-    if(!r.ok) return;
-    const c = await r.json();
-    if(!c || !c.plans) return;
-    for(const k of ['sub_openai_49','sub_claude_99']){
-      const p = c.plans[k];
-      if(!p || !p.inr || !p.tokens) continue;
-      PLAN_SIZES[k] = p.tokens;
-      PLAN_INR[k] = p.inr;
-      RATE_INR[k === 'sub_claude_99' ? 'anthropic' : 'openai'] = p.inr / p.tokens;
-    }
-  }catch(e){ /* fall back to the built-in defaults */ }
-})();
+/* Plan prices / token sizes / rates live in the domain model (Lx.plans), which
+   refreshes from the live payments /config with env-configured values (no
+   redeploy drift, no hardcoded truth). Refresh it at boot. */
+if(configured) Lx.plans.loadConfig();
 /* user-facing engine names — provider ids never appear in the UI */
-const ENGINE = { openai: 'Swift', anthropic: 'Sage', free: 'Spark', bedrock: 'Spark' };
-const TIER_LABEL = { core: 'Core', plus: 'Plus', ultra: 'Ultra' };
+const ENGINE = Lx.plans.ENGINE;          /* → domain/metering.js (hidden-provider names) */
+const TIER_LABEL = Lx.plans.TIER_LABEL;
 let aiTier = localStorage.getItem('ra_tier') || 'core';
 let aiSaver = localStorage.getItem('ra_saver') === '1';
 function renderWallet(){
@@ -115,15 +107,14 @@ function openPlans(){
   document.querySelectorAll('.planCard[data-plan^="sub_"]').forEach(c=>{
     const prov = c.dataset.plan==='sub_claude_99' ? 'anthropic' : 'openai';
     const price = c.querySelector('.price');
-    const base = '₹' + (PLAN_INR[c.dataset.plan] || (c.dataset.plan==='sub_claude_99' ? 99 : 49));
-    if(!curProv) price.textContent = base;
-    else if(prov === curProv) price.innerHTML = base + '<br><small style="font-weight:400">top up</small>';
-    else price.innerHTML = base + '<br><small style="font-weight:400">switch + buy</small>';
+    const base = '₹' + Lx.plans.priceInr(c.dataset.plan);
+    const verb = (curProv && prov === curProv) ? 'top up' : 'switch';
+    price.innerHTML = base + '<small style="font-weight:400"> ' + verb + '</small>';   /* renderWalletButtons adds "· from wallet" when affordable */
   });
   /* free switch card: active SUBSCRIPTION balance, both directions (doc packs are Swift-locked) */
   if(curProv && me.tokens_balance > 0 && me.plan !== 'doc'){
     const toSage = curProv === 'openai';
-    const conv = Math.floor(me.tokens_balance * RATE_INR[curProv] / RATE_INR[toSage ? 'anthropic' : 'openai']);
+    const conv = Lx.plans.convertBalance(curProv, toSage ? 'anthropic' : 'openai', me.tokens_balance);
     $('convertCard').querySelector('b').textContent = toSage ? 'Switch to Sage — free' : 'Switch to Swift — free';
     $('convertDesc').textContent = `${fmtTokens(me.tokens_balance)} ${toSage?'Swift':'Sage'} tokens → ~${fmtTokens(conv)} ${toSage?'Sage':'Swift'} tokens. Same money value.`;
     $('convertCard').style.display = 'flex';
@@ -182,17 +173,11 @@ async function doFreeUpgrade(){
   $('plans').style.display='none';
   sayProgress('Switching your plan…');
   try{
-    const {data:{session:s}} = await sb.auth.getSession();
-    const r = await fetch(CONFIG.PAY_URL + '/switch', {
-      method:'POST',
-      headers:{'content-type':'application/json', authorization:'Bearer '+s.access_token},
-      body:'{}'
-    });
-    const v = await r.json();
+    const v = await Lx.api.payments.switchEngine();
     removeProgress();
-    if(v.ok){ say(`🔁 Done! You are now on the ${ENGINE[v.provider]||'Swift'} plan with ${fmtTokens(v.tokens_balance)} tokens.`); await fetchMe(); }
-    else say('Switch failed: ' + (v.error||'unknown'));
-  }catch(e){ removeProgress(); say('Switch error: '+e.message); }
+    say(`🔁 Done! You are now on the ${ENGINE[v.provider]||'Swift'} plan with ${fmtTokens(v.tokens_balance)} tokens.`);
+    await fetchMe();
+  }catch(e){ removeProgress(); say('Switch error: '+(e && e.message || 'unknown')); }
 }
 
 /* our own toast notification (not a browser alert) */
@@ -216,7 +201,7 @@ function customPreview(){
   const amt = parseInt($('customAmt').value) || 0;
   const prov = $('customProv').value;
   $('customTok').textContent = (amt >= 49 && amt <= 5000)
-    ? '≈ ' + fmtTokens(Math.floor(amt / RATE_INR[prov])) + ' tokens'
+    ? '≈ ' + fmtTokens(Lx.plans.tokensForRupees(prov, amt)) + ' tokens'
     : 'min ₹49';
 }
 $('customAmt').addEventListener('input', customPreview);
@@ -229,19 +214,12 @@ $('customBuy').addEventListener('click', ()=>{
 });
 
 async function buy(planKey, extra){
-  if(CONFIG.PAY_URL.startsWith('PASTE')){ say('Payments are not set up yet.','sys'); return; }
+  if(!configured){ say('Payments are not set up yet.','sys'); return; }
   $('plans').style.display='none';
   sayProgress('Preparing payment…');
   try{
     await loadRzp();
-    const {data:{session:s}} = await sb.auth.getSession();
-    const or = await fetch(CONFIG.PAY_URL + '/order', {
-      method:'POST',
-      headers:{'content-type':'application/json', authorization:'Bearer '+s.access_token},
-      body: JSON.stringify(Object.assign({plan: planKey, pages: numPages || 1}, extra || {}))
-    });
-    if(!or.ok){ const j = await or.json().catch(()=>({})); throw new Error(j.error||'order failed'); }
-    const order = await or.json();
+    const order = await Lx.api.payments.order(Object.assign({plan: planKey, pages: numPages || 1}, extra || {}));
     removeProgress();
     const rz = new Razorpay({
       key: order.key_id,
@@ -255,29 +233,24 @@ async function buy(planKey, extra){
       handler: async (resp)=>{
         sayProgress('Confirming payment…');
         try{
-          const vr = await fetch(CONFIG.PAY_URL + '/verify', {
-            method:'POST',
-            headers:{'content-type':'application/json', authorization:'Bearer '+s.access_token},
-            body: JSON.stringify(resp)
-          });
-          const v = await vr.json();
+          const v = await Lx.api.payments.verify(resp);   /* throws on non-ok */
           removeProgress();
-          if(v.ok){
-            if(planKey === 'wallet'){
-              await fetchWallet();   /* authoritative ₹ balance from Supabase, not the verify payload */
-              say(`🎉 Added to your ₹ wallet! Balance: ${fmtRs(walletPaise)}.`);
-            }else{
-              say(`🎉 Payment successful! ${fmtTokens(v.tokens_balance)} tokens in your wallet. Enjoy!`);
-              await fetchMe();
-            }
-          }else say('Payment verification failed: ' + (v.error||'unknown') + '. If money was deducted, contact support.');
-        }catch(e){ removeProgress(); say('Payment verification error: '+e.message); }
+          if(planKey === 'wallet'){
+            await fetchWallet();   /* authoritative ₹ balance from Supabase, not the verify payload */
+            say(`🎉 Added to your ₹ wallet! Balance: ${fmtRs(walletPaise)}.`);
+          }else{
+            say(`🎉 Payment successful! ${fmtTokens(v.tokens_balance)} tokens in your wallet. Enjoy!`);
+            await fetchMe();
+          }
+        }catch(e){ removeProgress(); say('Payment verification failed ('+(e && e.message || 'unknown')+'). If money was deducted, contact support.'); }
       }
     });
     rz.open();
   }catch(e){ removeProgress(); say('Payment could not start ('+e.message+').'); }
 }
-document.querySelectorAll('.planCard[data-plan]').forEach(c=> c.addEventListener('click', ()=> buy(c.dataset.plan)));
+/* only the contextual ROWS (convert / just-this-document) are click-to-buy;
+   engine cards use their explicit Switch/Buy buttons (renderWalletButtons). */
+document.querySelectorAll('.pwRow[data-plan]').forEach(c=> c.addEventListener('click', ()=> buy(c.dataset.plan)));
 $('convertCard').addEventListener('click', doFreeUpgrade);
 
 /* ---------------- Theme ---------------- */

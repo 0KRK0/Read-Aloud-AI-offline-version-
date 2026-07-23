@@ -88,7 +88,7 @@
     + '.seoCrumbs{font-size:12.5px; color:var(--muted); margin:4px 0 18px}'
     + '.seoCrumbs a{color:var(--muted); text-decoration:none}'
     + '.seoCrumbs a:hover{color:var(--accent)}'
-    + 'main h2{font-family:Georgia,"Times New Roman",serif; font-size:24px; margin:40px 0 16px}'
+    + 'main h2{font-family:var(--font-display,Georgia,serif); font-size:24px; margin:40px 0 16px}'
     + '.seoGrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px}'
     + '.seoCard{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 15px; font-size:13.5px; line-height:1.55; color:var(--muted)}'
     + '.seoCard b{color:var(--text); display:block; margin-bottom:5px}'

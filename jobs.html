@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Jobs — Lexora AI</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#111110">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles/theme.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body>
+<script>if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');</script>
+
+<aside id="sideNav">
+  <div class="brand"><span class="mark"><span class="mkDot"></span></span><span class="brandTxt">Lexora <span>AI</span></span></div>
+  <nav>
+    <a href="index.html" title="Reader" aria-label="Reader"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Reader</span></a>
+    <a href="tools.html" title="Tools" aria-label="Tools"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span class="lbl">Tools</span></a>
+    <a href="scan.html" title="Scan" aria-label="Scan"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg><span class="lbl">Scan</span></a>
+    <button id="navSearch" title="Search (Ctrl/⌘K)" aria-label="Search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span class="lbl">Search</span></button>
+    <a href="jobs.html" class="active" title="Jobs" aria-label="Jobs"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M12 7v5l3 3"/></svg><span class="lbl">Jobs</span></a>
+    <a href="index.html#plans" title="Plans &amp; wallet" aria-label="Plans and wallet"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14"/><path d="M2 10h20"/></svg><span class="lbl">Plans &amp; wallet</span></a>
+    <a href="settings.html" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M4.2 4.2l2.8 2.8m10 10 2.8 2.8M1 12h4m14 0h4M4.2 19.8 7 17m10-10 2.8-2.8"/></svg><span class="lbl">Settings</span></a>
+    <div class="navSep"></div>
+    <a href="privacy.html" target="_blank" title="Privacy" aria-label="Privacy"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span class="lbl">Privacy</span></a>
+  </nav>
+  <div class="account">
+    <button id="acctTheme" title="Switch theme"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span class="lbl">Switch theme</span></button>
+    <button onclick="location.href='index.html'" title="Back to the reader"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg><span class="lbl">Back to the reader</span></button>
+  </div>
+</aside>
+
+<div id="navVeil"></div>
+<div class="pageTop">
+  <button class="hambBtn" id="hambBtn" title="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+  <b>Jobs · Lexora <span>AI</span></b>
+  <span class="spacer"></span>
+  <span id="jobsSummary" class="jobsSummary"></span>
+</div>
+
+<main><div class="wrap" style="max-width:1100px">
+  <div class="kicker" style="margin:26px 0 10px">Background processing</div>
+  <h1 class="pageTitle">Jobs</h1>
+  <p class="pageSub">Premium tool runs appear here. Results stay available for this session — files are deleted from our server right after each job.</p>
+
+  <div class="jobsTable" id="jobsTable" hidden>
+    <div class="jh">Job</div><div class="jh">Status</div><div class="jh">Cost</div><div class="jh">Action</div>
+    <!-- rows injected -->
+  </div>
+
+  <div class="jobsEmpty" id="jobsEmpty">
+    <svg viewBox="0 0 320 180" width="260" aria-hidden="true">
+      <line x1="60" y1="40" x2="160" y2="90" stroke="var(--line-strong,#3a3833)" stroke-width="1.5"/>
+      <line x1="260" y1="36" x2="160" y2="90" stroke="var(--line-strong,#3a3833)" stroke-width="1.5"/>
+      <line x1="80" y1="150" x2="160" y2="90" stroke="var(--accent)" stroke-width="1.5"/>
+      <g transform="translate(44,20)"><path d="M0 0h24l9 9v30H0z" fill="none" stroke="var(--muted)" stroke-width="1.5"/></g>
+      <g transform="translate(244,16)"><path d="M0 0h24l9 9v30H0z" fill="none" stroke="var(--muted)" stroke-width="1.5"/></g>
+      <g transform="translate(64,130)"><path d="M0 0h24l9 9v30H0z" fill="none" stroke="var(--accent)" stroke-width="1.5"/></g>
+      <rect x="148" y="78" width="24" height="24" fill="var(--accent)"/>
+    </svg>
+    <h2 class="secTitle" style="margin-top:20px">No jobs yet</h2>
+    <p class="hint" style="max-width:420px; margin:0 auto">Run a ★ premium tool — HD compress, OCR, translate, PDF→Excel — and it will appear here with its status and cost. Free on-device tools never need a job: they finish instantly in your browser.</p>
+    <a class="btn" href="tools.html" style="margin-top:18px">Open the tools</a>
+  </div>
+</div></main>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+
+/* drawer + theme (standalone shell behaviour) */
+var hamb = $('hambBtn'); if(hamb) hamb.addEventListener('click', function(){ document.body.classList.toggle('navOpen'); });
+var veil = $('navVeil'); if(veil) veil.addEventListener('click', function(){ document.body.classList.remove('navOpen'); });
+var th = $('acctTheme'); if(th) th.addEventListener('click', function(){
+  var l = document.body.classList.toggle('light');
+  try{ localStorage.setItem('ra_theme', l ? 'light' : 'dark'); }catch(e){}
+});
+
+/* jobs feed: localStorage 'lx_jobs' = [{tool,file,status,cost,t}] — newest first.
+   window.lxJobs.add(job) is the write API for the tool runner. */
+function load(){ try{ return JSON.parse(localStorage.getItem('lx_jobs')) || []; }catch(e){ return []; } }
+window.lxJobs = {
+  add: function(job){
+    var l = load(); job.t = job.t || Date.now(); l.unshift(job);
+    try{ localStorage.setItem('lx_jobs', JSON.stringify(l.slice(0,50))); }catch(e){}
+    render();
+  }
+};
+function esc(s){ var d = document.createElement('span'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function ago(t){ var m = Math.round((Date.now()-t)/60000);
+  if(m < 2) return 'just now'; if(m < 60) return m+' min ago';
+  var h = Math.round(m/60); return h < 24 ? h+' h ago' : Math.round(h/24)+' d ago'; }
+function statusEl(s){
+  if(s === 'running') return '<span class="jsRun"><span class="jsDot"></span>Running</span>';
+  if(s === 'failed')  return '<span class="jsFail">Failed · refunded</span>';
+  return '<span class="jsDone">Done</span>';
+}
+function render(){
+  var list = load(), tbl = $('jobsTable'), empty = $('jobsEmpty'), sum = $('jobsSummary');
+  tbl.querySelectorAll('.jr').forEach(function(n){ n.remove(); });
+  if(!list.length){ tbl.hidden = true; empty.hidden = false; if(sum) sum.textContent = ''; return; }
+  tbl.hidden = false; empty.hidden = true;
+  var running = list.filter(function(j){ return j.status === 'running'; }).length;
+  if(sum) sum.textContent = running + ' running · ' + (list.length - running) + ' done';
+  list.forEach(function(j){
+    var frag = document.createElement('div'); frag.className = 'jr';
+    frag.innerHTML =
+      '<div class="jc"><span class="jIc"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent)" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>'
+      + '<span class="jTxt"><b>' + esc(j.tool || 'Premium job') + '</b><small>' + esc(j.file || '') + ' · ' + ago(j.t) + '</small></span></div>'
+      + '<div class="jc">' + statusEl(j.status) + '</div>'
+      + '<div class="jc tnum">' + esc(j.cost || 'free') + '</div>'
+      + '<div class="jc"><a class="jAct" href="tools.html">' + (j.status === 'failed' ? 'Try again' : 'Open tools') + '</a></div>';
+    tbl.appendChild(frag);
+  });
+}
+render();
+setInterval(render, 30000);
+})();
+</script>
+<script defer src="scripts/lx-search.js"></script>
+<style>
+/* jobs table — shared-border themed table (mockup 3c) */
+.jobsSummary{color:var(--muted); font-size:12.5px; font-variant-numeric:tabular-nums}
+.jobsTable{display:grid; grid-template-columns:2fr 1.2fr .8fr .9fr; gap:1px;
+  background:var(--line); border:1px solid var(--line); margin-top:18px}
+.jobsTable .jh{background:var(--panel); padding:12px 18px; font-size:11.5px; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+.jobsTable .jr{display:contents}
+.jobsTable .jc{background:var(--bg); padding:16px 18px; display:flex; align-items:center; gap:12px;
+  font-size:13.5px; min-width:0}
+.jIc{display:inline-flex; width:32px; height:32px; border:1px solid var(--line-strong); flex:none;
+  align-items:center; justify-content:center}
+.jTxt{min-width:0}
+.jTxt b{display:block; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.jTxt small{display:block; color:var(--muted); font-size:12px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.jsRun{color:var(--text); display:inline-flex; align-items:center; gap:8px}
+.jsDot{width:8px; height:8px; background:var(--accent); display:inline-block; animation:jsB 1s infinite}
+@keyframes jsB{50%{opacity:.35}}
+.jsDone{color:var(--muted)} .jsFail{color:var(--warn)}
+.jAct{border:1px solid var(--line-strong); color:var(--text); font-size:12.5px; font-weight:600;
+  padding:7px 14px; text-decoration:none}
+.jAct:hover{border-color:var(--accent)}
+.jobsEmpty{text-align:center; border:1px dashed var(--line-strong); padding:56px 20px; margin-top:18px}
+@media (max-width:760px){
+  .jobsTable{grid-template-columns:1.6fr 1fr}
+  .jobsTable .jh:nth-child(3), .jobsTable .jh:nth-child(4){display:none}
+  .jobsTable .jr .jc:nth-child(3), .jobsTable .jr .jc:nth-child(4){display:none}
+}
+</style>
+</body>
+</html>

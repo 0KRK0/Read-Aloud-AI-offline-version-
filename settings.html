@@ -20,20 +20,22 @@
 <script>if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');</script>
 
 <aside id="sideNav">
-  <div class="brand"><span class="mark">L</span>Lexora <span>AI</span></div>
+  <div class="brand"><span class="mark"><span class="mkDot"></span></span><span class="brandTxt">Lexora <span>AI</span></span></div>
   <nav>
-    <a href="index.html">Home</a>
-    <a href="tools.html">Tools</a>
-    <a href="scan.html">Scan</a>
-    <a href="index.html#plans">Plans &amp; wallet</a>
-    <a href="settings.html" class="active">Settings</a>
+    <a href="index.html" title="Reader" aria-label="Reader"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Reader</span></a>
+    <a href="tools.html" title="Tools" aria-label="Tools"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span class="lbl">Tools</span></a>
+    <a href="scan.html" title="Scan" aria-label="Scan"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg><span class="lbl">Scan</span></a>
+    <button id="navSearch" title="Search (Ctrl/⌘K)" aria-label="Search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span class="lbl">Search</span></button>
+    <a href="jobs.html" title="Jobs" aria-label="Jobs"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M12 7v5l3 3"/></svg><span class="lbl">Jobs</span></a>
+    <a href="index.html#plans" title="Plans &amp; wallet" aria-label="Plans and wallet"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14"/><path d="M2 10h20"/></svg><span class="lbl">Plans &amp; wallet</span></a>
+    <a href="settings.html" class="active" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M4.2 4.2l2.8 2.8m10 10 2.8 2.8M1 12h4m14 0h4M4.2 19.8 7 17m10-10 2.8-2.8"/></svg><span class="lbl">Settings</span></a>
     <div class="navSep"></div>
-    <a href="faq.html">FAQ</a>
-    <a href="about.html">About</a>
-    <a href="security.html">Security</a>
-    <a href="contact.html">Contact</a>
-    <a href="privacy.html" target="_blank">Privacy</a>
-    <a href="terms.html" target="_blank">Terms</a>
+    <a href="privacy.html" target="_blank" title="Privacy" aria-label="Privacy"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span class="lbl">Privacy</span></a>
+    <a href="faq.html" class="railHideDesk"><span class="lbl">FAQ</span></a>
+    <a href="about.html" class="railHideDesk"><span class="lbl">About</span></a>
+    <a href="security.html" class="railHideDesk"><span class="lbl">Security</span></a>
+    <a href="contact.html" class="railHideDesk"><span class="lbl">Contact</span></a>
+    <a href="terms.html" target="_blank" class="railHideDesk"><span class="lbl">Terms</span></a>
   </nav>
   <div class="account">
     <div class="who">
@@ -139,13 +141,21 @@
       <section class="setSec" id="aiengine">
         <h2 class="secTitle">AI Engine</h2>
         <div class="card">
-          <label class="f">Engine power — applies to every question you ask the companion</label>
+          <label class="f">AI character — who answers you</label>
+          <div class="tierRow" id="setCharRow">
+            <button class="tierBtn" data-engine="Spark"><b>Spark</b><small>free · fast</small></button>
+            <button class="tierBtn" data-engine="Swift"><b>Swift</b><small>₹49 · recommended</small></button>
+            <button class="tierBtn" data-engine="Sage"><b>Sage</b><small>₹99 · web search</small></button>
+          </div>
+          <p class="hint">The character that answers you — your current one is marked. Switching to Swift or Sage happens in <a href="index.html#plans">Plans &amp; wallet</a> and pays from your ₹ wallet.</p>
+
+          <label class="f" style="margin-top:20px">Engine power — applies to every question you ask the companion</label>
           <div class="tierRow" id="setTierRow">
             <button class="tierBtn" data-tier="core"><b>Core</b><small>default · best value</small></button>
             <button class="tierBtn" data-tier="plus"><b>Plus</b><small>smarter · uses more</small></button>
             <button class="tierBtn" data-tier="ultra"><b>Ultra</b><small>top model · ⚠ burns fast</small></button>
           </div>
-          <label class="saverRow" style="margin-top:16px"><input type="checkbox" id="setSaver"> <span><b>🪄 Token Saver</b> — compresses what we send to the engine, same answers for fewer tokens</span></label>
+          <label class="saverRow" style="margin-top:16px"><input type="checkbox" id="setSaver"> <span><b>Token Saver</b> — compresses what we send to the engine, same answers for fewer tokens</span></label>
           <p class="hint">Higher engine power gives smarter answers but uses your token balance faster. This applies when you are on a paid engine (Swift or Sage); on the free plan the Spark engine is always used.</p>
 
           <label class="f" style="margin-top:20px">Document understanding — how the companion reads your document</label>
@@ -165,7 +175,7 @@
           <p class="hint">Reading, OCR and all PDF tools run 100% in your browser. Only the questions you ask the AI companion (plus the relevant text snippets) are sent to the AI engine.</p>
           <p class="hint" id="consentInfo"></p>
           <div class="row">
-            <button class="btn ghost" id="exportBtn">⬇ Export my data (JSON)</button>
+            <button class="btn ghost" id="exportBtn">Export my data (JSON)</button>
             <button class="btn danger" id="clearBtn">Clear data on this device</button>
           </div>
           <p class="hint" style="margin-top:14px">To permanently delete your account and server data, email
@@ -189,8 +199,16 @@
   </div>
 </div></main>
 
+<!-- core service layer (Lx.*): loads before the feature script -->
+<script defer src="core/config.js"></script>
+<script defer src="core/supabase.js"></script>
+<script defer src="core/auth.js"></script>
+<script defer src="core/api.js"></script>
+<script defer src="utils/format.js"></script>
+<script defer src="domain/metering.js"></script>
 <script defer src="scripts/analytics.js"></script>
 <script defer src="scripts/settings.js"></script>
+<script defer src="scripts/lx-search.js"></script>
 <script defer src="scripts/select-style.js"></script>
 </body>
 </html>

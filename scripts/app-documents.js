@@ -283,15 +283,15 @@ function drawReview(){
   ctx.moveTo(q[0].x,q[0].y); ctx.lineTo(q[3].x,q[3].y); ctx.lineTo(q[2].x,q[2].y); ctx.lineTo(q[1].x,q[1].y); ctx.closePath();
   ctx.fill('evenodd');
   ctx.restore();
-  ctx.strokeStyle = '#6c8cff'; ctx.lineWidth = 2;
+  ctx.strokeStyle = '#e07a3f'; ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(q[0].x,q[0].y); q.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.closePath();
   ctx.stroke();
   q.forEach(p=>{
     ctx.beginPath(); ctx.arc(p.x, p.y, 11, 0, 7);
-    ctx.fillStyle = 'rgba(108,140,255,.35)'; ctx.fill();
+    ctx.fillStyle = 'rgba(224,122,63,.30)'; ctx.fill();
     ctx.beginPath(); ctx.arc(p.x, p.y, 5.5, 0, 7);
-    ctx.fillStyle = '#6c8cff'; ctx.fill();
+    ctx.fillStyle = '#e07a3f'; ctx.fill();
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
   });
 }
@@ -445,12 +445,12 @@ function camLoopTick(){
   const toDisp = p => ({ x: p.x * (v.videoWidth / SW) * vsc + ox, y: p.y * (v.videoWidth / SW) * vsc + oy });
   if(q.found){
     const d = q.map(toDisp);
-    ctx.strokeStyle = 'rgba(108,140,255,.95)'; ctx.lineWidth = 3;
-    ctx.fillStyle = 'rgba(108,140,255,.13)';
+    ctx.strokeStyle = 'rgba(224,122,63,.95)'; ctx.lineWidth = 3;
+    ctx.fillStyle = 'rgba(224,122,63,.14)';
     ctx.beginPath();
     ctx.moveTo(d[0].x, d[0].y); d.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
     ctx.fill(); ctx.stroke();
-    d.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, 7); ctx.fillStyle = '#6c8cff'; ctx.fill(); });
+    d.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, 7); ctx.fillStyle = '#e07a3f'; ctx.fill(); });
   }
   /* auto-capture: page found and steady for ~1.2s */
   if(!camAutoOn || !q.found || Date.now() < camCooldown){ camStable = 0; camPrevQuad = q.found ? q : null; return; }
@@ -461,7 +461,7 @@ function camLoopTick(){
   }
   camPrevQuad = q;
   /* countdown ring on the shutter */
-  if(camStable > 2) $('camShot').style.boxShadow = `0 0 0 ${camStable}px rgba(108,140,255,.4)`;
+  if(camStable > 2) $('camShot').style.boxShadow = `0 0 0 ${camStable}px rgba(224,122,63,.4)`;
   else $('camShot').style.boxShadow = '';
   if(camStable >= 9){
     camStable = 0; camCooldown = Date.now() + 3000;

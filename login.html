@@ -19,6 +19,11 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://lgwqqytjqoenozhjhbkr.supabase.co" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- core service layer (Lx.*): synchronous so the inline login script below sees it -->
+<script src="core/config.js"></script>
+<script src="core/supabase.js"></script>
+<script src="core/auth.js"></script>
+<script src="core/api.js"></script>
 <link rel="stylesheet" href="styles/app.css">
 <link rel="stylesheet" href="styles/theme.css">
 <style>
@@ -32,7 +37,7 @@
 
 <div id="login">
   <div class="card">
-    <div class="logo2">L</div>
+    <div class="logo2" aria-hidden="true"><span class="mkDot"></span></div>
     <h2>Log in to Lexora <span>AI</span></h2>
     <p><b style="color:var(--text)">Your AI Companion for Every Document.</b><br>No account needed — one is created automatically the first time you log in.</p>
     <button id="googleBtn">
@@ -47,7 +52,7 @@
     <div id="loginMsg"></div>
     <div style="display:flex; justify-content:space-between; align-items:baseline">
       <label class="fieldLabel" for="emailInput">Email</label>
-      <button id="emailEdit" style="display:none; background:none; border:none; color:var(--accent); font-size:12.5px; cursor:pointer; padding:0 2px 6px">✏️ Change</button>
+      <button id="emailEdit" style="display:none; background:none; border:none; color:var(--accent); font-size:12.5px; cursor:pointer; padding:0 2px 6px">Change</button>
     </div>
     <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
     <button id="loginBtn">Continue with email</button>
@@ -63,14 +68,14 @@
 
 <script>
 'use strict';
-const CONFIG = {
-  SUPABASE_URL: 'https://lgwqqytjqoenozhjhbkr.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_lK4DQ5LVguBYO-4afNbbVw_J_WLNlWv'
-};
 const $ = id => document.getElementById(id);
-const APP_URL = new URL('index.html', location.href).href;   /* where every successful login lands */
-const configured = !CONFIG.SUPABASE_URL.startsWith('PASTE');
-const sb = (configured && window.supabase) ? supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
+/* the ONE Supabase client + `configured` flag come from the core layer.
+   ?next=%23plans returns the user exactly where they were headed
+   (fragment-only whitelist via Lx.auth.safeNext() — no open redirects). */
+const SAFE_NEXT = Lx.auth.safeNext();
+const APP_URL = new URL('index.html' + SAFE_NEXT, location.href).href;   /* where every successful login lands */
+const configured = Lx.config.configured;
+const sb = Lx.sb;
 
 /* already logged in? straight into the app */
 (async ()=>{

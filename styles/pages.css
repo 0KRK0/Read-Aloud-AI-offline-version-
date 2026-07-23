@@ -6,33 +6,33 @@
 *{box-sizing:border-box}
 html,body{margin:0; padding:0}
 body{background:var(--bg); color:var(--text); min-height:100vh;
-  font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:var(--font-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif);
   font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased}
 a{color:var(--accent)}
 main{min-height:100vh}
 .wrap{max-width:920px; margin:0 auto; padding:30px 22px 70px}
-h1.pageTitle{font-family:Georgia,'Times New Roman',serif; font-weight:600; font-size:28px;
-  letter-spacing:-.01em; margin:6px 0 4px}
+h1.pageTitle{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:28px;
+  letter-spacing:-.015em; margin:6px 0 4px}
 h1.pageTitle span{color:var(--accent)}
 .pageSub{color:var(--muted); font-size:14px; margin:0 0 26px}
-h2.secTitle{font-family:Georgia,serif; font-weight:600; font-size:19px; margin:0 0 14px}
+h2.secTitle{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:19px; margin:0 0 14px}
 
-/* mobile top bar (sidebar is desktop-only) */
-.pageTop{display:none; position:sticky; top:0; z-index:40; align-items:center; gap:12px;
-  background:var(--panel); border-bottom:1px solid var(--line); padding:12px 16px}
+/* top bar — the 52px workspace chrome on EVERY viewport (mockup 3a) */
+.pageTop{display:flex; position:sticky; top:0; z-index:40; align-items:center; gap:14px;
+  height:52px; background:var(--bg); border-bottom:1px solid var(--line); padding:0 20px}
 .pageTop a.back{color:var(--muted); text-decoration:none; font-size:14px}
 .pageTop a.back:hover{color:var(--accent)}
-.pageTop b{font-family:Georgia,serif; font-weight:600; font-size:16px}
+.pageTop b{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:16px}
 .pageTop b span{color:var(--accent)}
 .pageTop .spacer{flex:1}
-@media (max-width:900px){ .pageTop{display:flex} .wrap{padding:20px 14px 60px} }
+@media (max-width:900px){ .wrap{padding:20px 14px 60px} }
 
 /* cards & controls */
 .card{background:var(--panel); border:1px solid var(--line); border-radius:12px;
   padding:20px; margin-bottom:16px}
 .card h3{margin:0 0 6px; font-size:15.5px; font-weight:600}
 .card p.hint{color:var(--muted); font-size:13px; margin:4px 0 12px}
-.btn{display:inline-block; background:var(--accent); color:#fff; border:none; border-radius:9px;
+.btn{display:inline-block; background:var(--accent); color:var(--on-accent, #111110); border:none; border-radius:0;
   padding:10px 18px; font-size:14px; font-weight:600; cursor:pointer; text-decoration:none}
 .btn:hover{filter:brightness(1.08)}
 .btn.ghost{background:var(--panel); color:var(--text); border:1px solid var(--line)}
@@ -66,9 +66,10 @@ table.list tr:last-child td{border-bottom:none}
 .setGrid{display:grid; grid-template-columns:190px 1fr; gap:26px; align-items:start}
 .secNav{position:sticky; top:24px; display:flex; flex-direction:column; gap:2px}
 .secNav a{display:block; color:var(--muted); text-decoration:none; font-size:14px;
-  padding:8px 12px; border-radius:8px}
+  padding:8px 12px; border-radius:0; border-left:2px solid transparent}
 .secNav a:hover{background:var(--panel2); color:var(--text)}
-.secNav a.active{background:var(--panel2); color:var(--text); font-weight:600}
+.secNav a.active{background:var(--panel2); color:var(--text); font-weight:600;
+  border-left:2px solid var(--accent)}
 @media (max-width:900px){
   .setGrid{display:block}
   .secNav{position:static; flex-direction:row; overflow-x:auto; gap:6px; padding-bottom:10px; margin-bottom:14px}
@@ -112,28 +113,29 @@ section.setSec{scroll-margin-top:80px; margin-bottom:26px}
   justify-content:center; font-size:12px; font-weight:700}
 .thumbHint{color:var(--muted); font-size:12.5px; margin:0 0 8px}
 
-/* ---------- scan page ---------- */
-#camWrap{position:relative; background:#000; border-radius:14px; overflow:hidden;
-  aspect-ratio:3/4; max-height:64vh; margin:0 auto 14px; max-width:560px}
-#camVideo{position:absolute; inset:0; width:100%; height:100%; object-fit:contain}
-#camOverlay{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
-#camMsg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  color:#fff; background:rgba(0,0,0,.55); font-size:14.5px; text-align:center; padding:20px}
-#camCtrls{display:flex; align-items:center; justify-content:center; gap:22px; margin:4px 0 18px}
-#shotBtn{width:64px; height:64px; border-radius:50%; background:var(--accent); border:4px solid var(--panel2);
-  cursor:pointer; font-size:24px; color:#fff}
-#shotBtn:hover{filter:brightness(1.08)}
-#shots{display:flex; gap:10px; overflow-x:auto; padding:4px 0 10px; min-height:10px}
-#shots .shot{position:relative; flex:none; width:74px; border:1px solid var(--line); border-radius:8px; overflow:hidden}
-#shots .shot img{display:block; width:100%}
-#shots .shot button{position:absolute; top:2px; right:2px; background:rgba(0,0,0,.6); color:#fff;
-  border:none; border-radius:50%; width:20px; height:20px; font-size:11px; cursor:pointer}
-#shots .shot small{position:absolute; left:3px; bottom:3px; background:rgba(0,0,0,.55); color:#fff;
-  border-radius:4px; padding:0 5px; font-size:10.5px}
+/* ---------- scan page: ALL styling now lives inside scan.html (self-contained,
+   Wave 10.1) — the legacy #camWrap/#shotBtn/#shots block was removed because its
+   aspect-ratio/max-width/round-shutter rules fought the redesigned station. */
 .exportRow{display:flex; gap:10px; flex-wrap:wrap; margin-top:6px}
 
+/* ---------- scan: capture station (mockup 5a) ---------- */
+.scanStation{display:grid; grid-template-columns:1fr 320px; gap:0;
+  border:1px solid var(--line); margin-top:18px}
+.scanStage{padding:24px; min-width:0}
+.scanRail{border-left:1px solid var(--line); display:flex; flex-direction:column; min-width:0}
+.scanRailHead{padding:16px 20px; border-bottom:1px solid var(--line);
+  font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+.scanRailBody{padding:20px; display:flex; flex-direction:column; gap:12px}
+.scanHint{color:var(--muted); font-size:12.5px}
+.scanRail .card{border:1px solid var(--line); padding:16px; margin:8px 0 0}
+@media (max-width:900px){
+  .scanStation{grid-template-columns:1fr; border:none}
+  .scanStage{padding:0}
+  .scanRail{border-left:none; border-top:1px solid var(--line); margin-top:16px}
+}
+
 /* ---------- legal pages ---------- */
-.legal h2{font-family:Georgia,serif; font-weight:600; font-size:20px; margin:28px 0 10px}
+.legal h2{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:20px; margin:28px 0 10px}
 .legal h3{font-size:15.5px; margin:20px 0 8px}
 .legal p, .legal li{color:var(--text); font-size:14.5px; line-height:1.7}
 .legal .muted{color:var(--muted)}
@@ -141,28 +143,49 @@ section.setSec{scroll-margin-top:80px; margin-bottom:26px}
 /* ============================================================
    Tools page v2 — iLovePDF-style flow, Lexora palette
    ============================================================ */
-.hero{text-align:center; padding:18px 0 8px}
-.hero .pageTitle{font-size:32px; margin-bottom:10px}
-.hero .pageSub{max-width:640px; margin:0 auto 20px}
-.hero.small{text-align:center; padding:0 0 6px}
+.hero{text-align:left; padding:26px 0 8px}
+.hero .pageTitle{font-size:clamp(28px, 3vw, 38px); margin-bottom:10px}
+.hero .pageSub{max-width:640px; margin:0 0 22px}
+.heroHead{display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap}
+.heroHead .heroTxt{flex:1; min-width:260px}
+.toolSearch{display:flex; align-items:center; min-width:300px; border:1px solid var(--line-strong, #3a3833); background:transparent}
+.toolSearch svg{flex:none; margin:0 0 0 12px; color:var(--muted)}
+.toolSearch input{flex:1; background:none; border:none; outline:none; color:var(--text);
+  font-family:inherit; font-size:13.5px; padding:11px 12px}
+.toolSearch input::placeholder{color:var(--muted)}
+@media (max-width:700px){ .toolSearch{min-width:0; width:100%} }
+/* tool view header (mockup 3b ①): left-aligned, ruled below */
+.hero.small{text-align:left; padding:0 0 18px; border-bottom:1px solid var(--line); margin-bottom:6px}
 .hero.small .pageTitle{font-size:26px}
-.chipRow{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:8px}
-.catChip{background:var(--panel); border:1px solid var(--line); color:var(--muted); border-radius:999px;
-  padding:7px 16px; font-size:13px; cursor:pointer; font-family:inherit}
-.catChip:hover{border-color:var(--accent); color:var(--text)}
-.catChip.on{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
-.catHead{font-family:Georgia,serif; font-weight:600; font-size:17px; margin:26px 0 12px; color:var(--muted)}
-.toolGrid2{display:grid; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); gap:12px}
-.toolCard2{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 15px;
+.hero.small .pageSub{margin-bottom:0}
+/* segmented filter — one ruled strip, not floating pills */
+.chipRow{display:flex; gap:0; justify-content:flex-start; flex-wrap:wrap; margin:0 0 8px;
+  border:1px solid var(--line-strong, #3a3833); width:fit-content; max-width:100%}
+.catChip{background:transparent; border:none; border-left:1px solid var(--line); color:var(--muted); border-radius:0;
+  padding:9px 17px; font-size:13px; cursor:pointer; font-family:inherit; transition:color .12s, background .12s}
+.catChip:first-child{border-left:none}
+.catChip:hover{color:var(--text)}
+.catChip.on{background:var(--accent); color:var(--on-accent, #111110); font-weight:600}
+/* group headers become letter-spaced kickers */
+.catHead{font-family:var(--font-ui, Inter, sans-serif); font-weight:700; font-size:12px;
+  letter-spacing:.12em; text-transform:uppercase; margin:28px 0 12px; color:var(--muted)}
+/* shared-border grid: cells divided by 1px rules, no floating cards */
+.toolGrid2{display:grid; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); gap:1px;
+  background:var(--line); border:1px solid var(--line)}
+.toolCard2{background:var(--panel); border:none; border-radius:0; padding:18px 17px 20px;
   cursor:pointer; text-align:left; color:var(--text); font-family:inherit; text-decoration:none;
-  display:flex; flex-direction:column; gap:6px; transition:border-color .12s, transform .12s}
-.toolCard2:hover{border-color:var(--accent); transform:translateY(-2px)}
-.toolCard2 .tIc2{width:38px; height:38px; border-radius:9px; background:var(--panel2); border:1px solid var(--line);
-  display:flex; align-items:center; justify-content:center; font-size:19px}
+  display:flex; flex-direction:column; gap:6px; transition:background .12s}
+.toolCard2:hover{background:var(--panel2)}
+.toolCard2 .tIc2{width:36px; height:36px; border-radius:0; background:transparent; border:1px solid var(--line-strong, #3a3833);
+  display:flex; align-items:center; justify-content:center; font-size:18px; color:var(--accent)}
 .toolCard2 b{font-size:14.5px; font-weight:600}
 .toolCard2 small{color:var(--muted); font-size:12.5px; line-height:1.5}
 .toolCard2.soon{opacity:.55; cursor:default}
-.toolCard2.soon:hover{border-color:var(--line); transform:none}
+/* search-empty state (§04) */
+#toolNoRes{padding:40px 20px; text-align:center; color:var(--muted); font-size:14px;
+  border:1px solid var(--line); background:var(--panel)}
+#toolNoRes[hidden]{display:none}
+.toolCard2.soon:hover{background:var(--panel)}
 .soonPill{display:inline-block; background:var(--panel2); border:1px solid var(--line); color:var(--muted);
   border-radius:999px; padding:1px 8px; font-size:10.5px; vertical-align:2px; margin-left:4px}
 .backLink{background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer;
@@ -170,30 +193,39 @@ section.setSec{scroll-margin-top:80px; margin-bottom:26px}
 .backLink:hover{color:var(--accent)}
 
 /* dropzone */
-#tvDrop{text-align:center; padding:52px 16px 40px; border:2px dashed var(--line); border-radius:16px;
-  background:var(--panel); margin-top:14px}
-.bigPick{background:var(--accent); color:#fff; border:none; border-radius:12px; cursor:pointer;
-  font-size:20px; font-weight:700; padding:22px 46px; font-family:inherit; box-shadow:var(--shadow)}
+/* tool flow ① DROP (mockup 3b): dashed frame, serif prompt, small accent CTA */
+#tvDrop{text-align:center; padding:64px 16px 56px; border:1px dashed var(--line-strong, #3a3833); border-radius:0;
+  background:transparent; margin-top:14px; min-height:320px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center}
+.bigPick{background:var(--accent); color:var(--on-accent, #111110); border:none; border-radius:0; cursor:pointer;
+  font-size:13.5px; font-weight:600; padding:12px 22px; font-family:inherit}
 .bigPick:hover{filter:brightness(1.08)}
-.dropHint{color:var(--muted); font-size:14px; margin-top:16px}
-.dropPriv{color:var(--muted); font-size:12.5px; margin-top:10px}
+#tvDrop::before{content:"Drop your file here"; display:block; order:-1; margin-bottom:14px;
+  font-family:var(--font-display, Georgia, serif); font-size:19px; font-weight:600; color:var(--text)}
+.dropHint{color:var(--muted); font-size:13px; margin-top:14px}
+.dropPriv{color:var(--muted); font-size:12.5px; margin-top:18px}
 #dropVeil{display:none; position:fixed; inset:0; z-index:90; background:rgba(0,0,0,.55);
-  align-items:center; justify-content:center; color:#fff; font-size:22px; font-family:Georgia,serif;
+  align-items:center; justify-content:center; color:#fff; font-size:22px; font-family:var(--font-display, Georgia, serif);
   border:6px dashed var(--accent)}
 
-/* workspace: previews left, options right */
-#tvWork{display:grid; grid-template-columns:1fr 290px; gap:20px; align-items:start; margin-top:14px}
+/* tool flow ② OPTIONS (mockup 3b): previews left, ruled options panel right */
+#tvWork{display:grid; grid-template-columns:1fr 340px; gap:24px; align-items:start; margin-top:14px}
 #tvMain{min-height:200px}
-#tvSide{position:sticky; top:18px; background:var(--panel); border:1px solid var(--line);
-  border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:10px}
-.sTop{display:flex; align-items:center; justify-content:space-between; gap:8px}
-.sFiles{color:var(--muted); font-size:12.5px}
+#tvSide{position:sticky; top:70px; background:transparent; border:1px solid var(--line-strong, #3a3833);
+  border-radius:0; padding:20px; display:flex; flex-direction:column; gap:10px}
+.sTop{display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding-bottom:12px; border-bottom:1px solid var(--line); margin-bottom:4px}
+.sTop b{font-family:var(--font-display, Georgia, serif); font-size:18px; font-weight:600}
+.sFiles{color:var(--muted); font-size:12.5px; font-variant-numeric:tabular-nums}
 .sHint{color:var(--muted); font-size:12.5px; line-height:1.55; margin:2px 0}
 .sCheck{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); margin:8px 0}
 .sCheck input{width:auto; accent-color:var(--accent)}
-#tvSideOpts label.f{margin-top:8px}
-.goBig{background:var(--accent); color:#fff; border:none; border-radius:10px; cursor:pointer;
-  font-size:16.5px; font-weight:700; padding:15px 12px; font-family:inherit; margin-top:6px}
+#tvSideOpts label.f{margin-top:10px; font-size:11.5px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted)}
+.goBig{background:var(--accent); color:var(--on-accent, #111110); border:none; border-radius:0; cursor:pointer;
+  font-size:14.5px; font-weight:600; padding:15px 16px; font-family:inherit; margin-top:10px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px; text-align:left}
+.goBig::after{content:"→"; font-weight:400}
 .goBig:hover{filter:brightness(1.08)}
 @media (max-width:900px){
   /* JS sets an inline display:grid on #tvWork, so we can't switch it to flex here
@@ -209,18 +241,24 @@ section.setSec{scroll-margin-top:80px; margin-bottom:26px}
   .hero .pageTitle{font-size:24px}
 }
 
-/* file cards (merge / multi-file) */
-#tvMain .fCard{display:inline-flex; flex-direction:column; gap:6px; width:150px; background:var(--panel);
-  border:1px solid var(--line); border-radius:12px; padding:10px; margin:0 10px 10px 0; vertical-align:top}
-.fCard .fTh{height:130px; display:flex; align-items:center; justify-content:center; overflow:hidden;
-  background:var(--panel2); border-radius:8px; font-size:34px}
-.fCard .fTh canvas{max-width:100%; max-height:130px}
-.fCard b{font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.fCard small{color:var(--muted); font-size:11px}
-.fCard .fBtns{display:flex; gap:6px}
-.fCard .fBtns button{flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--muted);
-  border-radius:7px; padding:4px 0; cursor:pointer; font-size:12px}
-.fCard .fBtns button:hover{border-color:var(--accent); color:var(--accent)}
+/* file ROWS (mockup 3b options card): thumb · name/meta · actions */
+#tvMain .fCard{display:grid; grid-template-columns:52px 1fr auto; grid-template-rows:auto auto;
+  gap:2px 14px; align-items:center; width:100%; background:transparent;
+  border:1px solid var(--line); border-radius:0; padding:12px 14px; margin:0 0 -1px 0}
+.fCard .fTh{grid-row:1 / span 2; width:52px; height:64px; display:flex; align-items:center;
+  justify-content:center; overflow:hidden; background:#faf9f5; border:1px solid var(--line);
+  border-radius:0; font-size:22px}
+.fCard .fTh canvas{max-width:100%; max-height:64px}
+.fCard b{font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; min-width:0; align-self:end}
+.fCard small{color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; align-self:start}
+.fCard .fBtns{grid-row:1 / span 2; grid-column:3; display:flex; gap:0;
+  border:1px solid var(--line); align-self:center}
+.fCard .fBtns button{background:none; border:none; border-left:1px solid var(--line);
+  color:var(--muted); border-radius:0; padding:8px 11px; cursor:pointer; font-size:12px;
+  transition:color .2s, background .2s}
+.fCard .fBtns button:first-child{border-left:none}
+.fCard .fBtns button:hover{color:var(--accent); background:var(--panel)}
 
 /* bigger page thumbs + reorder bar */
 .thumbPick.big{grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:12px}
@@ -232,10 +270,11 @@ section.setSec{scroll-margin-top:80px; margin-bottom:26px}
 .ordBar button:hover{background:var(--accent)}
 @media (hover:none){ .ordBar{opacity:1} }
 
-/* progress / done */
-.stateCard{max-width:560px; margin:60px auto; text-align:center; background:var(--panel);
-  border:1px solid var(--line); border-radius:16px; padding:38px 30px}
-.meter.big{height:12px; margin:20px 0 14px}
+/* progress / done (mockup 3b ③/④): ruled frame, thread meter */
+.stateCard{max-width:560px; margin:48px auto; text-align:center; background:transparent;
+  border:1px solid var(--line-strong, #3a3833); border-radius:0; padding:38px 30px}
+.stateCard h2, .stateCard h3{font-family:var(--font-display, Georgia, serif); letter-spacing:-.015em}
+.meter.big{height:3px; margin:22px 0 14px}
 
 /* ---------- AI Engine section (Settings) — tiers + Token Saver ---------- */
 .tierRow{display:flex; gap:8px; margin-top:8px}
@@ -244,8 +283,8 @@ section.setSec{scroll-margin-top:80px; margin-bottom:26px}
 .tierBtn:hover{border-color:var(--accent)}
 .tierBtn b{font-size:13.5px; display:block}
 .tierBtn small{display:block; font-size:10.5px; color:var(--muted); margin-top:2px}
-.tierBtn.on{border-color:var(--accent); box-shadow:0 0 0 2px rgba(224,122,63,.18)}
-.tierBtn[data-tier="ultra"].on{border-color:#ff9d5c; box-shadow:0
+.tierBtn.on{border-color:var(--accent); border-left:2px solid var(--accent)}
+.tierBtn[data-tier="ultra"].on{border-color:var(--accent)}
 /* ---- Sign PDF: signature pad ---- */
 .sigTabs{display:flex; gap:6px; margin:0 0 8px}
 .sigTab{flex:1; background:var(--panel); border:1px solid var(--line); color:var(--muted);

@@ -173,7 +173,7 @@
       ' font-size:19px; line-height:1; cursor:pointer; padding:4px 7px; border-radius:8px}' +
     '#tourTip .tourSkip:hover{background:var(--panel2); color:var(--text)}' +
     '#tourTip .tourIc{font-size:30px; line-height:1; margin:2px 0 10px}' +
-    '#tourTip .tourT{font-family:Georgia,"Times New Roman",serif; font-size:18px; font-weight:600; margin:0 0 7px; color:var(--text)}' +
+    '#tourTip .tourT{font-family:var(--font-display,Georgia,serif); font-size:18px; font-weight:600; margin:0 0 7px; color:var(--text)}' +
     '#tourTip .tourD{color:var(--muted); font-size:13.5px; line-height:1.55; margin:0 0 16px}' +
     '#tourTip .tourDots{display:flex; gap:6px; margin-bottom:16px}' +
     '#tourTip.center .tourDots{justify-content:center}' +

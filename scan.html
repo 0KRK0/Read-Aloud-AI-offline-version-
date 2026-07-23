@@ -21,79 +21,387 @@
 <link rel="stylesheet" href="styles/theme.css">
 <link rel="stylesheet" href="styles/pages.css">
 </head>
-<body>
+<body class="scanApp">
 <script>if(localStorage.getItem('ra_theme')==='light') document.body.classList.add('light');</script>
 
 <aside id="sideNav">
-  <div class="brand"><span class="mark">L</span>Lexora <span>AI</span></div>
+  <div class="brand"><span class="mark"><span class="mkDot"></span></span><span class="brandTxt">Lexora <span>AI</span></span></div>
   <nav>
-    <a href="index.html">Home</a>
-    <a href="tools.html">Tools</a>
-    <a href="scan.html" class="active">Scan</a>
-    <a href="index.html#plans">Plans &amp; wallet</a>
-    <a href="settings.html">Settings</a>
+    <a href="index.html" title="Reader" aria-label="Reader"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Reader</span></a>
+    <a href="tools.html" title="Tools" aria-label="Tools"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span class="lbl">Tools</span></a>
+    <a href="scan.html" class="active" title="Scan" aria-label="Scan"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg><span class="lbl">Scan</span></a>
+    <button id="navSearch" title="Search (Ctrl/⌘K)" aria-label="Search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span class="lbl">Search</span></button>
+    <a href="jobs.html" title="Jobs" aria-label="Jobs"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M12 7v5l3 3"/></svg><span class="lbl">Jobs</span></a>
+    <a href="index.html#plans" title="Plans &amp; wallet" aria-label="Plans and wallet"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14"/><path d="M2 10h20"/></svg><span class="lbl">Plans &amp; wallet</span></a>
+    <a href="settings.html" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M4.2 4.2l2.8 2.8m10 10 2.8 2.8M1 12h4m14 0h4M4.2 19.8 7 17m10-10 2.8-2.8"/></svg><span class="lbl">Settings</span></a>
     <div class="navSep"></div>
-    <a href="faq.html">FAQ</a>
-    <a href="about.html">About</a>
-    <a href="security.html">Security</a>
-    <a href="contact.html">Contact</a>
-    <a href="privacy.html" target="_blank">Privacy</a>
-    <a href="terms.html" target="_blank">Terms</a>
+    <a href="faq.html" class="railHideDesk"><span class="lbl">FAQ</span></a>
+    <a href="about.html" class="railHideDesk"><span class="lbl">About</span></a>
+    <a href="security.html" class="railHideDesk"><span class="lbl">Security</span></a>
+    <a href="contact.html" class="railHideDesk"><span class="lbl">Contact</span></a>
+    <a href="terms.html" target="_blank" class="railHideDesk"><span class="lbl">Terms</span></a>
+    <a href="privacy.html" target="_blank" class="railPriv" title="Privacy" aria-label="Privacy"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span class="lbl">Privacy</span></a>
   </nav>
   <div class="account">
-    <button id="acctTheme">Switch theme</button>
-    <button onclick="location.href='index.html'">Back to the reader</button>
+    <button id="acctTheme" title="Switch theme"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span class="lbl">Switch theme</span></button>
+    <button onclick="location.href='index.html'" title="Back to the reader"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg><span class="lbl">Back to the reader</span></button>
   </div>
 </aside>
 
 <div id="navVeil"></div>
+
+<!-- 52px top bar: brand · page name · privacy line · theme -->
 <div class="pageTop">
   <button class="hambBtn" id="hambBtn" title="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
-  <b>Scan · Lexora <span>AI</span></b>
+  <b>Lexora <span>AI</span></b>
+  <span class="hdrDiv" aria-hidden="true"></span>
+  <span class="ptName">Scan a paper</span>
   <span class="spacer"></span>
-  <button class="btn ghost" id="topTheme" style="padding:6px 12px; font-size:12.5px">Theme</button>
+  <span class="ptPriv"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--accent)" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Camera runs in your browser · nothing uploaded</span>
+  <button class="ptIcon" id="topTheme" title="Switch theme"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
 </div>
 
-<main><div class="wrap" style="max-width:640px">
-  <h1 class="pageTitle">📷 Scan a <span>paper</span></h1>
-  <p class="pageSub">Point at the page — I find the paper edges, straighten it and clean it up. Everything stays on your device.</p>
-
-  <div id="camWrap">
-    <video id="camVideo" autoplay playsinline muted></video>
-    <canvas id="camOverlay"></canvas>
-    <div id="camMsg">Starting the camera…</div>
-  </div>
-
-  <div id="camCtrls">
-    <select id="filterSel" style="width:auto">
-      <option value="enhance">✨ Enhance</option>
-      <option value="original">Original</option>
-      <option value="bw">B&amp;W scan</option>
-    </select>
-    <button id="shotBtn" title="Capture">📸</button>
-    <label class="btn ghost" style="cursor:pointer">📁 Photo
-      <input type="file" id="camInput" accept="image/*" capture="environment" multiple style="display:none">
-    </label>
-  </div>
-
-  <div id="shots"></div>
-
-  <div class="card" id="exportCard" style="display:none">
-    <h3 id="shotCount">1 page scanned</h3>
-    <p class="hint">Save your scan — or open the PDF in the reader to have it read aloud and explained.</p>
-    <div class="exportRow">
-      <button class="btn" id="expPdf">⬇ Save as PDF</button>
-      <button class="btn ghost" id="expWord">⬇ Word (.docx, OCR)</button>
-      <button class="btn ghost" id="expImgs">⬇ Images</button>
+<main class="scanMain">
+  <!-- ================= STAGE: camera ⟷ review ================= -->
+  <section class="scanStage" aria-label="Capture and review">
+    <div id="camStage">
+      <div id="camWrap">
+        <video id="camVideo" autoplay playsinline muted></video>
+        <canvas id="camOverlay"></canvas>
+        <div id="camMsg">Starting the camera…</div>
+        <div class="stagePill" aria-hidden="true"><span></span>Point at the page — edges are detected live</div>
+      </div>
+      <div id="camCtrls">
+        <div class="seg" id="detSeg" role="group" aria-label="Edge detection">
+          <button type="button" id="detAuto" class="on">Auto edges</button>
+          <button type="button" id="detMan">Manual</button>
+        </div>
+        <button type="button" id="stackBtn" title="Review your pages" hidden>
+          <img alt=""><span id="stackN">0</span>
+        </button>
+        <div class="dockMid">
+          <label class="dockSq" title="Add photos of the page instead">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+            <input type="file" id="camInput" accept="image/*" capture="environment" multiple style="display:none">
+          </label>
+          <button id="shotBtn" title="Capture this page"><span class="shutIn"></span></button>
+          <button type="button" id="rotLast" class="dockSq" title="Rotate the last page">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
+        <span class="ctrlHint"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg> Pages stay on this device</span>
+      </div>
     </div>
-    <p class="hint" id="expMsg" style="margin-top:10px"></p>
-  </div>
-</div></main>
+
+    <!-- REVIEW (mockup 5c, desktop): large preview + Crop/Rotate/Delete -->
+    <div id="revStage" hidden>
+      <div class="revTop">
+        <button type="button" id="revBack" class="ctrlGhost"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg><span>New scan</span></button>
+        <span id="revMeta" class="revMeta"></span>
+      </div>
+      <div id="revBox">
+        <div id="cropRect" aria-label="Crop area">
+          <span class="cH" data-h="nw"></span><span class="cH" data-h="ne"></span>
+          <span class="cH" data-h="sw"></span><span class="cH" data-h="se"></span>
+        </div>
+        <div class="cropBar">
+          <button type="button" id="cropApply" class="btn">Apply crop</button>
+          <button type="button" id="cropCancel" class="btn ghost">Cancel</button>
+        </div>
+      </div>
+      <div class="revActs">
+        <button type="button" id="revCrop"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>Crop</button>
+        <button type="button" id="revRotate"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Rotate</button>
+        <button type="button" id="revEnhance"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>Enhance</button>
+        <button type="button" id="revDelete"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete</button>
+      </div>
+    </div>
+
+    <div id="shots" aria-label="Scanned pages — click a page to review it"></div>
+  </section>
+
+  <!-- ================= ENHANCE RAIL ================= -->
+  <aside class="scanRail" aria-label="Enhance and save">
+    <div class="scanRailHead">Enhance</div>
+    <div class="scanRailBody">
+      <div class="presetGrid" id="presetGrid" role="radiogroup" aria-label="Scan preset">
+        <button type="button" class="preset on" data-v="enhance" role="radio" aria-checked="true"><span class="pSw" style="background:#faf9f5"></span>Auto</button>
+        <button type="button" class="preset" data-v="original" role="radio" aria-checked="false"><span class="pSw" style="background:#f0ede6"></span>Original</button>
+        <button type="button" class="preset" data-v="bw" role="radio" aria-checked="false"><span class="pSw" style="background:#ffffff"></span>B &amp; W</button>
+        <button type="button" class="preset" data-v="gray" role="radio" aria-checked="false"><span class="pSw" style="background:#e8f0ee"></span>Grayscale</button>
+      </div>
+
+      <div class="slideRow">
+        <div class="slideHead"><span>Straighten</span><span id="strVal" class="tnum">0°</span></div>
+        <input type="range" id="strSlide" min="-10" max="10" step="1" value="0" aria-label="Straighten">
+      </div>
+      <div class="applyRow">
+        <span class="applyLbl">Apply to</span>
+        <div class="seg applySeg" id="applySeg" role="group" aria-label="Apply enhancements to">
+          <button type="button" id="applyOne" class="on">This page</button>
+          <button type="button" id="applyAll">All pages</button>
+        </div>
+      </div>
+
+      <div class="slideRow">
+        <div class="slideHead"><span>Brightness</span><span id="brVal" class="tnum">0</span></div>
+        <input type="range" id="brSlide" min="-40" max="40" step="2" value="0" aria-label="Brightness">
+      </div>
+      <div class="slideRow">
+        <div class="slideHead"><span>Contrast</span><span id="ctVal" class="tnum">0</span></div>
+        <input type="range" id="ctSlide" min="-40" max="40" step="2" value="0" aria-label="Contrast">
+      </div>
+
+      <label class="cleanRow">
+        <input type="checkbox" id="cleanChk" checked>
+        <span class="ckBox" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span><b>Clean up</b><small>remove shadows &amp; specks</small></span>
+      </label>
+
+      <div class="railNote">In the camera these apply to the next capture. Click a scanned page to review it — then everything edits that page.</div>
+
+      <div id="exportCard" style="display:none">
+        <div class="railKick">Export</div>
+        <h3 id="shotCount">1 page scanned</h3>
+        <div class="fmtTabs" id="fmtTabs" role="tablist" aria-label="Save format">
+          <button type="button" data-f="pdf" class="on" role="tab">PDF</button>
+          <button type="button" data-f="jpg" role="tab">JPG</button>
+        </div>
+        <div class="applyRow" id="sizeRow">
+          <span class="applyLbl">Page size</span>
+          <div class="seg applySeg" id="sizeSeg" role="group" aria-label="PDF page size">
+            <button type="button" data-s="auto" class="on">Auto</button>
+            <button type="button" data-s="a4">A4</button>
+            <button type="button" data-s="letter">Letter</button>
+          </div>
+        </div>
+        <button class="btn expMain" id="saveAll"><span>Save pages</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+        <div class="railKick" style="margin-top:18px">Handoff</div>
+        <button class="btn ghost handBtn" id="readAloudBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Read aloud</button>
+        <button class="btn ghost handBtn" id="ocrTextBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> OCR to editable text (Word)</button>
+        <button class="btn ghost handBtn" id="copyTextBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="0"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy plain text</button>
+        <p class="hint" id="expMsg" style="margin-top:10px"></p>
+        <p class="hint" style="margin-top:8px">Pages export in the order shown in the strip.</p>
+      </div>
+    </div>
+    <button type="button" id="addPage" class="railCta">Add page <span aria-hidden="true">+</span></button>
+  </aside>
+</main>
+
+<style>
+/* ============ Scan capture station (mockup 5a) — page-scoped ============ */
+body.scanApp{overflow:hidden}
+.pageTop .ptName{font-size:14px; font-weight:600; font-family:var(--font-display, Georgia, serif)}
+.pageTop .ptPriv{display:flex; align-items:center; gap:8px; color:var(--muted); font-size:12.5px}
+.pageTop .ptIcon{background:none; border:1px solid var(--line); color:var(--muted); width:32px; height:32px;
+  display:inline-flex; align-items:center; justify-content:center; cursor:pointer}
+.pageTop .ptIcon:hover{border-color:var(--accent); color:var(--text)}
+@media (max-width:760px){ .pageTop .ptPriv{display:none} }
+
+.scanMain{display:grid; grid-template-columns:1fr 340px; height:calc(100vh - 52px); height:calc(100dvh - 52px); min-height:0}
+@media (min-width:901px){ .scanMain{margin-left:64px} }
+
+/* stage */
+.scanStage{display:flex; flex-direction:column; min-width:0; min-height:0; padding:20px 24px;
+  background:var(--panel)}
+#camStage{flex:1; min-height:0; display:flex; flex-direction:column}
+#camStage[hidden], #revStage[hidden]{display:none !important}   /* mode switch fix */
+/* REVIEW layout (Design ref): pages column left · preview center · actions below */
+.scanStage.review{display:grid; grid-template-columns:104px 1fr; grid-template-rows:1fr;
+  gap:0 20px; align-items:stretch}
+.scanStage.review #camStage{display:none !important}
+.scanStage.review #shots{grid-column:1; flex-direction:column; margin-top:0;
+  overflow-y:auto; overflow-x:hidden; padding-right:4px}
+.scanStage.review #revStage{grid-column:2}
+#camWrap{position:relative; flex:1; min-height:0; border:1px solid var(--line); background:#1a1613;
+  border-radius:0; overflow:hidden}
+#camVideo{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+
+/* review stage */
+#revStage{flex:1; min-height:0; display:flex; flex-direction:column}
+.revTop{flex:none; display:flex; align-items:center; gap:14px; margin-bottom:14px}
+.revTop .ctrlGhost{padding:9px 14px; font-size:13px}
+.revMeta{color:var(--muted); font-size:12.5px; font-variant-numeric:tabular-nums}
+#revBox{position:relative; flex:1; min-height:0; border:1px solid var(--line); background:#181714;
+  display:flex; align-items:center; justify-content:center; overflow:hidden}
+#revBox canvas{max-width:calc(100% - 40px); max-height:calc(100% - 40px);
+  border:1px solid var(--line-strong); background:#fff}
+.revActs{flex:none; display:flex; gap:0; border:1px solid var(--line); margin-top:14px; width:fit-content}
+.revActs button{display:inline-flex; flex-direction:column; align-items:center; gap:6px;
+  background:none; border:none; border-left:1px solid var(--line); color:var(--muted);
+  font-family:inherit; font-size:12px; font-weight:600; padding:12px 22px; cursor:pointer;
+  transition:color .2s, background .2s}
+.revActs button:first-child{border-left:none}
+.revActs button:hover{color:var(--text); background:var(--bg)}
+/* crop overlay */
+#cropRect{display:none; position:absolute; border:2px solid var(--accent);
+  background:rgba(224,122,63,.08); cursor:move; touch-action:none; z-index:4}
+.cropping #cropRect{display:block}
+#cropRect .cH{position:absolute; width:16px; height:16px; background:var(--accent)}
+#cropRect .cH[data-h="nw"]{left:-8px; top:-8px; cursor:nwse-resize}
+#cropRect .cH[data-h="ne"]{right:-8px; top:-8px; cursor:nesw-resize}
+#cropRect .cH[data-h="sw"]{left:-8px; bottom:-8px; cursor:nesw-resize}
+#cropRect .cH[data-h="se"]{right:-8px; bottom:-8px; cursor:nwse-resize}
+.cropBar{display:none; position:absolute; left:50%; bottom:16px; transform:translateX(-50%);
+  gap:10px; z-index:5}
+.cropping .cropBar{display:flex}
+#camOverlay{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+#camMsg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  color:var(--muted); font-size:13.5px; text-align:center; padding:0 24px}
+.stagePill{position:absolute; left:50%; top:20px; transform:translateX(-50%);
+  border:1px solid var(--line-strong); background:var(--bg); padding:8px 14px; font-size:12.5px;
+  display:flex; align-items:center; gap:9px; white-space:nowrap}
+.stagePill span{width:7px; height:7px; background:var(--accent); display:inline-block}
+
+/* shutter dock (mockup 5a): Auto/Manual · [photo][shutter][rotate] · hint */
+#camCtrls{flex:none; display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
+  gap:16px; margin-top:18px}
+.seg{display:flex; border:1px solid var(--line-strong); width:fit-content}
+.seg button{background:none; border:none; border-left:1px solid var(--line); color:var(--muted);
+  font-family:inherit; font-size:13px; font-weight:600; padding:11px 18px; cursor:pointer;
+  transition:background .2s, color .2s}
+.seg button:first-child{border-left:none}
+.seg button.on{background:var(--accent); color:var(--on-accent, #111110)}
+.dockMid{display:flex; align-items:center; gap:14px; justify-self:center}
+.dockSq{width:48px; height:48px; border:1px solid var(--line-strong); background:none;
+  color:var(--muted); cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  transition:border-color .2s, color .2s}
+.dockSq:hover{border-color:var(--accent); color:var(--text)}
+#shotBtn{width:72px; height:72px; background:none; border:4px solid var(--line-strong); cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; border-radius:50%;
+  transition:border-color .2s, box-shadow .2s}
+#shotBtn:hover{border-color:var(--accent)}
+#shotBtn .shutIn{width:52px; height:52px; background:var(--accent); border-radius:50%; display:block}
+.ctrlGhost{display:inline-flex; align-items:center; gap:9px; border:1px solid var(--line-strong);
+  color:var(--text); font-size:13.5px; font-weight:600; padding:12px 18px; cursor:pointer;
+  transition:border-color .2s}
+.ctrlGhost:hover{border-color:var(--accent)}
+.ctrlHint{display:inline-flex; align-items:center; gap:8px; color:var(--muted); font-size:12.5px;
+  justify-self:end}
+@media (max-width:600px){ .ctrlHint{display:none} }
+
+/* page strip (click a page → review) */
+#shots{flex:none; display:flex; gap:10px; margin-top:16px; min-height:0; overflow-x:auto}
+#shots:empty{display:none}
+#shots .shot{position:relative; flex:none; width:58px; height:74px; border:1px solid var(--line-strong);
+  overflow:hidden; background:#faf9f5; cursor:pointer}
+#shots .shot.sel{border:2px solid var(--accent)}
+#shots .shot img{width:100%; height:100%; object-fit:cover; display:block}
+#shots .shot small{position:absolute; left:3px; top:3px; background:var(--accent); color:var(--on-accent,#111110);
+  font-size:10px; font-weight:700; padding:1px 5px; font-variant-numeric:tabular-nums}
+#shots .shot button{position:absolute; right:0; bottom:0; width:20px; height:20px; border:none;
+  background:rgba(17,17,16,.75); color:#fff; font-size:11px; cursor:pointer; line-height:1}
+#shots .shotAdd{flex:none; width:58px; height:74px; border:1px dashed var(--line-strong);
+  background:none; color:var(--muted); font-size:20px; cursor:pointer}
+#shots .shotAdd:hover{border-color:var(--accent); color:var(--accent)}
+
+/* enhance rail */
+.scanRail{border-left:1px solid var(--line); display:flex; flex-direction:column; min-height:0; background:var(--bg)}
+.scanRailHead{flex:none; padding:16px 20px; border-bottom:1px solid var(--line);
+  font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+.scanRailBody{flex:1; min-height:0; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px}
+.presetGrid{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line);
+  border:1px solid var(--line)}
+.preset{background:var(--bg); border:none; border-left:2px solid transparent; cursor:pointer;
+  color:var(--muted); font-family:inherit; font-size:12px; font-weight:600; padding:14px 12px;
+  display:flex; flex-direction:column; align-items:center; gap:9px; transition:background .2s, color .2s}
+.preset .pSw{display:block; width:100%; height:52px}
+.preset.on{background:var(--panel2); color:var(--text); border-left:2px solid var(--accent)}
+.preset:hover{color:var(--text)}
+.railNote{color:var(--muted); font-size:12.5px; line-height:1.6}
+/* Apply-to / Page-size segmented rows */
+.applyRow{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.applyLbl{color:var(--muted); font-size:12.5px}
+.applySeg{border:1px solid var(--line-strong)}
+.applySeg button{background:none; border:none; border-left:1px solid var(--line); color:var(--muted);
+  font-family:inherit; font-size:12px; font-weight:600; padding:8px 12px; cursor:pointer;
+  transition:background .2s, color .2s}
+.applySeg button:first-child{border-left:none}
+.applySeg button.on{background:var(--accent); color:var(--on-accent, #111110)}
+/* sliders (Straighten / Brightness / Contrast) */
+.slideRow{display:flex; flex-direction:column; gap:8px}
+.slideHead{display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted)}
+.slideHead .tnum{color:var(--text); font-variant-numeric:tabular-nums}
+.slideRow input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:3px;
+  background:var(--line-strong); outline:none; border:none; padding:0; margin:2px 0 0}
+.slideRow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; appearance:none;
+  width:11px; height:11px; background:var(--accent); border:none; border-radius:0; cursor:pointer}
+.slideRow input[type=range]::-moz-range-thumb{width:11px; height:11px; background:var(--accent);
+  border:none; border-radius:0; cursor:pointer}
+/* clean-up row */
+.cleanRow{display:flex; align-items:center; gap:12px; border:1px solid var(--line);
+  padding:14px 16px; cursor:pointer}
+.cleanRow input{position:absolute; opacity:0; pointer-events:none}
+.cleanRow .ckBox{width:34px; height:34px; border:1px solid var(--line-strong); color:transparent;
+  display:inline-flex; align-items:center; justify-content:center; flex:none; transition:color .2s, border-color .2s}
+.cleanRow input:checked ~ .ckBox{color:var(--accent); border-color:var(--accent)}
+.cleanRow b{display:block; font-size:13px; font-weight:600}
+.cleanRow small{display:block; color:var(--muted); font-size:11.5px; margin-top:2px}
+/* Add page CTA pinned to the rail bottom (mockup 5a) */
+.railCta{flex:none; margin:0; width:100%; background:var(--accent); color:var(--on-accent, #111110);
+  border:none; border-top:1px solid var(--line); padding:16px 20px; font-family:inherit;
+  font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center;
+  justify-content:space-between; transition:filter .2s}
+.railCta:hover{filter:brightness(1.08)}
+/* mobile page-stack thumb (5b) */
+#stackBtn{position:relative; width:52px; height:52px; border:1px solid var(--line-strong);
+  background:var(--panel); padding:0; cursor:pointer; overflow:hidden}
+#stackBtn img{width:100%; height:100%; object-fit:cover; display:block}
+#stackBtn span{position:absolute; right:-1px; bottom:-1px; background:var(--accent);
+  color:var(--on-accent, #111110); font-size:10px; font-weight:700; padding:2px 6px;
+  font-variant-numeric:tabular-nums}
+#exportCard{border-top:1px solid var(--line); padding-top:16px; margin:auto 0 0}
+.railKick{font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:10px}
+#exportCard h3{font-family:var(--font-display, Georgia, serif); font-size:17px; margin:0 0 12px}
+.handBtn{width:100%; display:flex; align-items:center; justify-content:flex-start; gap:10px;
+  margin-bottom:8px}
+.fmtTabs{display:flex; gap:0; border:1px solid var(--line-strong); margin-bottom:12px}
+.fmtTabs button{flex:1; background:none; border:none; border-left:1px solid var(--line);
+  color:var(--muted); font-family:inherit; font-size:12px; font-weight:600; padding:10px 0;
+  cursor:pointer; transition:background .2s, color .2s}
+.fmtTabs button:first-child{border-left:none}
+.fmtTabs button.on{background:var(--panel2); color:var(--text);
+  box-shadow:inset 0 2px 0 var(--accent) !important}
+.expMain{width:100%; display:flex; align-items:center; justify-content:space-between; padding:13px 16px}
+.readAloud{width:100%; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:9px}
+
+/* ---------- MOBILE (mockup 5b): full-bleed native-first capture ---------- */
+@media (max-width:700px){
+  .scanMain{grid-template-columns:1fr; height:auto; min-height:calc(100vh - 52px);
+    min-height:calc(100dvh - 52px); overflow-y:auto}
+  /* camera: full-bleed, floating controls */
+  .scanStage{padding:0; min-height:calc(100vh - 52px); min-height:calc(100dvh - 52px)}
+  #camStage{position:relative}
+  #camWrap{border:none; min-height:0}
+  .stagePill{top:14px; font-size:12px}
+  #camCtrls{position:absolute; left:0; right:0; bottom:0; margin:0; padding:14px 16px 18px;
+    grid-template-columns:auto 1fr auto; background:rgba(17,17,16,.55)}
+  .seg, .ctrlHint{display:none}
+  #stackBtn[hidden]{display:none}
+  #stackBtn{display:block; grid-column:1}
+  .dockMid{grid-column:2; gap:18px}
+  #shotBtn{width:72px; height:72px; border-radius:50%; border:3px solid #f5f3ee}
+  #shotBtn .shutIn{width:54px; height:54px; border-radius:50%}
+  #rotLast{display:none}
+  #shots{position:absolute; left:12px; bottom:96px; margin:0; max-width:calc(100% - 24px)}
+  /* review: stacked column, rail (export) follows below */
+  .scanStage.review{display:flex; flex-direction:column; padding:14px; min-height:0}
+  .scanStage.review #shots{position:static; flex-direction:row; overflow-x:auto; order:3; margin-top:12px}
+  .scanStage.review #revStage{order:1}
+  #revBox{min-height:52vh}
+  .scanRail{display:none; border-left:none; border-top:1px solid var(--line-strong)}
+  .scanMain:has(.scanStage.review) .scanRail{display:flex}
+}
+@media (min-width:701px){
+  #stackBtn{display:none !important}
+}
+</style>
 
 <script defer src="scripts/analytics.js"></script>
 <script defer src="scripts/shared.js"></script>
 <script defer src="scripts/scan-engine.js"></script>
 <script defer src="scripts/scan-page.js"></script>
-<script defer src="scripts/select-style.js"></script>
+<script defer src="scripts/lx-search.js"></script>
 </body>
 </html>

@@ -4,40 +4,55 @@
    Loaded AFTER the legacy inline styles — overrides them.
    ============================================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
+
+/* ============================================================
+   REDESIGN v2 TOKENS — "flat, architectural, warm"
+   Structure is drawn with rules and grids, never shadows or
+   gradients. One accent. Radius 0. Elevation is a rule.
+   (Design source: Lexora Redesign.dc.html · 1a Foundations)
+   ============================================================ */
 :root{
-  --bg:#111110;          /* near-black, warm like Claude */
-  --panel:#1b1a18;
-  --panel2:#242320;
-  --text:#f2f0ea;
-  --muted:#a09d94;
-  --accent:#e07a3f;      /* Lexora orange (terracotta family) */
-  --accent2:#e07a3f;     /* second accent collapses into the one orange */
-  --line:#33312c;
+  --bg:#111110;              /* near-black, warm */
+  --panel:#181714;           /* --surface */
+  --panel2:#211f1c;          /* --surface-2 */
+  --text:#f5f3ee;
+  --muted:#9c988c;
+  --accent:#e07a3f;          /* Lexora orange */
+  --accent2:#e07a3f;         /* collapses into the one orange */
+  --on-accent:#111110;       /* text/icons placed ON the accent */
+  --line:#2c2a26;            /* 1px hairlines inside grids */
+  --line-strong:#3a3833;     /* 2px rules between major sections */
   --ok:#5fbf7a;
   --warn:#e05c5c;
-  --page-bg:#191917;
-  --mark:rgba(224,122,63,.4);
-  --radius:12px;
-  --shadow:0 8px 30px rgba(0,0,0,.4);
+  --page-bg:#181714;
+  --mark:rgba(224,122,63,.35);
+  --radius:0;                /* square-cornered, everywhere */
+  --radius-sm:0;
+  --shadow:none;             /* elevation is a rule, not a shadow */
+  --font-display:'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+  --font-ui:Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 body.light{
-  --bg:#faf9f5;          /* warm off-white */
+  --bg:#faf9f5;              /* warm off-white */
   --panel:#ffffff;
   --panel2:#f1efe9;
   --text:#1a1915;
   --muted:#6e6b62;
-  --accent:#c96431;
+  --accent:#c96431;          /* deepens for AA contrast */
   --accent2:#c96431;
+  --on-accent:#faf9f5;
   --line:#e4e1d8;
+  --line-strong:#d6d2c6;
   --ok:#1f8a4c;
   --warn:#c4403f;
   --page-bg:#edebe4;
   --mark:rgba(201,100,49,.32);
-  --shadow:0 8px 24px rgba(60,50,30,.10);
+  --shadow:none;
 }
 
 body{
-  font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:var(--font-ui);
   letter-spacing:.01em;
 }
 
@@ -103,55 +118,56 @@ header .logo,
 
 /* ---------- typography: quiet serif display, like Claude ---------- */
 #login h2, #dropZone h2, #plans h2, #toolsHead b{
-  font-family:Georgia, 'Times New Roman', serif;
+  font-family:var(--font-display);
   font-weight:600;
-  letter-spacing:-.01em;
+  letter-spacing:-.015em;
 }
 #login h2 span{color:var(--accent)}
 header h1{font-weight:600}
 header h1 span{color:var(--accent)}
 
-/* softer cards & buttons everywhere */
-.icon-btn{border-radius:8px}
-.planCard{border-radius:10px}
-#plans .box{border-radius:14px}
-#playbar{border-radius:16px}
-#selBar{border-radius:10px}
+/* square everywhere (redesign v2) */
+.icon-btn,#playbar,#selBar{border-radius:0}
 
 /* ============================================================
    Claude-style left sidebar (desktop)
    ============================================================ */
+/* Redesign v2: a 64px ICON RAIL on desktop (mockup 2a/2c);
+   the same element expands into the labelled drawer on mobile. */
 #sideNav{
   display:none;
-  position:fixed; left:0; top:0; bottom:0; width:236px; z-index:60;
-  background:var(--panel);
+  position:fixed; left:0; top:52px; bottom:0; width:64px; z-index:60;
+  background:var(--bg);
   border-right:1px solid var(--line);
-  flex-direction:column;
-  padding:18px 12px 14px;
+  flex-direction:column; align-items:center;
+  padding:14px 0 12px;
 }
 #sideNav .brand{
   display:flex; align-items:center; gap:10px;
   padding:4px 10px 18px;
   font-size:16px; font-weight:600;
-  font-family:Georgia, 'Times New Roman', serif;
+  font-family:var(--font-display);
 }
 #sideNav .brand .mark{
-  width:26px; height:26px; border-radius:7px; background:var(--accent); color:#fff;
-  display:inline-flex; align-items:center; justify-content:center; font-size:14px; font-weight:700;
-  font-family:-apple-system,'Segoe UI',sans-serif;
+  width:24px; height:24px; border-radius:0; background:var(--accent);
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
 }
-#sideNav .brand span{color:var(--accent)}
-#sideNav nav{display:flex; flex-direction:column; gap:2px; flex:1}
+#sideNav .brand .mark .mkDot{width:7px; height:7px; background:var(--bg); display:block}
+#sideNav .brand .brandTxt span{color:var(--accent)}
+#sideNav nav{display:flex; flex-direction:column; gap:4px; flex:1; width:100%; align-items:center}
 #sideNav nav a, #sideNav nav button{
-  display:block; width:100%; text-align:left;
-  background:none; border:none; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:11px;
+  width:40px; height:40px; padding:0;
+  background:none; border:none; border-left:2px solid transparent; cursor:pointer;
   color:var(--muted); font-size:14px; font-family:inherit;
-  padding:9px 12px; border-radius:8px; text-decoration:none;
+  border-radius:0; text-decoration:none;
   transition:background .12s, color .12s;
 }
 #sideNav nav a:hover, #sideNav nav button:hover{background:var(--panel2); color:var(--text)}
-#sideNav nav .active{background:var(--panel2); color:var(--text); font-weight:600}
-#sideNav .navSep{height:1px; background:var(--line); margin:10px 12px}
+#sideNav nav .active{background:var(--panel2); color:var(--text); border-left:2px solid var(--accent)}
+#sideNav .navSep{width:24px; height:1px; background:var(--line); margin:6px 0; flex:none}
+#sideNav nav .lbl{display:none}
+#sideNav .railHideDesk{display:none !important}
 #sideNav .account{
   position:relative;                 /* anchor for the pop-up menu */
   border-top:1px solid var(--line);
@@ -206,18 +222,120 @@ header h1 span{color:var(--accent)}
   font-size:16px; cursor:pointer; padding:4px 8px; border-radius:6px;
 }
 #compCollapse:hover{background:var(--panel2); color:var(--text)}
+/* collapsed companion = vertical tab on the right edge (mockup 2b) */
 #compReopen{
   display:none;
-  position:fixed; right:16px; bottom:16px; z-index:55;
-  background:var(--panel); border:1px solid var(--line); color:var(--text);
-  border-radius:20px; padding:9px 16px; font-size:13px; cursor:pointer; box-shadow:var(--shadow);
+  position:fixed; right:0; top:50%; transform:translateY(-50%); z-index:55;
+  background:var(--bg); border:1px solid var(--line); border-right:none; color:var(--muted);
+  border-radius:0; padding:14px 10px; font-size:11.5px; font-weight:600; letter-spacing:.08em;
+  cursor:pointer; writing-mode:vertical-rl; text-transform:uppercase;
 }
-#compReopen:hover{border-color:var(--accent)}
+#compReopen:hover{border-color:var(--accent); color:var(--text)}
+#compReopen::before{content:""; display:block; width:22px; height:22px; margin:0 auto 10px;
+  background:var(--accent);
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>') center/contain no-repeat;
+  mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>') center/contain no-repeat;
+}
+
+/* Search palette (Task 13) — Ctrl/Cmd+K */
+#lxK{display:none; position:fixed; inset:0; z-index:420}
+#lxK.open{display:block}
+#lxK .lxKveil{position:absolute; inset:0; background:rgba(0,0,0,.55)}
+#lxK .lxKcard{position:relative; margin:12vh auto 0; width:min(560px, calc(100vw - 32px));
+  background:var(--bg); border:1px solid var(--line-strong)}
+#lxK .lxKtop{display:flex; align-items:center; gap:10px; padding:0 14px;
+  border-bottom:1px solid var(--line); color:var(--muted)}
+#lxK .lxKtop input{flex:1; background:none; border:none; outline:none; color:var(--text);
+  font-family:var(--font-ui); font-size:14.5px; padding:15px 0}
+#lxK .lxKesc{font-size:10.5px; font-weight:700; letter-spacing:.06em; border:1px solid var(--line);
+  padding:3px 7px; color:var(--muted); text-transform:uppercase}
+#lxK .lxKlist{max-height:min(420px, 60vh); overflow-y:auto}
+#lxK .lxKitem{display:grid; grid-template-columns:auto 1fr auto; align-items:baseline; gap:4px 12px;
+  width:100%; text-align:left; background:none; border:none; border-left:2px solid transparent;
+  cursor:pointer; font-family:inherit; color:var(--text); padding:11px 16px}
+#lxK .lxKitem b{font-size:13.5px; font-weight:600}
+#lxK .lxKitem small{color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#lxK .lxKitem .lxKkind{color:var(--muted); font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase}
+#lxK .lxKitem.on{background:var(--panel2); border-left:2px solid var(--accent)}
+#lxK .lxKempty{padding:22px 16px; color:var(--muted); font-size:13px}
+
+/* Authentication (Task 12): ruled card, square brand mark, serif display */
+#login .card{border:1px solid var(--line-strong); background:var(--panel); padding:32px 30px}
+#login .logo2{width:44px; height:44px; margin:0 auto 16px; background:var(--accent);
+  display:flex; align-items:center; justify-content:center; font-size:0}
+#login .logo2 .mkDot{width:13px; height:13px; background:var(--bg); display:block}
+#login h2{font-size:26px}
+#login .divider{color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase}
+/* guest entry = quiet text link, not a button (KRK) */
+#login #guestBtn{background:none !important; border:none !important; box-shadow:none !important;
+  color:var(--muted); font-size:13.5px; font-weight:500; text-decoration:none;
+  padding:14px 0 2px; margin-top:10px; width:100%; cursor:pointer}
+#login #guestBtn:hover{color:var(--accent); text-decoration:underline; text-underline-offset:3px}
+
+/* mobile bottom tab bar (mockup 4c) — desktop hides it */
+#mobTabs{display:none}
+@media (max-width:900px){
+  #mobTabs{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:85;
+    background:var(--bg); border-top:1px solid var(--line)}
+  #mobTabs button{flex:1; background:none; border:none; cursor:pointer;
+    color:var(--muted); font-family:inherit; padding:9px 0 8px;
+    display:flex; flex-direction:column; align-items:center; gap:3px}
+  #mobTabs button span{font-size:10px; font-weight:600}
+  #mobTabs button.on{color:var(--accent)}
+  /* clear the tab bar */
+  #playbar{bottom:64px !important}
+  #chatFab{display:none !important}
+  #viewer{padding-bottom:210px}
+  #assistCol{z-index:90}
+  #consent{padding-bottom:64px}
+}
+
+/* chat turn separators (Phase 9) — thin clickable rule between turns */
+.chatSep{display:block; width:100%; height:14px; margin:4px 0 2px; padding:0;
+  background:none; border:none; cursor:pointer; position:relative}
+.chatSep::before{content:""; position:absolute; left:0; right:0; top:50%; height:1px;
+  background:var(--line)}
+.chatSep:hover::before{background:var(--accent)}
+
+/* companion suggestion chips (above the input bar) */
+#lxChips{display:flex; gap:8px; flex-wrap:wrap; padding:0 18px 12px}
+#lxChips button{background:none; border:1px solid var(--line-strong); color:var(--muted);
+  font-size:12px; font-family:inherit; padding:7px 12px; cursor:pointer; border-radius:0;
+  transition:color .12s, border-color .12s}
+#lxChips button:hover{color:var(--text); border-color:var(--accent)}
 
 @media (min-width:901px){
-  header{display:none}
+  /* 52px top bar + 64px icon rail (mockup workspace chrome) */
+  header{display:flex; height:52px; padding:0 20px; gap:16px;
+    background:var(--bg); border-bottom:1px solid var(--line)}
+  header h1{font-size:16px; font-weight:600; font-family:var(--font-display)}
+  .hdrDiv{width:1px; height:22px; background:var(--line-strong); flex:none}
+  .hdrDoc{font-size:13.5px; font-weight:500; color:var(--text); overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; max-width:38vw}
+  .hdrDoc:empty{display:none}
+  header:has(.hdrDoc:empty) .hdrDiv{display:none}
+  /* top-bar right: engine chip + avatar box (mockup); guest text hidden */
+  #userEmail{display:none !important}
+  #hdrEngine{border:1px solid var(--line-strong); color:var(--muted); font-size:11px;
+    font-weight:600; letter-spacing:.06em; padding:5px 10px; white-space:nowrap;
+    font-variant-numeric:tabular-nums}
+  #hdrAvatar{width:30px; height:30px; border:1px solid var(--line-strong);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:12px; color:var(--accent); font-weight:700}
+  /* privacy lock anchors the rail bottom, like the mockup */
+  #sideNav nav a.railPriv, #sideNav nav a[href="privacy.html"]{margin-top:auto}
+  #sideNav nav .navSep{display:none}
+  .hdrDocMeta{color:var(--muted); font-weight:400}
+  #assistCol{flex:0 0 380px; max-width:380px; min-width:380px}
   #sideNav{display:flex}
-  main{margin-left:236px}
+  #sideNav .brand{display:none}          /* brand lives in the top bar on desktop */
+  /* account moved to the TOP RIGHT (mockup): the rail keeps no profile chrome.
+     The popover survives — #hdrAvatar triggers it, fixed under the top bar. */
+  #sideNav .account{border:none; padding:0; margin:0}
+  #sideNav .account .who, #sideNav .account > button{display:none}
+  #sideNav .acctMenu{position:fixed; left:auto; right:14px; top:58px; bottom:auto; width:236px}
+  #hdrAvatar{cursor:pointer}
+  main{margin-left:64px}
   #login{z-index:200}
   #compCollapse{display:block}
   #sheetClose{display:none !important}
@@ -226,9 +344,16 @@ header h1 span{color:var(--accent)}
   body.compHidden #compReopen{display:block}
 }
 @media (max-width:900px){
-  /* Claude-style drawer: the same sidebar slides in from the left */
+  /* drawer: the same sidebar expands with labels and slides in */
   #sideNav{display:none; position:fixed; left:0; top:0; bottom:0; width:266px; z-index:130;
-    box-shadow:8px 0 40px rgba(0,0,0,.45)}
+    align-items:stretch; padding:18px 12px 14px; background:var(--panel);
+    border-right:1px solid var(--line-strong)}
+  #sideNav nav{align-items:stretch}
+  #sideNav nav a, #sideNav nav button{width:100%; height:auto; justify-content:flex-start;
+    padding:10px 12px; text-align:left}
+  #sideNav nav .lbl{display:inline}
+  #sideNav .navSep{width:auto; align-self:stretch; margin:10px 12px}
+  #sideNav .railHideDesk{display:flex !important}
   body.navOpen #sideNav{display:flex}
   #compReopen{display:none !important}
 }
@@ -302,7 +427,7 @@ header .icon-btn:hover{background:var(--panel2) !important}
   -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
   mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))}
 @keyframes lxspin{to{transform:rotate(360deg)}}
-.docSpinTxt{color:var(--muted); font-size:13.5px; font-family:Georgia,'Times New Roman',serif; letter-spacing:.02em}
+.docSpinTxt{color:var(--muted); font-size:13.5px; font-family:var(--font-display); letter-spacing:.02em}
 
 /* ---- account menu icons: keep glyphs/SVGs in a fixed box so text never touches ---- */
 #sideNav .acctMenu .mi{display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px}
@@ -336,6 +461,116 @@ header .icon-btn:hover{background:var(--panel2) !important}
   padding:6px; max-height:260px; overflow-y:auto; display:none}
 .lxsel.open .lxsel-list{display:block}
 .lxsel.up .lxsel-list{top:auto; bottom:calc(100% + 6px)}
-.lxsel-opt{padding:10px 12px; border-radius:8px; font-size:14px; color:var(--text); cursor:pointer; white-space:nowrap}
+.lxsel-opt{padding:10px 12px; border-radius:0; font-size:14px; color:var(--text); cursor:pointer; white-space:nowrap}
 .lxsel-opt:hover{background:var(--panel2)}
-.lxsel-opt.sel{background:var(--accent); color:#fff}
+.lxsel-opt.sel{background:var(--accent); color:var(--on-accent)}
+
+/* ============================================================
+   REDESIGN v2 — global reskin layer (loads on EVERY page).
+   Wins over pages.css (loaded after theme on standalone pages)
+   and over JS-injected editor CSS via !important.
+   Rules, not shadows · radius 0 · Plex Serif display · Inter UI.
+   ============================================================ */
+
+/* 1 · Square-cornered surfaces everywhere (keep circles below) */
+button, input, select, textarea,
+.card, .btn, .chip, .catChip, .secNav a, .meter, .meter i,
+.toolCard, .toolCard2, .toolCard2 .tIc2,
+.msg, #chatInput, #playbar, #playbar button, #playbar select,
+#selBar, #selBar button, #readProg, #toolBar, #toolBarFill,
+#toolOpts, #toolOpts input, #toolOpts select, #toolStatus,
+#tierBox, .tierBtn,
+#login input, #loginBtn, #googleBtn, #appleBtn, #otpBtn, #login .logo2,
+#sideNav nav a, #sideNav nav button, #sideNav .account .who,
+#sideNav .acctMenu, #sideNav .acctMenu button,
+#hdrMenu, #hdrMenu .mItem, .hambBtn, .icon-btn, #attachBtn,
+.lxsel-btn, .lxsel-list, #lxToast, #dropZone, #dropZone .dzBtn,
+.thumbPick .th, .pageWrap, .richDoc img, .sentSpan, #marker,
+#camWrap, #pdfBtn, #addPageBtn, header .logo, .pageLoading,
+#walletBar, #walletFill, #customRow input, #customRow .lxsel-btn{
+  border-radius:0 !important;
+}
+/* …except the deliberately round: capture + status circles */
+.camChip, #chatFab, #chatFab .dot, .lxSpin,
+#camBar button, #sideNav .account .avatar,
+.thumbPick .th.sel::after{
+  border-radius:50% !important;
+}
+
+/* 2 · Elevation is a rule, not a shadow */
+*{box-shadow:none !important}
+@media (max-width:900px){
+  #sideNav{border-right:1px solid var(--line-strong)}
+}
+#hdrMenu, #sideNav .acctMenu, .lxsel-list, #lxToast, #selBar{
+  border:1px solid var(--line-strong);
+}
+#lxToast{border-left:3px solid var(--accent)}
+
+/* 3 · Type — Plex Serif carries display, Inter carries UI */
+h1, h2{font-family:var(--font-display); font-weight:600; letter-spacing:-.015em}
+.kicker{font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent)}
+.tnum, .walletCard, .planCard, #toolStatus, #tokLeft, .meterNote{font-variant-numeric:tabular-nums}
+
+/* 4 · On-accent ink: dark text on the orange, both themes */
+#playBtn, #micBar, #sendBtn, #chatFab,
+#consentOk, #customBuy, #wCustomBuy, #toolOpts .go, .btn,
+#dropZone .dzBtn, #loginBtn, .lxsel-opt.sel, #camShot,
+#revFilters button.on{
+  color:var(--on-accent) !important;
+}
+#selBar button:hover{background:var(--accent); color:var(--on-accent)}
+#selBar{gap:0 !important; padding:0 !important; overflow:hidden}
+#selBar button{border-right:1px solid var(--line) !important; border-radius:0 !important; background:none}
+#selBar button:last-child{border-right:none !important}
+#selBar .selAccent{color:var(--accent)}
+
+/* 5 · Active/selected = 2px accent rule on the left edge */
+#sideNav nav .active{
+  border-left:2px solid var(--accent);
+  padding-left:10px;
+  background:var(--panel2);
+}
+.tierBtn.on, .catChip.on{border-color:var(--accent) !important}
+
+/* 6 · Visible focus (AA), calm consistent motion (200ms ease, color/border/
+   opacity only — no lifts, no layout motion). Reduced-motion respected. */
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+button, a, input, select, textarea,
+.toolCard2, .toolCard, .planCard, .wtop, .catChip, .lxsel-btn, .lxsel-opt,
+.ldBtn, .msg, .chip, .secNav a, #sideNav nav a, #sideNav nav button,
+#mobTabs button, .jAct, #lxK .lxKitem{
+  transition:background-color .2s ease, color .2s ease, border-color .2s ease,
+             opacity .2s ease, filter .2s ease;
+}
+.toolCard2:hover, .toolCard:hover{transform:none !important}
+@media (prefers-reduced-motion:reduce){
+  *, *::before, *::after{transition:none !important; animation:none !important}
+}
+
+/* long file names never break the layout (Phase 15) */
+.sTop b, .jTxt b, .hdrDoc{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#tvSide{min-width:0}
+#tvSide .sTop{min-width:0}
+#tvSide .sTop b{display:block; max-width:100%}
+
+/* 7 · Document pages sit in a ruled frame (shadows are gone globally) */
+.pageWrap, .textWrap{border:1px solid var(--line)}
+
+/* 7a · Companion + plan icons: orange square mark / outlined boxes */
+#assistHead .face{width:24px; height:24px; background:var(--accent); color:var(--on-accent);
+  display:inline-flex; align-items:center; justify-content:center; flex:none; font-size:0}
+#plans .planCard .ic svg{width:18px; height:18px}
+#dropZone .big{font-size:0; line-height:0}
+.tIc2 svg, .toolCard .tIc svg{width:18px; height:18px}
+
+/* 7b · Wallet modal shell (figure/topups styled in app.css) */
+#plans .box{width:min(1120px, calc(100vw - 32px)); padding:24px 34px;
+  border-radius:18px; max-height:calc(100vh - 20px)}
+#plans .box h2{font-size:27px; letter-spacing:-.015em; margin:3px 0 2px}
+
+/* 8 · Retire legacy blue leftovers in the in-app camera review */
+#revBar button{background:var(--panel2); color:var(--text); border:1px solid var(--line)}
+#revFilters{background:var(--panel2)}
+#revFilters button{color:var(--muted)}
+#revFilters button.on{background:var(--accent)}

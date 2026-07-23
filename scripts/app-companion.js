@@ -50,38 +50,18 @@ async function smartContext(question){
 }
 
 /* Fresh access token; forceRefresh asks Supabase for a new one (stale-token fix, e.g. Brave) */
-async function authToken(forceRefresh){
-  if(!sb) return null;
-  try{
-    if(forceRefresh){
-      const {data} = await sb.auth.refreshSession();
-      if(data && data.session) return data.session.access_token;
-    }
-    const {data:{session:s}} = await sb.auth.getSession();
-    return s ? s.access_token : null;
-  }catch(e){ return null; }
-}
+/* thin alias to the core auth surface; kept for not-yet-migrated callers */
+async function authToken(forceRefresh){ return Lx.auth.token(forceRefresh); }
 async function askAI(question, context){
-  let token = await authToken();
-  if(!token) throw new Error('Not logged in');
-  const call = t => fetch(CONFIG.API_URL, {
-    method:'POST',
-    headers:{'content-type':'application/json', 'authorization':'Bearer '+t},
-    body: JSON.stringify({question, context, docName, history: chatHistory.slice(-6), lang: companionLang(),
-      tier: aiTier, optimize: aiSaver})
+  /* Backend integration goes through the core API client (auth-header
+     injection + one 401 refresh-retry are centralized in Lx.api). */
+  const d = await Lx.api.gateway.chat({
+    question, context, docName,
+    history: chatHistory.slice(-6),
+    lang: companionLang(),
+    tier: aiTier,
+    optimize: aiSaver
   });
-  let res = await call(token);
-  if(res.status === 401){                     /* stale token — refresh once and retry */
-    token = await authToken(true);
-    if(token) res = await call(token);
-  }
-  if(!res.ok){
-    let msg = 'server '+res.status;
-    try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
-    if(res.status === 401) msg = 'Your login session has expired — tap 🔑 in the top bar and login again.';
-    throw new Error(msg);
-  }
-  const d = await res.json();
   chatHistory.push({role:'user', content:question});
   chatHistory.push({role:'assistant', content:d.answer});
   updateBalance(d.tokens_left);
@@ -236,6 +216,41 @@ function handleCommand(t){
   if(/^explain( this| that)?$/.test(s)){ if(current>=0 && sentences[current]){ selText=sentences[current].text; selLine=sentences[current].parts[0].line; $('selExplain').click(); } else say('Start reading first, then ask me to explain.'); return true; }
   return false;
 }
+/* Cited source chips (design package §09 — "always cite the ¶ passages").
+   Renders the on-device passages the answer was drawn from; a chip jumps to
+   that page. Silent when retrieval didn't run (small docs / server path). */
+function sayCitations(){
+  let src = [];
+  try{ if(window.LxRag && LxRag.getSources) src = LxRag.getSources() || []; }catch(e){}
+  if(!src.length) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'msg bot cites';
+  const lbl = document.createElement('div');
+  lbl.className = 'citesLbl'; lbl.textContent = 'From the document';
+  wrap.appendChild(lbl);
+  const row = document.createElement('div');
+  row.className = 'citesRow';
+  src.forEach(s=>{
+    const c = document.createElement('button');
+    c.type = 'button'; c.className = 'citeChip';
+    c.innerHTML = '<span class="dot"></span>';
+    c.appendChild(document.createTextNode('¶ p.' + s.page + (s.label ? ' · ' + s.label : '')));
+    c.title = 'Go to page ' + s.page;
+    c.addEventListener('click', ()=>{ if(typeof goPage === 'function') goPage(s.page); });
+    row.appendChild(c);
+  });
+  wrap.appendChild(row);
+  $('chat').appendChild(wrap);
+  $('chat').scrollTop = $('chat').scrollHeight;
+}
+/* §09 — lock the composer while the companion is thinking; a clear busy state. */
+function setSendLock(on){
+  const send = $('sendBtn'), inp = $('chatInput'), mic = $('micBtn');
+  if(send){ send.disabled = on; }
+  if(inp){ inp.disabled = on; inp.placeholder = on ? 'Thinking…' : 'Type or press the mic and speak…'; }
+  if(mic){ mic.disabled = on; }
+  const col = $('assistCol'); if(col) col.classList.toggle('thinking', on);
+}
 async function sendChat(){
   const t = $('chatInput').value.trim();
   if(!t) return;
@@ -247,14 +262,18 @@ async function sendChat(){
     const wasPlaying = playing;
     if(playing) togglePlay();
     sayProgress('Thinking…');
+    setSendLock(true);                    /* §09: send-lock while awaiting a reply */
     try{
       const ans = await askAI(t, await smartContext(t));
       removeProgress();
       say(ans);
+      sayCitations();
       speakText(ans, ()=>{ if(wasPlaying){ playing=true; setPlayBtn(); speakLine(current+1); } });
     }catch(e){
       removeProgress();
       say('I could not reach my brain ('+e.message+').');
+    }finally{
+      setSendLock(false);
     }
   }else{
     say(session
@@ -330,23 +349,15 @@ async function startServerSTT(){
     if(blob.size < 1500) return;              /* too short to contain speech */
     sayProgress('👂 Understanding…');
     try{
-      const call = t => fetch(CONFIG.API_URL + '/stt', {
-        method:'POST',
-        headers:{ authorization:'Bearer '+t, 'content-type': blob.type },
-        body: blob
-      });
-      let token = await authToken();
-      let r = token ? await call(token) : null;
-      if(!r || r.status === 401){             /* stale token — refresh once and retry */
-        token = await authToken(true);
-        if(token) r = await call(token);
-      }
-      const j = r ? await r.json().catch(()=>null) : null;
+      const j = await Lx.api.gateway.stt(blob, blob.type);   /* core: auth + 401 retry */
       removeProgress();
-      if(r && r.ok && j && j.text){ $('chatInput').value = j.text; sendChat(); }
-      else if(r && r.status === 401) say('Your login session has expired — tap 🔑 in the top bar and login again, then the mic will work.','sys');
-      else say((j && j.error) || 'I could not hear that clearly — please try again.','sys');
-    }catch(e){ removeProgress(); say('Voice transcription failed ('+e.message+').','sys'); }
+      if(j && j.text){ $('chatInput').value = j.text; sendChat(); }
+      else say('I could not hear that clearly — please try again.','sys');
+    }catch(e){
+      removeProgress();
+      if(e && e.status === 401) say('Your login session has expired — log in again, then the mic will work.','sys');
+      else say('Voice transcription failed ('+(e && e.message || 'unknown')+').','sys');
+    }
   };
   setListening(true);
   say('🎙 Listening… tap the mic again when you finish speaking.','sys');

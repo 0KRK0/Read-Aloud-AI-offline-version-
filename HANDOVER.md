@@ -333,9 +333,10 @@ Wallet: **universal ₹ wallet** — schema + worker-payments + frontend.
 > nothing until its P3.
 > WHAT'S NEXT, in order: (1) the Phase-1 LAUNCH checklist is still pending on KRK
 > (deploys + env fixes + end-to-end tests — top of §11 + Step 5e notes; the
-> translate-language fix requires re-pasting worker-convert.js); (2) implement the
-> UI redesign when KRK brings mockups back (brief: docs/UI-REDESIGN-BRIEF.md —
-> CSS-first, tokens first, element IDs must survive); (3) then Phase 4 v2
+> translate-language fix requires re-pasting worker-convert.js); (2) the UI redesign
+> is UNDERWAY — mockup = `Lexora Redesign.dc.html`, Stage 1 (tokens) is DONE (§11
+> Step 7); continue Stages 2–6 (brief: docs/UI-REDESIGN-BRIEF.md — CSS-first,
+> element IDs must survive); (3) then Phase 4 v2
 > (workspace chains) or Phase 6 (Layout Engine) — KRK decides.
 > STANDING RULES: our OWN engines only, never a paid API; free client tools stay
 > 100% private (no consent); ★ tools = consent modal + 50 pages/day free +
@@ -728,6 +729,348 @@ the conversion SERVER itself is external infra KRK must provision):
   NOT done from Phases 2–4 (needs other machines/deeper work): native Android/iOS
   builds (guide ready), deeper DOCX/table fidelity (engine-level, Layout-Engine
   territory), full workspace UI (multi-step chains).
+
+- **Step 7 — UI REDESIGN v2 (20 July 2026) — STAGE 1 (tokens) ✅ BUILT, deploy pending.**
+  Design source: **`Lexora Redesign.dc.html`** (Claude-Design mockup at online/ root; KRK also
+  has a PDF of it). Design language: "flat, architectural, warm" — rules and grids, never
+  shadows/gradients; **radius 0** everywhere; IBM Plex Serif display + Inter UI; Lucide-style
+  line icons; document-node motif (constellation/thread/mark); left 2px accent rule = active;
+  dark ink ON orange buttons (`--on-accent`); tabular numerals for ₹/tokens.
+  WHAT WAS DONE (all token-driven, zero hardcoding, element IDs untouched):
+  - `styles/theme.css`: new `:root`/`body.light` tokens (panel #181714, panel2 #211f1c,
+    text #f5f3ee, muted #9c988c, `--line` #2c2a26 + NEW `--line-strong` #3a3833,
+    NEW `--on-accent` (#111110 dark / #faf9f5 light), `--radius:0`, `--shadow:none`,
+    NEW `--font-display` 'IBM Plex Serif' + `--font-ui` Inter, loaded via Google-Fonts
+    @import at top with Georgia/system fallbacks) + a **"REDESIGN v2" override layer** at
+    the end: square-corner sweep (`!important` so it beats pages.css load order AND the
+    JS-injected editor CSS), circles preserved (mic/shutter/avatar/spinner/FAB),
+    `*{box-shadow:none !important}`, serif h1/h2, `.kicker`/`.tnum` utilities, on-accent
+    ink on every accent button, left-rule active states, `:focus-visible` outline,
+    camera-review de-blue.
+  - `styles/pages.css`: body font → `var(--font-ui)`, all Georgia → `var(--font-display)`,
+    on-accent inks (.catChip.on/.bigPick), hover lifts removed; **FIXED a pre-existing
+    corruption** (line ~248 `.tierBtn[data-tier="ultra"].on` was truncated mid-declaration
+    with an unclosed brace — old cat>> damage).
+  - `styles/landing.css`: Georgia → tokens, radii 0, `--on-accent`, tabular ₹.
+  - `scripts/onboarding.js` + `scripts/seo-page.js`: injected Georgia → `var(--font-display)`
+    (node --check passed on both).
+  TO DEPLOY: re-upload `styles/` (theme/pages/landing) + `scripts/onboarding.js` +
+  `scripts/seo-page.js`; hard refresh (pages.css cache trap).
+  **STAGES 2–5 ✅ ALSO BUILT (20 July, same session — all CSS-only, IDs untouched):**
+  - Stage 2 tools catalog/flow (`pages.css`): `.toolGrid2` is now a SHARED-BORDER grid
+    (`gap:1px; background:var(--line); border:1px solid var(--line)`, cells `--panel`,
+    hover = `--panel2` fill, no lift); `.chipRow` is one ruled segmented strip (joined
+    `.catChip`s, 1px inner dividers, active = accent fill + on-accent ink); `.catHead`
+    group headers are letter-spaced caps kickers; `.tIc2` icon box = 1px `--line-strong`
+    outline, accent glyph; `#tvDrop` = 1px dashed `--line-strong`, transparent.
+  - Stage 3 reader (`app.css`): `#playbar` = ruled instrument (bg `--bg`, 1px
+    `--line-strong` frame, ghost transport buttons, accent `#playBtn` + solid-accent
+    round mic, no blur/shadow); `#dropZone` 1px dashed; `.msg.user` = OUTLINED orange
+    bubble (mockup 2a) — removed from theme's on-accent list; `.sentSpan:hover` uses
+    `--mark`; `.pageWrap/.textWrap` get a 1px ruled frame (shadows are dead).
+  - Stage 4 settings (`pages.css`): `.secNav a.active` left 2px accent rule; `.btn`
+    on-accent ink.
+  - Stage 5 plans/wallet (`app.css` + theme 7b): `.planCard`s collapse into a ruled
+    list (`margin-bottom:-1px`, hover accent border above); `.walletCard` transparent
+    ruled; `#walletMoney` = serif/orange/tabular hero figure; `.walletTop` label +
+    `.planCard .price` styled; landing (`landing.css`): 2px `--line-strong` rules above
+    every h2 section, `.ldGrid/.ldTools/.ldPrice` all shared-border grids, hover=fill.
+  **WAVE 3 ✅ (20 July, later same day) — markup + icon system:**
+  - **NEW `scripts/lx-icons.js`** — retires emoji WITHOUT touching tools-page.js: a DOM
+    post-processor (idempotent via data-lx-icon, MutationObserver-debounced) swaps emoji
+    glyphs inside `.tIc2` / `.toolCard .tIc` / `#plans .planCard .ic` for a built-in
+    Lucide-style line-icon set (stroke 1.75, currentColor, ~30 icons + folded-corner doc
+    fallback for anything unmapped). Loaded with defer on tools.html + index.html.
+    To add a mapping: extend `MAP` (emoji → key) or `I` (key → svg).
+  - **index.html markup**: dropzone = node-constellation SVG + "Open a document, or just
+    ask." (serif) + lock-SVG privacy line; companion header = orange square sparkle mark
+    + "Companion"; plans modal = kicker "PAY FOR WHAT YOU USE" + "Plans & wallet" h2 +
+    "₹ WALLET BALANCE" label + all 5 planCard emoji → inline SVGs (zap/lamp/wallet/
+    rotate/doc); acctMenu 4 emoji → SVGs; playbar transport (prev/next/page-arrows/
+    sliders "more") → SVGs, Voice label, Save PDF/Word buttons de-emojied; selBar
+    ("Explain" / "Read from here"); chatFab + sendBtn → SVGs; landing feature cards +
+    trust line → SVGs. NOTE `#playBtn` label stays TEXT (▶/⏸) — app-viewer.js:596
+    rewrites textContent on toggle.
+  - **tools.html**: kicker over the (SEO-kept) h1, lock-SVG privacy line, lx-icons
+    include; **scan.html**: de-emojied h1/filter/shutter(SVG)/export buttons;
+    **settings.html** Token Saver/export de-emojied; **settings.js** wallet line →
+    kicker + serif orange tabular ₹ (node --check OK).
+  - theme.css §7a: `.face` orange square, `.planCard .ic` outlined 34px box.
+  **WAVE 4 ✅ — landing rebuilt to mockup 1b:** #landing now sits at z-index:150 (COVERS
+  the app sidebar — it was leaking through at z:60), top nav = orange-square brand mark +
+  Tools/Scan/Pricing/FAQ + Log in + "Start free" accent CTA; hero = split grid (`.ldHero`
+  / `.ldHeroL` / `.ldHeroR`): kicker "PRIVACY-FIRST · MADE IN INDIA", plain serif h1 with
+  period (em no longer orange), CTAs, lock trust line — node-constellation SVG on the
+  right (hidden ≤840px), 2px rule below the hero; NEW `.ldPriv` privacy banner above the
+  footer ("Your files never leave your device." + How-privacy-works ghost button).
+  landing.css + index.html only; all guards/ids untouched.
+  **WAVE 5 ✅ (20 July, evening) — PAGE-BY-PAGE STRUCTURAL REBUILD (not a reskin):**
+  1. Landing (mockup 1b): full-bleed ruled architecture — 68px nav (brand mark, links,
+     Log in + Start free CTA) → split hero 1.1/.9 (kicker, 64px serif h1, constellation
+     right) → 4-cell STAT ROW → features ("One workspace, not forty tools." + kicker)
+     → popular-tools rows WITH icons + "All 40+ tools →" → 3-col pricing (middle card =
+     orange top rule) → privacy banner → ruled footer. landing.css rewritten from scratch;
+     old FAQ/how-it-works/"ready" sections REMOVED per mockup.
+  2. Workspace home (2c): #sideNav is now a 64px ICON RAIL on desktop (SVG buttons,
+     labels drawer-only via .lbl/.railHideDesk); 52px top bar (header now VISIBLE on
+     desktop); #dropZone rebuilt = kicker greeting (#wsGreet, personalized by NEW
+     `scripts/lx-workspace.js`) + serif "Open a document, or just ask." + dashed .dzZone
+     (constellation, Drop-a-file, Choose/Scan buttons) + "RECENT ON THIS DEVICE"
+     shared-border grid (#wsRecent — localStorage 'lx_recent', recorded by wrapping
+     window.openFile; clicking re-opens the picker).
+  3. Reader (2a): playbar = ONE ruled instrument strip (row layout, 1px rules between
+     controls, accent play block, square in-bar mic — #micBar removed from the circle
+     list, registration "+" marks at corners, 3px progress thread on the bottom edge);
+     top bar shows the open document title (#hdrDoc, set by lx-workspace); companion
+     fixed at 380px.
+  4. Companion: suggestion chips (#lxChips → fills chatInput + clicks send), collapse
+     chevron, collapsed state = vertical COMPANION tab on the right edge (mockup 2b).
+  5. Tools catalog (3a): tools.html sidebar → icon rail; .pageTop = permanent 52px bar
+     (all pages); left-aligned hero + kicker + SEARCH field (#toolSearch, inline script
+     filters .toolCard2 + hides empty groups); segmented chips left-aligned.
+  6. Tool flow (3b): CSS-only fidelity (tools-page.js untouched) — dashed drop frame
+     with serif "Drop your file here" ::before, small accent CTA.
+  7. Wallet (4a): plans modal → 880px, planCards wrapped in NEW .planGrid (shared-border,
+     vertical cards: icon box / name / serif 30px price / desc / accent .fromWallet CTA).
+  8. Settings: sidebar → icon rail (same markup pattern).
+  9. Scan (5a): capture STATION — .scanStation grid: stage (camWrap + shutter + shots)
+     left, ENHANCE rail right (preset select + export card moved inside).
+  10. Mobile (4c): NEW #mobTabs bottom tab bar (Reader/Tools/Companion/More; wired in
+     lx-workspace.js — Companion drives the sheet, More opens the drawer); chatFab
+     hidden on mobile; playbar sits above the bar.
+  **WAVE 6 ✅ (20 July, night) — Product-Bible backlog (docs in KRK's uploads;
+  screenshots = the .dc.html mockup captures, same source of truth):**
+  - Task 12 AUTH: login card rebuilt — ruled `--line-strong` panel card, orange
+    square brand mark (`.logo2` + .mkDot), serif h2, ghost guest button, caps
+    divider, de-emojied (login.html + index #login fallback + theme.css block).
+  - Task 10 JOBS: NEW **`jobs.html`** (noindex) — full rail+topbar shell, mockup-3c
+    shared-border queue table (running dot / done / failed·refunded states, tabular
+    cost, responsive 2-col collapse), constellation EMPTY state, self-contained
+    inline JS+CSS. Feed = localStorage `lx_jobs`; write API `window.lxJobs.add(
+    {tool,file,status,cost})` — wire it into runPremium (tools-page.js) in a FRESH
+    session (Trap #1/#2). Jobs clock icon added to ALL rails (index/tools/settings/
+    scan/jobs).
+  - Task 13 SEARCH: NEW **`scripts/lx-search.js`** — Ctrl/Cmd+K command palette on
+    all 5 app pages (index/tools/scan/settings/jobs): 6 nav destinations + 26 tools
+    (deep links tools.html#id) + theme action; arrows/enter/esc, ARIA listbox,
+    `window.lxSearchOpen()` for rail triggers; styles in theme.css (#lxK).
+  - Tasks 14/15 verified as covered: notifications = #lxToast (themed, left accent
+    rule); profile = settings Profile section.
+  **WAVE 7 ✅ (20 July, late night) — KRK's bug list, milestone pass:**
+  - M1 AUTH ROUTING: landing "Pricing" → `login.html?next=%23plans`; login.html now
+    honours a fragment-whitelisted `?next=` (`SAFE_NEXT`, no open redirect) so
+    login returns exactly where the user was headed; lx-workspace `deeplink()`
+    auto-opens the Plans modal on `index.html#plans` once a session exists
+    (guests keep the landing; Pricing routes them through login).
+  - M1 WALLET REBUILT (mockup 4a, clean — no mixed UI): `.pwHead` = kicker +
+    serif h2 left, "₹ WALLET BALANCE" + 38px serif orange `#walletMoney` right;
+    `.walletCard` = "TOP UP ONCE" kicker + ONE strip (4 outlined amounts + inline
+    ₹Custom field + accent "Add to wallet"); old walletTop/topups CSS replaced in
+    app.css; theme 7b trimmed to shell (880px box). planGrid unchanged.
+  - M2 HOME: **recents REMOVED** (KRK: we never store files) — markup + all
+    lx-workspace recents code deleted (openFile wrap now only sets #hdrDoc).
+  - M2 CHAT UX (Phase 9 first cut, zero app-companion edits — #chat
+    MutationObserver in lx-workspace): clickable `.chatSep` rule inserted before
+    every user turn (jump-to-message); SEND-LOCK — send/mic/input disabled the
+    moment a user msg is added, re-enabled on the next bot msg or a 60s timeout.
+  - M3 SELECTION MENU: now Explain · Translate · Read from here · **Ask…**
+    (mockup 2b popover): selTranslate sends the selection through the chat;
+    selAsk pre-fills the input + focuses; both un-collapse the companion
+    (+ mobile sheet). selBar restyled as a joined ruled strip.
+  - M6 MOTION SYSTEM: one 200ms ease transition (bg/color/border/opacity/filter)
+    across every interactive element; `prefers-reduced-motion` kills all
+    transitions/animations; long-file-name ellipsis (.sTop b/.jTxt b/.hdrDoc).
+  **WAVE 8 ✅ — structural rebuilds after KRK's screenshot review:**
+  - **scan.html REWRITTEN from scratch** (mockup 5a capture station; scan-page.js
+    untouched — every bound id preserved: camVideo/camOverlay/camMsg/filterSel/
+    shotBtn/camInput/shots/exportCard/shotCount/expPdf/expImgs/expWord/expMsg/
+    topTheme/acctTheme/hambBtn/navVeil): 52px top bar (brand · "Scan a paper" ·
+    privacy line · theme icon), full-height grid = STAGE (bordered viewfinder w/
+    live-detect pill, shutter dock: Photo ghost + 74px SQUARE ACCENT SHUTTER +
+    hint, numbered page strip) | 340px ENHANCE rail (preset TILES driving the
+    hidden data-native #filterSel via inline script, note, export card bottom:
+    accent "Save as PDF" + Word(OCR)/Images pair). Page-scoped <style>. Mobile
+    stacks. select-style.js dropped from the page (no visible selects).
+  - **Home "Scan a paper" now routes to scan.html** (lx-workspace `scanRoute()`,
+    capture-phase — the LEGACY in-app camera overlay no longer appears from the
+    workspace; header menu "Scan with camera" still uses it for add-page flows).
+  - **Top bar chrome to mockup** (`hdrChrome()`): #userEmail hidden, NEW
+    #hdrEngine chip (mirrors companion walletLabel → "SWIFT · 99%") + #hdrAvatar
+    initial box; rail privacy lock anchored to the BOTTOM (`.railPriv`
+    margin-top:auto, navSep hidden on desktop).
+  - **Login**: guest button → quiet text link (no button chrome).
+  - **Tool flow restyle to 3b WITHOUT touching tools-page.js**: tool header
+    left-aligned + ruled; #tvSide = ruled 340px options panel (serif .sTop title,
+    caps option labels, full-width accent .goBig with → arrow); .fCard file cards
+    → full-width ROWS (52×64 thumb · name/size · joined action strip, collapsing
+    -1px borders); progress/done .stateCard = ruled frame + 3px thread meter.
+  **WAVE 9 ✅ — SCAN v2: full capture → review → export workflow (KRK's 5c ask).**
+  `scripts/scan-page.js` REWRITTEN (~370 lines; scan-engine.js untouched):
+  shots = {raw (warped canvas, rotation baked), filter, canvas (rendered)};
+  camera mode ⟷ REVIEW mode (click any page in the strip): large preview
+  (#revStage/#revBox) + Crop / Rotate / Delete action row + "‹ Camera" back;
+  CROP = draggable 4-corner-handle rect overlay (pointer events, Apply slices
+  raw via drawImage, Cancel), ROTATE = rotate90 baked into raw, presets rail now
+  edits the SELECTED page in review (or sets the next-capture default in camera —
+  #filterSel select REMOVED, defFilter var instead); viewfinder is object-fit:
+  COVER (fills large, mockup framing) with orange corner markers on the live
+  quad; page strip: numbered, selected ring, ✕, dashed [+] tile → camera.
+  EXPORT: format TABS (PDF / JPG / Word·OCR) + one "Save N pages" accent action
+  + **"Read aloud in the reader"** — builds the PDF blob and hands off via the
+  same IndexedDB 'lxhand' record app-documents.js picks up (blob/name/t).
+  scan.html stage rebuilt (#camStage + #revStage), old inline preset script and
+  expPdf/expImgs/expWord buttons removed (logic now inside saveAll). All ids
+  verified present; node --check clean.
+  **WAVE 10 ✅ — scan v2.1 polish after KRK's second screenshot pass:**
+  - FIXED the mode bug (both stages visible → tiny preview): explicit
+    `#camStage[hidden]/#revStage[hidden]{display:none !important}` (the flex
+    display was overriding the hidden attribute).
+  - REVIEW = the Design-reference layout: `.scanStage.review` grid — PAGES
+    column LEFT (the #shots strip flips vertical, scrollable, + tile), big
+    preview center, Crop/Rotate/**Enhance (cycles Auto→Original→B&W)**/Delete
+    row under it, EXPORT rail right reorganised: EXPORT kicker + PDF/JPG tabs +
+    "Save N pages" · HANDOFF kicker + "Read aloud" + "OCR text (Word)"
+    (saveWord() extracted; word tab removed) + order note.
+  - Capture dock = mockup 5a: **Auto/Manual segment** (functional — Manual
+    turns the live edge overlay off), photo square · 64px BORDERED shutter
+    (orange fill inset) · **rotate-last** square, hint right.
+  - ACCOUNT MOVED TO TOP-RIGHT on desktop (all pages): rail shows no profile
+    chrome; on index the #hdrAvatar opens the existing account popover, now
+    position:fixed under the top bar (right:14px top:58px); standalone pages'
+    rail theme/back buttons hidden on desktop (theme lives in the top bar).
+  **WAVE 10.1 ✅ — scan pixel pass (root cause of the "small camera/preview"):**
+  pages.css STILL had the legacy scan block (`#camWrap{aspect-ratio:3/4;
+  max-width:560px; margin:auto}`, contain-fit video, ROUND #shotBtn + theme's
+  circle-list entry) silently overriding the new station → camera rendered as a
+  narrow centered strip and the review preview collapsed. FIX: legacy block
+  DELETED from pages.css (scan styling is now 100% inside scan.html) and
+  #shotBtn removed from theme.css's border-radius:50% list. Rail rebuilt to the
+  FULL mockup-5a structure, all functional: presets 2×2 (+ **Grayscale**),
+  **Straighten slider** (±10°, canvas-rotate), **Brightness slider** (±40,
+  ctx.filter), **Clean up** square-check (contrast/brightness pass on Original),
+  ADD PAGE accent CTA pinned to the rail bottom (capture ⟷ back-to-camera).
+  Per-shot opts model {filter,deg,bright,clean} → develop pipeline
+  raw→straighten→preset→clean→brightness (renderShot); controls edit the
+  selected page in review or the next-capture defaults in camera (target()).
+  MOBILE (5b): ≤700px = full-bleed camera, floating dock (page-STACK thumb w/
+  count → opens review · 72px ROUND shutter · photo), strip floats above the
+  dock; review stacks vertically and the export rail appears below (:has).
+  **WAVE 11 ✅ — Plans & wallet = TWO embedded components (KRK's arch fix).**
+  The #plans modal was one long stack (broken: overflowing, full-width orange
+  .fromWallet blocks). REBUILT to the reference: header (kicker + serif +
+  ₹ balance) → **Wallet ⟷ Plans segmented tabs** → two panes:
+  • WALLET pane = top-up card (unchanged bindings) + NEW "WHAT YOUR WALLET PAYS
+    FOR" ruled price list (web search / voices / summaries / conversions).
+  • PLANS pane = "CHOOSE YOUR ENGINE · PAY FROM WALLET" + 3 shared-border engine
+    cards: **Spark (Free, CURRENT badge)** / Swift ₹49 / Sage ₹99 — serif names,
+    provider-neutral taglines, serif prices, .fromWallet button restyled as the
+    card's primary action; convert/doc become full-width rows below.
+  Tab toggle + Free/current sync = NEW `walletTabs()` in lx-workspace.js
+  (presentational only; reads #planStatus). ALL app-wallet.js bindings preserved
+  (walletMoney/planStatus/wtop/wCustomAmt/wCustomBuy/.planCard[data-plan]/.price/
+  customProv/customAmt/customBuy/customTok/convertCard/docPlanCard/plansClose) —
+  customCard kept as a hidden bindings block. plansClose is now the top-right ✕.
+  **WAVE 11.1 — KRK CONFIRMED the Free/Sage/Saga + provider labels (hide-provider
+  rule dropped for the plan cards):** engine CARD display text now matches the mock
+  exactly — **Free / Powered by Amazon** (₹0 included, Current badge), **Sage /
+  Powered by OpenAI** (data-plan sub_openai_49, ₹49), **Saga / Powered by Claude**
+  (data-plan sub_claude_99, ₹99); prices carry "switch · from wallet" small text.
+  (The rest of the app — companion wallet label, settings — still uses the ENGINE
+  map's Spark/Swift/Sage; a full rename there is still a separate task.)
+  BUTTON LOGIC (renderWalletButtons rewritten): every paid card ALWAYS shows a
+  button — wallet covers it → orange **"Switch to <Name>"** (buyFromWallet); not
+  enough → ghost **"Buy ₹X"** (Razorpay). Card-body click-to-buy REMOVED (only the
+  contextual .pwRow convert/doc rows stay click-to-buy) so the explicit buttons own
+  the action. openPlans price suffix unified to "switch/top up · from wallet".
+  BUGS FIXED: `#plansClose{width:100%}` (old rule → the ✕ was full-width) repointed
+  to a top-right square; box widened to 1120px (fits 3 cards). Insufficient-balance
+  button hover was painting solid orange — a stray `.fromWallet:hover{background}`
+  after the `.insuff` rule; removed. "· from wallet" is now conditional
+  (renderWalletButtons: shown only when walletPaise ≥ price; else "Buy ₹X" ghost).
+  **WAVE 11.2 — softer rounded look (KRK's Claude-Design "Plans and Wallet.dc.html"):**
+  the modal switched from flat shared-border to ROUNDED cards w/ panel bg + gaps:
+  pill segmented tabs (12px, orange active pill), wallet top-up wrapped in a 14px
+  `--panel2` panel with 10px chips (₹49 .on = accent tint) + rounded "Add to wallet",
+  pay-for divided rows, 3 engine cards = 14px `--panel2` panels (gap:16px, current =
+  accent border, 10px icon boxes, 20px CURRENT pill, 10px buttons), modal box 18px
+  radius. CRITICAL: had to REMOVE .planCard/.walletCard/.wtop/.fromWallet/#wCustomBuy/
+  #plans .box/#plansClose from theme.css's two `border-radius:0 !important` sweeps +
+  the old flat `#plans .planCard .ic` box rule — those were overriding the rounding.
+  **WAVE 11.3 — plans buttons rounded + compact header + mobile layout:**
+  the pill tabs / chips / Switch buttons were STILL square because theme.css's
+  global `button{border-radius:0 !important}` catch-all beat them — fixed with
+  higher-specificity `#plans .pwTab{…!important}` etc. Card header restructured to
+  `.engHd` = icon BESIDE `.engNames` (name + "Powered by X" stacked) with the
+  CURRENT badge absolute top-right → saves a row per card, kills the desktop
+  scroll. NEW mobile block (≤899px, where the modal is 460px wide): ₹ balance
+  becomes its own bordered panel under the title; tabs = full-width 2-col; top-up
+  chips = 2-col grid (custom + Add span full width); plan cards stack with price +
+  Switch/Current button INLINE on the bottom row (grid-areas hd/desc/price/btn).
+  **WAVE 12 (SUPERSEDED by 12.1) — briefly routed both scan buttons to scan.html.**
+  **WAVE 12.1 ✅ — TWO distinct scan intents (KRK's final call):** the scanRoute()
+  redirect was REMOVED. "Scan a paper" (#scanBtn) + header "Scan with camera"
+  (#scanHdrBtn) → the FAST in-app camera (openCamera → #camModal → Capture → OCR →
+  reader opens automatically, no navigation — Lexora's frictionless flagship flow,
+  untouched logic). The rail/nav "Scan" (<a href="scan.html">) → the full Scan Tool
+  STATION (multi-page/crop/enhance/save/export + Read-aloud handoff). Same camera
+  visual language in both (camModal restyled to the station: dark, orange edge
+  quad, ROUND shutter matching #shotBtn, Auto/ghost controls, de-emojied).
+  scan.html ENRICHED to the Design ref (scan-page.js logic preserved, additive):
+  NEW Contrast slider (ctSlide → ctx.filter contrast), "Apply to This page/All
+  pages" toggle (applyAll → spreadToAll copies filter/deg/bright/contrast/clean
+  to every shot), Page size Auto/A4/Letter (buildPdf fits image centered on the
+  fixed sheet), HANDOFF gained "Copy plain text" (ocrAll → clipboard) + relabeled
+  "OCR to editable text (Word)"; dock "Auto edges", review back = "New scan",
+  ROUND shutter (KRK's ref shows round). All ids verified, node --check clean.
+  **WAVE 13 ✅ — CLEAN ARCHITECTURAL MIGRATION (frontend rewrite, phase 1: services).**
+  Design package (`Lexora Design Package.dc.html`, in uploads) read in full; it is
+  the SAME design system the app already implements → KRK chose a **clean
+  architectural rewrite** (modernize structure, reuse matching UI, replace brittle
+  DOM-coupled code). Functional truth = `docs/PLATFORM-ARCHITECTURE.md`; plan =
+  `docs/FRONTEND-REBUILD-PLAN.md` (live progress log there).
+  NEW **core layer** (DOM-free namespace `Lx`, loaded before every feature script
+  on index/tools/settings/login):
+  - `core/config.js` (Lx.config — all endpoints + localStorage keys, ONE source),
+    `core/supabase.js` (Lx.sb + Lx.session — the ONE client),
+    `core/auth.js` (Lx.auth — token/401, safeNext/goLogin ?next, returning, logout),
+    `core/api.js` (Lx.api — gateway.{chat,me,stt,rag.*} · payments.{config,order,
+    verify,switchEngine,walletDeduct,walletBuysub} · convert.{quote,run}; centralized
+    auth-header + ONE 401 refresh-retry + normalized ApiError + keepalive),
+    `utils/format.js` (Lx.fmt), `domain/metering.js` (Lx.plans — engine/tier names,
+    prices/rates from live /config, docQuote, convertBalance).
+  MIGRATED onto the core (behavior preserved, legacy inline fetch/auth/config
+  DELETED): app-companion (askAI/stt), rag (deep index/query/delete), app-wallet
+  (buy/verify/switch/wallet/me + all plan tables → Lx.plans), tools-page (quote/
+  convert — **its duplicate Supabase client+config retired**), login.html +
+  settings.js (own clients/config retired). RESULT: exactly ONE Supabase client &
+  ONE endpoint config in the whole frontend; zero direct worker fetches outside
+  Lx.api; all node --check + HTML parse green. Backend/workers UNTOUCHED.
+  NEXT (see FRONTEND-REBUILD-PLAN §4b): engine-layer docs (scan-engine/shared are
+  already pure), per-page controller modularization, then a11y/responsive/perf pass.
+  **DEEP FEATURES STILL OPEN (KRK's phases — need engine/JS-heavy sessions, in
+  priority order):** (a) Scan capture station v2: live draggable quad corners,
+  per-page review strip with crop/rotate/enhance/delete + PDF/JPG/★Searchable
+  export (5a–5c) — scan-page.js + scan-engine.js rework; (b) AI Workflow Queue /
+  planning agent ("convert→compress→translate, show plan, deselect steps, run in
+  background") — new orchestrator over the tool engines + jobs feed (lxJobs API
+  is ready); (c) semantic suggested questions (needs a cheap /chat call or rag.js
+  keyphrase pass — do NOT hardcode); (d) chat edit/retry/stop/copy per message +
+  streaming (app-companion.js surgery); (e) tool flow OPTIONS step + animated
+  node-motif progress for FREE tools (tools-page.js, fresh session);
+  (f) AI-Engine settings rows to mockup 4b exactly (settings.js render).
+  KNOWN FIDELITY GAPS (list for next session): no live "SWIFT · 99%" chip in top bars
+  (needs wallet data plumbed to a header chip); reader Focus-mode toggle + rail
+  zoom/night icons not built; playbar lacks inline sentence-text + draggable thumb
+  (app-viewer.js engine work); companion answers don't render ¶ source chips (rag UI);
+  job-queue surface (3c) NOT built (premium jobs are synchronous today — needs
+  worker/API support first); scan review strip (5c) still the legacy #shots row;
+  settings content column still card-based (structure matches, chrome differs).
+  REMAINING (separate sessions): editor handle polish (injected CSS in tools-page.js);
+  karaoke 2px current-word underline (app-viewer.js marker); onboarding tour emoji;
+  in-chat text emoji from JS strings (app-core/app-documents greetings); mobile bottom
+  tab bar, job queue surface, scan capture station (5a–5c), landing node-hero variant B.
+  Mockup extras to consider later: job-queue surface (3c), mobile bottom tab bar (4c),
+  scan capture station (5a–5c).
 
 - **Step 6 — Own Voice TTS / PWA / Capacitor:** Voice = separate project (see
   `LEXORA-VOICE-HANDOVER.md`, founding doc DONE — consider Phase 5 half-started);

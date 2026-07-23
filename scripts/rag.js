@@ -28,7 +28,7 @@ var LxRag = (function(){
     fp: '', chunks: [], vecs: null, dim: 0,        /* current on-device index */
     bm: null, building: null, ready: false,
     pendingFp: '', stable: 0, saidOnce: false,
-    embedder: null, tfmod: null,
+    embedder: null, tfmod: null, lastSources: [],
     deep: { docId: '', ready: false, count: 0, declined: '' }
   };
 
@@ -260,13 +260,23 @@ var LxRag = (function(){
         .map(s=> '[p' + s.page + '] ' + s.text).join('\n'));
     }
     let body = 'RELEVANT DOCUMENT EXCERPTS:';
+    const used = [];
     for(const i of picked){
       const c = S.chunks[i];
       const add = '\n' + (c.head ? '(' + c.head + ') ' : '') + '[p' + c.page + '] ' + c.text;
       if((parts.join('\n\n') + body + add).length > CTX_MAX) break;
       body += add;
+      used.push(i);
     }
     parts.push(body);
+    /* remember which passages fed the answer, so the companion can cite them
+       (design package §09 — "always cite the ¶ passages"). On-device only. */
+    S.lastSources = used.slice(0, 4).map(i=>{
+      const c = S.chunks[i];
+      const label = (c.head && c.head.trim()) ? c.head.trim()
+                    : c.text.replace(/\s+/g,' ').trim().split(' ').slice(0,4).join(' ');
+      return { page: c.page, label: label.slice(0, 32) };
+    });
     return parts.join('\n\n').slice(0, CTX_MAX);
   }
   async function retrieveLocal(question){
@@ -325,29 +335,21 @@ var LxRag = (function(){
   async function deepIndex(){
     const chunks = S.chunks.length ? S.chunks : buildChunks();
     const docId = fingerprint();
-    const token = await authToken();
-    if(!token) throw new Error('login required');
     for(let i = 0; i < chunks.length && i < 600; i += 30){
       const batch = chunks.slice(i, i + 30).map(c=> ({ i: c.i, page: c.page, text: c.text.slice(0, 1200) }));
-      const r = await fetch(CONFIG.API_URL + '/rag/index', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
-        body: JSON.stringify({ docId, chunks: batch })
-      });
-      if(r.status === 503) throw new Error('deep_unavailable');
-      if(!r.ok) throw new Error('indexing failed (' + r.status + ')');
+      try{
+        await Lx.api.gateway.rag.index(docId, batch);   /* core: auth + 401 retry + errors */
+      }catch(e){
+        if(e && e.status === 503) throw new Error('deep_unavailable');
+        throw new Error('indexing failed (' + (e && e.status || '?') + ')');
+      }
     }
     S.deep = { docId, ready: true, count: Math.min(chunks.length, 600), declined: '' };
   }
   async function deepQuery(question){
-    const token = await authToken();
-    const r = await fetch(CONFIG.API_URL + '/rag/query', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
-      body: JSON.stringify({ docId: S.deep.docId, q: question, k: 8 })
-    });
-    if(!r.ok) throw new Error('deep query failed');
-    const j = await r.json();
+    let j;
+    try{ j = await Lx.api.gateway.rag.query(S.deep.docId, question, 8); }
+    catch(e){ throw new Error('deep query failed'); }
     const ms = (j.matches || []);
     if(!ms.length) return null;
     let body = 'RELEVANT DOCUMENT EXCERPTS (full-document search):';
@@ -360,20 +362,14 @@ var LxRag = (function(){
   }
   async function deepDelete(){
     if(!S.deep.ready) return;
-    try{
-      const token = await authToken();
-      fetch(CONFIG.API_URL + '/rag/delete', {
-        method: 'POST', keepalive: true,
-        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
-        body: JSON.stringify({ docId: S.deep.docId, count: S.deep.count })
-      }).catch(()=>{});
-    }catch(e){}
+    try{ Lx.api.gateway.rag.remove(S.deep.docId, S.deep.count).catch(()=>{}); }catch(e){}
     S.deep = { docId: '', ready: false, count: 0, declined: '' };
   }
   window.addEventListener('pagehide', ()=>{ deepDelete(); });
 
   /* ---------- public API ---------- */
   async function getContext(question){
+    S.lastSources = [];                             /* clear stale citations up front */
     if(typeof sentences === 'undefined' || !sentences.length) return null;
     if(fullText().length <= 8000) return null;      /* small doc: classic path sends it all */
 
@@ -423,5 +419,5 @@ var LxRag = (function(){
     var s = document.createElement('style'); s.textContent = c; document.head.appendChild(s);
   })();
 
-  return { getContext, ensureIndex, mode, deepDelete };
+  return { getContext, ensureIndex, mode, deepDelete, getSources: ()=> S.lastSources || [] };
 })();
