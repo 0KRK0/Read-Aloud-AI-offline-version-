@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan a paper — rebuilt UI preview</title>
+<link rel="stylesheet" href="styles/theme.css">
+<link rel="stylesheet" href="styles/app.css">
+<style>
+  /* preview-only: unpin the fixed modal so both steps render stacked on one page */
+  body{margin:0; background:var(--bg); color:var(--text); font-family:var(--font-ui)}
+  .previewNote{padding:14px 20px; border-bottom:1px solid var(--line); color:var(--muted); font-size:13px}
+  .previewNote b{color:var(--text)}
+  #camModal.previewModal{position:relative; inset:auto; height:660px; display:flex; margin:0 0 2px}
+  .previewFakeCam{position:absolute; inset:0; background:
+    linear-gradient(135deg,#2a2622,#1a1613 60%); display:flex; align-items:center; justify-content:center}
+  .previewQuad{width:44%; height:74%; border:3px solid var(--accent); background:rgba(224,122,63,.14); position:relative}
+  .previewQuad span{position:absolute; width:12px; height:12px; border-radius:50%; background:var(--accent)}
+  .previewQuad span:nth-child(1){left:-6px;top:-6px}.previewQuad span:nth-child(2){right:-6px;top:-6px}
+  .previewQuad span:nth-child(3){right:-6px;bottom:-6px}.previewQuad span:nth-child(4){left:-6px;bottom:-6px}
+  .previewPage{width:420px; max-width:100%; aspect-ratio:3/4; background:#faf9f5; color:#211f1c;
+    padding:44px 46px; box-sizing:border-box; box-shadow:none}
+  .previewPage .k{font-family:var(--font-display); font-size:12px; color:#6e6b62; letter-spacing:.05em}
+  .previewPage h4{font-family:var(--font-display); font-size:22px; font-weight:600; margin:12px 0 0}
+  .previewPage .ln{height:8px; background:#d9d5cc; margin-top:14px}
+  .previewPage .ln.s{width:70%}
+  .previewThumbImg{width:100%; height:100%; background:#faf9f5; display:block}
+</style>
+</head>
+<body>
+<div class="previewNote"><b>Preview</b> — the rebuilt “Scan a paper” (in-Reader). Top: Step 1 Capture (Image 1). Bottom: Step 2 Review &amp; Edit (Image 2). Rendered with the real <code>theme.css</code> + <code>app.css</code>. Camera/page shown as placeholders.</div>
+
+<!-- ============ STEP 1 · CAPTURE ============ -->
+<div id="camModal" class="previewModal">
+  <div id="scanRail">
+    <span class="scanMark"><span></span></span>
+    <span class="scanRailIc on" title="Reader"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+    <span class="scanLock"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+  </div>
+  <div id="scanMain">
+    <section id="capStep">
+      <div class="scanTop">
+        <button class="scanX"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <div class="scanTitle"><b>Scan a paper</b><small>to read aloud</small></div>
+        <span class="scanPriv"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Camera stays on your device</span>
+      </div>
+      <div id="camStage">
+        <div class="previewFakeCam"><div class="previewQuad"><span></span><span></span><span></span><span></span></div></div>
+        <div id="capBanner"><span></span>Point at the page — I snap automatically when it is steady</div>
+      </div>
+      <div class="scanBottom">
+        <div class="sbSide sbLeft"><span id="camCount"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><em>2 pages</em></span></div>
+        <div class="sbMid">
+          <button id="camUndo" class="scanRound"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
+          <button id="camShot"></button>
+          <button id="camAuto" class="scanRound on"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+        </div>
+        <div class="sbSide sbRight"><button id="camDone"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Done · edit &amp; read</button></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ============ STEP 2 · REVIEW & EDIT ============ -->
+<div id="camModal" class="previewModal">
+  <div id="scanRail">
+    <span class="scanMark"><span></span></span>
+    <span class="scanRailIc on" title="Reader"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+    <span class="scanLock"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+  </div>
+  <div id="scanMain">
+    <section id="revStep">
+      <div class="scanTop">
+        <button id="revBack" class="scanX"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+        <div class="scanTitle"><b>Review scan</b><small id="revCount">3 pages</small></div>
+        <button id="revAddTop" class="scanAdd"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add page</button>
+      </div>
+      <div id="revBody">
+        <aside id="revThumbs">
+          <div class="thumbsKick">Pages</div>
+          <div id="thumbList">
+            <button class="thumb on"><span class="thNum">1</span><span class="previewThumbImg"></span></button>
+            <button class="thumb"><span class="thNum">2</span><span class="previewThumbImg"></span></button>
+            <button class="thumb"><span class="thNum">3</span><span class="previewThumbImg"></span></button>
+          </div>
+          <button id="thumbAdd"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        </aside>
+        <div id="revStage">
+          <div id="revPreviewWrap">
+            <span class="reg regTL"></span><span class="reg regTR"></span><span class="reg regBL"></span><span class="reg regBR"></span>
+            <div class="previewPage"><div class="k">MEETING NOTES</div><h4>Project kickoff — action items</h4><div class="ln"></div><div class="ln"></div><div class="ln s"></div></div>
+            <span id="revEnhChip">Enhance · sharp</span>
+          </div>
+        </div>
+        <aside id="revPanel">
+          <h3>Ready to read</h3>
+          <p id="revPanelDesc">3 pages, enhanced and straightened on your device. Hand them to the reader and start listening.</p>
+          <div class="scanCard">
+            <div class="scKick">Recognize text (OCR)</div>
+            <label class="scRow"><span>So it can be read &amp; searched</span><input type="checkbox" checked><span class="scSwitch"></span></label>
+          </div>
+          <div class="scanCard scMuted"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Recognized entirely on your device.</div>
+          <div class="revActions">
+            <button class="scanPrimary"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Read aloud</button>
+            <div class="revActRow">
+              <button class="scanGhost">Save PDF</button>
+              <button class="scanGhost">Ask AI</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <div id="revToolbar">
+        <button class="tbBtn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M2 6h14a2 2 0 0 1 2 2v14"/></svg><span>Crop</span></button>
+        <button class="tbBtn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>Rotate</span></button>
+        <div class="seg">
+          <button>Original</button><button class="on">Enhance</button><button>B&amp;W</button>
+        </div>
+        <button class="tbBtn" id="tbDelete"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Delete</span></button>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

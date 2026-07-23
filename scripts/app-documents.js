@@ -87,7 +87,8 @@ function openImage(file){ return openImagePages(file.name, [file]); }
 
 /* One or many photos of pages (upload or camera scan) — shown as real pages,
    OCR page by page, reading starts after page 1 like a scanned PDF. */
-async function openImagePages(name, sources, isAppend){
+async function openImagePages(name, sources, isAppend, doOcr){
+  if(doOcr === undefined) doOcr = true;   /* OCR on by default (scan "Recognize text" toggle) */
   if(location.protocol === 'file:'){ say('Reading photos needs the app to run from the launcher or website.'); return; }
   docLabel = friendlyName(name, /^camera scan/i.test(name) ? 'scan' : 'photo');
   say(isAppend
@@ -139,6 +140,13 @@ async function openImagePages(name, sources, isAppend){
     $('addPageBtn').style.display = 'inline-block';   /* …and extended with more camera pages */
     scanSession = sources;                            /* remember, so ➕ Page can append */
     if(!isAppend) setDocBusy(true);                   /* lock controls until page 1 is readable */
+
+    /* OCR toggled off in the scan workspace — show the pages, skip recognition. */
+    if(!doOcr){
+      removeProgress(); setDocBusy(false); afterDocOpen();
+      say('Showing your scanned pages. Text recognition (OCR) was off, so I can’t read these aloud — you can still save them as a PDF with ⬇, or reopen with OCR on to listen.','sys');
+      return;
+    }
 
     /* OCR page by page — greet/start after page 1, keep converting behind.
        Pages already recognised in this scan session are cached on the source. */
@@ -225,217 +233,89 @@ function tapImagePage(pg, e){
 
 /* Filters: Enhance = auto-levels (whiter paper, darker ink) · B&W = adaptive threshold scan look */
 
-/* ---------- Review screen: adjust corners · rotate · pick filter · keep ---------- */
-let rev = null;
-function enterReview(srcCanvas, onDone, onCancel){
-  rev = { src: srcCanvas, corners: detectQuad(srcCanvas), filter: 'enhance', onDone, onCancel, drag: -1, preview: null };
-  $('camVideo').style.display = 'none';
-  $('camBar').style.display = 'none';
-  $('camHint').textContent = 'Drag the corners to the page edges · pick a look · ✓ Keep';
-  $('camHint').style.display = 'block';
-  $('revCanvas').style.display = 'block';
-  $('revBar').style.display = 'flex';
-  $('camModal').style.display = 'flex';
-  document.querySelectorAll('#revFilters button').forEach(b=> b.classList.toggle('on', b.dataset.f === rev.filter));
-  rebuildRevPreview();
-  drawReview();
+/* ============================================================
+   In-Reader "Scan a paper" — immersive Capture → Adobe-Scan-style
+   Review & Edit workspace → OCR → reader handoff.
+   Frontend rebuilt to the approved redesign; ALL engine/OCR/handoff
+   backend preserved. Engine globals (scan-engine.js): detectQuad,
+   warpPerspective, applyScanFilter, rotate90. Handoff: openImagePages.
+   Distinct from the full Scan Tool (scan.html).
+   ============================================================ */
+let camStream = null;
+let scanPages = [];        /* [{ src:canvas(raw), corners:[4], filter:'enhance' }] */
+let scanSel = 0;
+let scanSession = null;    /* sources of an already-open scanned doc (playbar +Page) */
+let scanAppend = false;    /* the next handoff should APPEND to scanSession */
+let scanCrop = null;       /* { corners, pscale } while cropping the selected page */
+const isMobileDevice = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+const camDetC = document.createElement('canvas');
+
+/* page → processed canvas (perspective-corrected + filtered), and → shot for handoff/pdf */
+function scanRender(pg, maxOut){
+  let out;
+  try{ out = warpPerspective(pg.src, pg.corners, maxOut || 2200); applyScanFilter(out, pg.filter); }
+  catch(e){ out = pg.src; }
+  return out;
 }
-function exitReview(toCapture){
-  rev = null;
-  $('revCanvas').style.display = 'none';
-  $('revBar').style.display = 'none';
-  if(toCapture && camStream){
-    $('camVideo').style.display = 'block';
-    $('camBar').style.display = 'flex';
-    $('camHint').textContent = camAutoOn
-      ? 'Point the camera at the next page — I snap automatically when it is steady'
-      : 'Auto-capture off — tap 📸 to snap each page';
-  }else{
-    $('camModal').style.display = 'none';
-    $('camBar').style.display = 'flex';
-    $('camVideo').style.display = 'block';
+function scanShot(pg){ const c = scanRender(pg, 2200); return { data: c.toDataURL('image/jpeg', .9), w: c.width, h: c.height }; }
+
+function showScanStep(which){
+  $('capStep').hidden = which !== 'cap';
+  $('revStep').hidden = which !== 'rev';
+}
+
+/* ---------------- STEP 1 · Capture ---------------- */
+$('scanBtn').addEventListener('click', ()=>{ scanAppend = false; scanPages = []; scanSel = 0; openCamera(); });
+$('addPageBtn').addEventListener('click', ()=>{ if(!scanSession) return; scanAppend = true; scanPages = []; scanSel = 0; openCamera(); });
+
+$('camInput').addEventListener('change', async e=>{
+  const files = [...e.target.files]; e.target.value = '';
+  if(!files.length) return;
+  for(const f of files){
+    try{ const c = await fileToCanvas(f, 2600); scanPages.push({ src:c, corners:detectQuad(c), filter:'enhance' }); }
+    catch(err){ console.warn('scan import', err); }
   }
-}
-function rebuildRevPreview(){
-  if(!rev) return;
-  const stage = $('camStage');
-  const maxW = Math.max(200, stage.clientWidth - 8), maxH = Math.max(200, stage.clientHeight - 8);
-  const sc = Math.min(maxW/rev.src.width, maxH/rev.src.height, 1);
-  const c = $('revCanvas');
-  c.width = Math.round(rev.src.width*sc); c.height = Math.round(rev.src.height*sc);
-  rev.pscale = sc;
-  const p = document.createElement('canvas');
-  p.width = c.width; p.height = c.height;
-  p.getContext('2d').drawImage(rev.src, 0, 0, p.width, p.height);
-  applyScanFilter(p, rev.filter);
-  rev.preview = p;
-}
-function drawReview(){
-  if(!rev) return;
-  const c = $('revCanvas'), ctx = c.getContext('2d');
-  ctx.drawImage(rev.preview, 0, 0);
-  /* dim outside the quad */
-  const q = rev.corners.map(p=>({x:p.x*rev.pscale, y:p.y*rev.pscale}));
-  ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,.45)';
-  ctx.beginPath();
-  ctx.rect(0,0,c.width,c.height);
-  ctx.moveTo(q[0].x,q[0].y); ctx.lineTo(q[3].x,q[3].y); ctx.lineTo(q[2].x,q[2].y); ctx.lineTo(q[1].x,q[1].y); ctx.closePath();
-  ctx.fill('evenodd');
-  ctx.restore();
-  ctx.strokeStyle = '#e07a3f'; ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(q[0].x,q[0].y); q.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.closePath();
-  ctx.stroke();
-  q.forEach(p=>{
-    ctx.beginPath(); ctx.arc(p.x, p.y, 11, 0, 7);
-    ctx.fillStyle = 'rgba(224,122,63,.30)'; ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x, p.y, 5.5, 0, 7);
-    ctx.fillStyle = '#e07a3f'; ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-  });
-}
-(function(){
-  const c = $('revCanvas');
-  const pos = e => {
-    const r = c.getBoundingClientRect();
-    return { x: (e.clientX - r.left) * (c.width / r.width) / (rev ? rev.pscale : 1),
-             y: (e.clientY - r.top)  * (c.height / r.height) / (rev ? rev.pscale : 1) };
-  };
-  c.addEventListener('pointerdown', e=>{
-    if(!rev) return;
-    const p = pos(e);
-    let best = -1, bd = 1e9;
-    rev.corners.forEach((q,i)=>{ const d = Math.hypot(q.x-p.x, q.y-p.y); if(d < bd){ bd = d; best = i; } });
-    if(bd * rev.pscale < 34){ rev.drag = best; c.setPointerCapture(e.pointerId); }
-  });
-  c.addEventListener('pointermove', e=>{
-    if(!rev || rev.drag < 0) return;
-    const p = pos(e);
-    rev.corners[rev.drag] = {
-      x: Math.max(0, Math.min(rev.src.width,  p.x)),
-      y: Math.max(0, Math.min(rev.src.height, p.y))
-    };
-    drawReview();
-  });
-  ['pointerup','pointercancel'].forEach(ev=> c.addEventListener(ev, ()=>{ if(rev) rev.drag = -1; }));
-})();
-$('revRotate').addEventListener('click', ()=>{
-  if(!rev) return;
-  rev.src = rotate90(rev.src);
-  rev.corners = detectQuad(rev.src);
-  rebuildRevPreview(); drawReview();
-});
-document.querySelectorAll('#revFilters button').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    if(!rev) return;
-    rev.filter = b.dataset.f;
-    document.querySelectorAll('#revFilters button').forEach(x=>x.classList.toggle('on', x===b));
-    rebuildRevPreview(); drawReview();
-  });
-});
-$('revKeep').addEventListener('click', ()=>{
-  if(!rev) return;
-  const r = rev; rev = null;
-  $('camHint').textContent = '✨ Straightening & enhancing…';
-  $('revBar').style.display = 'none';
-  setTimeout(()=>{
-    let out;
-    try{
-      out = warpPerspective(r.src, r.corners, 2200);   /* higher res → sharper text for OCR */
-      applyScanFilter(out, r.filter);
-    }catch(e){ out = r.src; }
-    const shot = { data: out.toDataURL('image/jpeg', .9), w: out.width, h: out.height };
-    r.onDone(shot);
-  }, 30);
-});
-$('revCancel').addEventListener('click', ()=>{
-  if(!rev) return;
-  const r = rev; rev = null;
-  r.onCancel();
+  if(scanPages.length){ scanSel = 0; enterWorkspace(); }
+  else closeCamera();
 });
 
-/* ---------------- Camera scan (Adobe-Scan style) ---------------- */
-let camStream = null, camShots = [];
-let scanSession = null;    /* sources of the currently open photo document */
-let scanAppend = false;    /* next capture should be ADDED to the open scan */
-const isMobileDevice = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
-$('scanBtn').addEventListener('click', ()=>{
-  /* in-app camera everywhere (live page detection + auto-capture, like Adobe Scan);
-     falls back to the native camera / file picker if the browser refuses */
-  scanAppend = false;
-  openCamera();
-});
-$('addPageBtn').addEventListener('click', ()=>{
-  if(!scanSession) return;
-  scanAppend = true;
-  openCamera();
-});
-$('camInput').addEventListener('change', async e=>{
-  const files = [...e.target.files];
-  e.target.value = '';
-  if(!files.length){ scanAppend = false; return; }
-  /* review each photo (auto-detect page → adjust → filter) before it becomes a page */
-  const shots = [];
-  for(const f of files){
-    try{
-      const c = await fileToCanvas(f, 2600);
-      const shot = await new Promise(res=> enterReview(c, s=>{ exitReview(false); res(s); }, ()=>{ exitReview(false); res(null); }));
-      if(shot) shots.push(shot);
-    }catch(err){ console.warn('scan review', err); }
-  }
-  closeCamera();
-  if(!shots.length){ scanAppend = false; return; }
-  if(scanAppend && scanSession){
-    scanAppend = false;
-    scanSession.push(...shots);
-    openImagePages(`Camera scan (${scanSession.length} pages)`, scanSession, true);
-  }else{
-    openImagePages(shots.length > 1 ? `Camera scan (${shots.length} pages)` : 'Camera scan', shots);
-  }
-});
-async function openCamera(keepShots){
+async function openCamera(){
+  showScanStep('cap');
+  $('camModal').style.display = 'flex';
+  updateCapUI();
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ $('camInput').click(); return; }
   try{
     camStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode:'environment', width:{ideal:2560}, height:{ideal:1440} }, audio:false
+      video:{ facingMode:'environment', width:{ideal:2560}, height:{ideal:1440} }, audio:false
     });
-  }catch(e){ $('camInput').click(); return; }   /* no camera / permission denied → file picker */
-  if(!keepShots) camShots = [];
-  updateCamUI();
+  }catch(e){ $('camInput').click(); return; }   /* no camera / denied → file picker */
   $('camVideo').srcObject = camStream;
-  $('camModal').style.display = 'flex';
   startCamLoop();
 }
-function closeCamera(){
+function stopCamStream(){
   stopCamLoop();
   if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
   $('camVideo').srcObject = null;
-  $('camModal').style.display = 'none';
+}
+function closeCamera(){ stopCamStream(); scanCrop = null; $('camModal').style.display = 'none'; }
+
+function updateCapUI(){
+  const n = scanPages.length, em = $('camCount').querySelector('em');
+  if(em) em.textContent = n + (n === 1 ? ' page' : ' pages');
+  $('camUndo').disabled = !n; $('camDone').disabled = !n;
 }
 
-/* ---------- live paper detection on the preview + Adobe-style auto-capture ---------- */
+/* live paper detection + Adobe-style auto-capture (engine preserved) */
 let camLoopInt = null, camAutoOn = true, camStable = 0, camPrevQuad = null, camCooldown = 0;
-const camDetC = document.createElement('canvas');
-function startCamLoop(){
-  stopCamLoop();
-  camStable = 0; camPrevQuad = null; camCooldown = Date.now() + 1200;
-  camLoopInt = setInterval(camLoopTick, 140);
-}
-function stopCamLoop(){
-  clearInterval(camLoopInt); camLoopInt = null;
-  const o = $('camOverlay');
-  if(o) o.getContext('2d').clearRect(0, 0, o.width, o.height);
-}
+function startCamLoop(){ stopCamLoop(); camStable = 0; camPrevQuad = null; camCooldown = Date.now() + 1200; camLoopInt = setInterval(camLoopTick, 140); }
+function stopCamLoop(){ clearInterval(camLoopInt); camLoopInt = null; const o = $('camOverlay'); if(o) o.getContext('2d').clearRect(0, 0, o.width, o.height); }
 function camLoopTick(){
   const v = $('camVideo');
-  if(!camStream || !v.videoWidth || v.style.display === 'none') return;
-  /* detect on a small frame */
+  if(!camStream || !v.videoWidth || $('capStep').hidden) return;
   const SW = 320, SH = Math.max(24, Math.round(v.videoHeight * SW / v.videoWidth));
   camDetC.width = SW; camDetC.height = SH;
   camDetC.getContext('2d').drawImage(v, 0, 0, SW, SH);
   const q = detectQuad(camDetC);
-  /* draw the live outline (map: detect-canvas → video px → displayed rect of object-fit:contain) */
   const stage = $('camStage'), o = $('camOverlay');
   if(o.width !== stage.clientWidth || o.height !== stage.clientHeight){ o.width = stage.clientWidth; o.height = stage.clientHeight; }
   const ctx = o.getContext('2d');
@@ -447,12 +327,10 @@ function camLoopTick(){
     const d = q.map(toDisp);
     ctx.strokeStyle = 'rgba(224,122,63,.95)'; ctx.lineWidth = 3;
     ctx.fillStyle = 'rgba(224,122,63,.14)';
-    ctx.beginPath();
-    ctx.moveTo(d[0].x, d[0].y); d.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
+    ctx.beginPath(); ctx.moveTo(d[0].x, d[0].y); d.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
     ctx.fill(); ctx.stroke();
     d.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, 7); ctx.fillStyle = '#e07a3f'; ctx.fill(); });
   }
-  /* auto-capture: page found and steady for ~1.2s */
   if(!camAutoOn || !q.found || Date.now() < camCooldown){ camStable = 0; camPrevQuad = q.found ? q : null; return; }
   if(camPrevQuad && camPrevQuad.found){
     let move = 0;
@@ -460,57 +338,205 @@ function camLoopTick(){
     camStable = move < SW * 0.015 ? camStable + 1 : 0;
   }
   camPrevQuad = q;
-  /* countdown ring on the shutter */
   if(camStable > 2) $('camShot').style.boxShadow = `0 0 0 ${camStable}px rgba(224,122,63,.4)`;
   else $('camShot').style.boxShadow = '';
-  if(camStable >= 9){
-    camStable = 0; camCooldown = Date.now() + 3000;
-    $('camShot').style.boxShadow = '';
-    captureFrame();
-  }
-}
-$('camAuto').addEventListener('click', ()=>{
-  camAutoOn = !camAutoOn;
-  $('camAuto').classList.toggle('on', camAutoOn);
-  $('camHint').textContent = camAutoOn
-    ? 'Point the camera at the page — I snap automatically when it is steady'
-    : 'Auto-capture off — tap 📸 to snap each page';
-});
-function updateCamUI(){
-  $('camCount').textContent = camShots.length + (camShots.length === 1 ? ' page' : ' pages');
-  $('camUndo').disabled = !camShots.length;
-  $('camDone').disabled = !camShots.length;
+  if(camStable >= 9){ camStable = 0; camCooldown = Date.now() + 3000; $('camShot').style.boxShadow = ''; captureFrame(); }
 }
 function captureFrame(){
   const v = $('camVideo');
   if(!v.videoWidth) return;
-  const MAX = 2600;   /* more pixels → better OCR (Word export quality) */
-  const sc = Math.min(1, MAX / Math.max(v.videoWidth, v.videoHeight));
+  const MAX = 2600, sc = Math.min(1, MAX / Math.max(v.videoWidth, v.videoHeight));
   const c = document.createElement('canvas');
   c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
   c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
   const f = $('camFlash'); f.style.opacity = .7; setTimeout(()=> f.style.opacity = 0, 120);
-  stopCamLoop();
-  /* Adobe-Scan style: review each shot — auto-detected corners, drag to adjust, filter, keep */
-  enterReview(c,
-    shot=>{ camShots.push(shot); updateCamUI(); exitReview(true); startCamLoop(); },
-    ()=>{ exitReview(true); startCamLoop(); });
+  scanPages.push({ src: c, corners: detectQuad(c), filter: 'enhance' });
+  updateCapUI();
 }
 $('camShot').addEventListener('click', captureFrame);
-$('camUndo').addEventListener('click', ()=>{ camShots.pop(); updateCamUI(); });
-$('camCancel').addEventListener('click', ()=>{ camShots = []; closeCamera(); });
-$('camDone').addEventListener('click', ()=>{
-  const shots = camShots.slice(); camShots = [];
+$('camUndo').addEventListener('click', ()=>{ scanPages.pop(); updateCapUI(); });
+$('camAuto').addEventListener('click', ()=>{
+  camAutoOn = !camAutoOn;
+  $('camAuto').classList.toggle('on', camAutoOn);
+  const b = $('capBanner');
+  if(b) b.lastChild.textContent = camAutoOn
+    ? 'Point at the page — I snap automatically when it is steady'
+    : 'Auto-capture off — tap the shutter to snap each page';
+});
+$('camCancel').addEventListener('click', ()=>{ scanPages = []; scanSel = 0; scanAppend = false; closeCamera(); });
+$('camDone').addEventListener('click', ()=>{ if(scanPages.length) enterWorkspace(); });
+
+/* ---------------- STEP 2 · Review & Edit workspace ---------------- */
+function enterWorkspace(){
+  stopCamStream();                 /* free the camera while editing */
+  if(!scanPages.length){ closeCamera(); return; }
+  scanSel = Math.max(0, Math.min(scanSel, scanPages.length - 1));
+  scanCrop = null;
+  showScanStep('rev');
+  $('camModal').style.display = 'flex';
+  renderWorkspace();
+}
+function renderWorkspace(){
+  const n = scanPages.length;
+  $('revCount').textContent = n + (n === 1 ? ' page' : ' pages');
+  $('revPanelDesc').textContent = `${n} ${n === 1 ? 'page' : 'pages'}, enhanced and straightened on your device. Hand them to the reader and start listening.`;
+  const list = $('thumbList'); list.innerHTML = '';
+  scanPages.forEach((pg, i)=>{
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'thumb' + (i === scanSel ? ' on' : '');
+    const num = document.createElement('span'); num.className = 'thNum'; num.textContent = i + 1;
+    const im = document.createElement('img'); im.alt = 'Page ' + (i + 1);
+    try{ im.src = scanRender(pg, 320).toDataURL('image/jpeg', .7); }catch(e){}
+    b.appendChild(num); b.appendChild(im);
+    b.addEventListener('click', ()=>{ scanSel = i; scanCrop = null; setCropHint(false); renderWorkspace(); });
+    list.appendChild(b);
+  });
+  const pg = scanPages[scanSel];
+  document.querySelectorAll('#tbFilters button').forEach(x=> x.classList.toggle('on', pg && x.dataset.f === pg.filter));
+  drawScanPreview();
+}
+function drawScanPreview(){
+  const pg = scanPages[scanSel]; if(!pg) return;
+  const c = $('revCanvas'), stage = $('revStage');
+  const maxW = Math.max(140, (stage.clientWidth || 640) - 40);
+  const maxH = Math.max(160, (stage.clientHeight || 640) - 72);
+  const chip = $('revEnhChip');
+  if(scanCrop){
+    const src = pg.src, sc = Math.min(maxW / src.width, maxH / src.height, 1);
+    c.width = Math.round(src.width * sc); c.height = Math.round(src.height * sc);
+    scanCrop.pscale = sc;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(src, 0, 0, c.width, c.height);
+    const q = scanCrop.corners.map(p=>({ x: p.x * sc, y: p.y * sc }));
+    ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.5)';
+    ctx.beginPath(); ctx.rect(0, 0, c.width, c.height);
+    ctx.moveTo(q[0].x, q[0].y); ctx.lineTo(q[3].x, q[3].y); ctx.lineTo(q[2].x, q[2].y); ctx.lineTo(q[1].x, q[1].y);
+    ctx.closePath(); ctx.fill('evenodd'); ctx.restore();
+    ctx.strokeStyle = '#e07a3f'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(q[0].x, q[0].y); q.slice(1).forEach(p=> ctx.lineTo(p.x, p.y)); ctx.closePath(); ctx.stroke();
+    q.forEach(p=>{
+      ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, 7); ctx.fillStyle = 'rgba(224,122,63,.3)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, 7); ctx.fillStyle = '#e07a3f'; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    });
+    c.classList.add('cropping');
+    if(chip) chip.style.display = 'none';
+  }else{
+    const out = scanRender(pg, 1600);
+    const sc = Math.min(maxW / out.width, maxH / out.height, 1);
+    c.width = Math.round(out.width * sc); c.height = Math.round(out.height * sc);
+    c.getContext('2d').drawImage(out, 0, 0, c.width, c.height);
+    c.classList.remove('cropping');
+    if(chip){ const L = { original:'Original', enhance:'Enhance · sharp', bw:'B&W · sharp' }; chip.textContent = L[pg.filter] || 'Enhance · sharp'; chip.style.display = ''; }
+  }
+}
+function setCropHint(on){ const h = $('cropHint'); if(h) h.hidden = !on; }
+
+/* corner-drag crop on the preview canvas (only active in scanCrop mode) */
+(function(){
+  const c = $('revCanvas');
+  const at = e => {
+    const r = c.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (c.width / r.width) / (scanCrop ? scanCrop.pscale : 1),
+             y: (e.clientY - r.top)  * (c.height / r.height) / (scanCrop ? scanCrop.pscale : 1) };
+  };
+  c.addEventListener('pointerdown', e=>{
+    if(!scanCrop) return;
+    const p = at(e); let best = -1, bd = 1e9;
+    scanCrop.corners.forEach((q, i)=>{ const d = Math.hypot(q.x - p.x, q.y - p.y); if(d < bd){ bd = d; best = i; } });
+    if(bd * scanCrop.pscale < 36){ scanCrop.drag = best; c.setPointerCapture(e.pointerId); }
+  });
+  c.addEventListener('pointermove', e=>{
+    if(!scanCrop || scanCrop.drag == null || scanCrop.drag < 0) return;
+    const p = at(e), src = scanPages[scanSel].src;
+    scanCrop.corners[scanCrop.drag] = { x: Math.max(0, Math.min(src.width, p.x)), y: Math.max(0, Math.min(src.height, p.y)) };
+    drawScanPreview();
+  });
+  ['pointerup','pointercancel'].forEach(ev=> c.addEventListener(ev, ()=>{ if(scanCrop) scanCrop.drag = -1; }));
+})();
+
+$('tbCrop').addEventListener('click', ()=>{
+  const pg = scanPages[scanSel]; if(!pg) return;
+  scanCrop = { corners: pg.corners.map(p=>({ x:p.x, y:p.y })), drag:-1, pscale:1 };
+  setCropHint(true); drawScanPreview();
+});
+$('cropDone').addEventListener('click', ()=>{
+  if(scanCrop){ scanPages[scanSel].corners = scanCrop.corners; scanCrop = null; }
+  setCropHint(false); renderWorkspace();
+});
+$('tbRotate').addEventListener('click', ()=>{
+  const pg = scanPages[scanSel]; if(!pg) return;
+  pg.src = rotate90(pg.src); pg.corners = detectQuad(pg.src);
+  scanCrop = null; setCropHint(false); renderWorkspace();
+});
+document.querySelectorAll('#tbFilters button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const pg = scanPages[scanSel]; if(!pg) return;
+    pg.filter = b.dataset.f; renderWorkspace();
+  });
+});
+$('tbDelete').addEventListener('click', ()=>{
+  if(!scanPages.length) return;
+  scanPages.splice(scanSel, 1);
+  scanCrop = null; setCropHint(false);
+  if(!scanPages.length){ openCamera(); return; }   /* nothing left → back to capture */
+  scanSel = Math.max(0, Math.min(scanSel, scanPages.length - 1));
+  renderWorkspace();
+});
+$('revBack').addEventListener('click', ()=> openCamera());
+$('revAddTop').addEventListener('click', ()=> openCamera());
+$('thumbAdd').addEventListener('click', ()=> openCamera());
+
+/* hand off to the reader (Read aloud / Ask AI), honoring the OCR toggle */
+function finishScan(askAI){
+  if(!scanPages.length) return;
+  const shots = scanPages.map(scanShot);
+  const doOcr = $('ocrToggle').checked;
+  const append = scanAppend && scanSession;
+  scanPages = []; scanSel = 0; scanCrop = null;
   closeCamera();
-  if(!shots.length){ scanAppend = false; return; }
-  if(scanAppend && scanSession){
+  if(append){
     scanAppend = false;
     scanSession.push(...shots);
-    openImagePages(`Camera scan (${scanSession.length} pages)`, scanSession, true);
+    openImagePages(`Camera scan (${scanSession.length} pages)`, scanSession, true, doOcr);
   }else{
-    openImagePages(`Camera scan (${shots.length} ${shots.length===1?'page':'pages'})`, shots);
+    openImagePages(`Camera scan (${shots.length} ${shots.length === 1 ? 'page' : 'pages'})`, shots, false, doOcr);
   }
+  if(askAI) setTimeout(()=>{
+    try{
+      document.body.classList.remove('compHidden');
+      if(window.innerWidth <= 900 && typeof openSheet === 'function') openSheet();
+      const inp = $('chatInput'); if(inp) inp.focus();
+    }catch(e){}
+  }, 500);
+}
+$('revRead').addEventListener('click', ()=> finishScan(false));
+$('revAskAI').addEventListener('click', ()=> finishScan(true));
+
+/* Save the scanned pages as a real PDF (jsPDF, on device) */
+$('revSavePdf').addEventListener('click', async ()=>{
+  if(!scanPages.length) return;
+  const btn = $('revSavePdf'), label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try{
+    if(!(await ensureJsPDF())) throw new Error('pdf maker');
+    const { jsPDF } = window.jspdf;
+    let out = null;
+    scanPages.forEach(pg=>{
+      const c = scanRender(pg, 2200);
+      const iw = c.width * 0.75, ih = c.height * 0.75, orient = iw > ih ? 'l' : 'p';
+      if(!out) out = new jsPDF({ unit:'pt', format:[iw, ih], orientation:orient, compress:true });
+      else out.addPage([iw, ih], orient);
+      out.addImage(c.toDataURL('image/jpeg', .88), 'JPEG', 0, 0, iw, ih);
+    });
+    out.save('scan-' + Date.now() + '.pdf');
+    btn.textContent = 'Saved ✓';
+    setTimeout(()=>{ btn.textContent = label; btn.disabled = false; }, 1600);
+  }catch(e){ btn.textContent = label; btn.disabled = false; alert('Could not save the PDF — please check your connection.'); }
 });
+
+/* keep the preview crisp on resize/orientation change while the workspace is open */
+window.addEventListener('resize', ()=>{ if($('camModal').style.display === 'flex' && !$('revStep').hidden) drawScanPreview(); });
 
 /* ---------------- Save photo pages as a real PDF ---------------- */
 $('pdfBtn').addEventListener('click', async ()=>{

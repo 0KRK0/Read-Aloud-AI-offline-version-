@@ -539,6 +539,47 @@ workflows preserved. Deferred: scanner ★Searchable-PDF export (see
 
 ---
 
+## 4e. In-Reader "Scan a paper" — full UI rebuild (approved redesign Images 1&2)
+
+The in-reader camera (`#camModal`, distinct from `scan.html`) was **rebuilt from
+scratch** to the approved two-step redesign. **Only the frontend changed; all
+backend preserved** (camera `getUserMedia`, live edge detection + auto-capture,
+`scan-engine.js` `detectQuad`/`warpPerspective`/`applyScanFilter`/`rotate90`, the
+OCR pipeline + reader handoff via `openImagePages`, `camInput` fallback).
+
+**New flow — Step 1 Capture (Image 1):** immersive full-bleed camera with the 64px
+rail + top bar (close · "Scan a paper / to read aloud" · "Camera stays on your
+device"), live orange edge quad, instruction banner, and a bottom bar of page-count ·
+undo · round orange shutter · auto-toggle · "Done · edit & read". Captures now
+**accumulate without the per-page popup** — editing is deferred to Step 2.
+
+**Step 2 Review & Edit (Image 2):** a complete screen change — left vertical page
+thumbnails (numbered, selected = accent border) + add tile; center preview with
+orange registration corner-marks + "Enhance · sharp" chip; right panel ("Ready to
+read", **OCR toggle** card, on-device privacy card, **Read aloud** primary + **Save
+PDF** / **Ask AI**); bottom toolbar Crop · Rotate · Original/Enhance/B&W segment ·
+Delete. Multi-page, reorder-by-selection, Adobe-Scan-style per-page edit.
+
+**New page model** (enables workspace editing without touching the engine): each page
+= `{ src:canvas(raw), corners, filter }`; `scanRender()` = warp+filter, `scanShot()`
+= handoff/PDF shot. Crop reuses the corner-drag on `#revCanvas`. **Save PDF** builds a
+real PDF via the existing `ensureJsPDF()` (on-device). OCR toggle threads a new
+`doOcr` param into `openImagePages` (default on). "Ask AI" hands off then opens the
+companion.
+
+**Files:** `index.html` (#camModal markup replaced), `scripts/app-documents.js`
+(camera/review block replaced; `openImagePages` gained `doOcr`), `styles/app.css`
+(#camModal block replaced: rail + capture + workspace + ≤900px stack). Old IDs
+(`camBar`/`revBar`/`camHint`/`camAuto` text btn/`revKeep`/`revFilters` etc.) retired;
+camera-loop IDs kept (`camVideo`/`camOverlay`/`camStage`/`camShot`/`revCanvas`).
+**Preview:** `scan-preview.html` (links the real CSS) renders both steps for
+side-by-side comparison. **Verify:** `node --check` app-documents OK; index +
+preview parse; app.css braces 444/444; engine + `openImagePages` unchanged; no
+orphaned old symbols. Headless render unavailable (no connected browser) — visual
+sign-off pending KRK opening the preview / running the app.
+
+---
+
 ## 5. Rules carried from the directive
 
 - Do **not** copy whole old pages or wrap them; do **not** preserve old layout/

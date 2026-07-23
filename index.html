@@ -461,31 +461,86 @@
 </div>
 
 <div id="camModal">
-  <div id="camStage">
-    <video id="camVideo" autoplay playsinline muted></video>
-    <canvas id="camOverlay"></canvas>
-    <canvas id="revCanvas" style="display:none"></canvas>
+  <!-- persistent rail (matches the reader shell) -->
+  <div id="scanRail">
+    <span class="scanMark"><span></span></span>
+    <span class="scanRailIc on" title="Reader"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+    <span class="scanLock" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
   </div>
-  <div id="camHint">Point at the page — I snap automatically when it is steady</div>
-  <div id="camBar">
-    <button id="camCancel" title="Cancel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    <div id="camBarMid">
-      <button id="camAuto" class="on" title="Auto-capture on/off">Auto</button>
-      <button id="camShot" title="Capture page"></button>
-      <button id="camUndo" title="Remove last page" disabled><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
-      <span id="camCount">0 pages</span>
-    </div>
-    <button id="camDone" title="Finish and read" disabled><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Read</button>
-  </div>
-  <div id="revBar" style="display:none">
-    <button id="revCancel" title="Discard this page"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    <button id="revRotate" title="Rotate 90°"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
-    <span id="revFilters">
-      <button data-f="original">Original</button>
-      <button data-f="enhance" class="on">Enhance</button>
-      <button data-f="bw">B&amp;W</button>
-    </span>
-    <button id="revKeep" title="Keep this page">Keep page</button>
+
+  <div id="scanMain">
+    <!-- ============ STEP 1 · CAPTURE ============ -->
+    <section id="capStep">
+      <div class="scanTop">
+        <button id="camCancel" class="scanX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <div class="scanTitle"><b>Scan a paper</b><small>to read aloud</small></div>
+        <span class="scanPriv"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Camera stays on your device</span>
+      </div>
+      <div id="camStage">
+        <video id="camVideo" autoplay playsinline muted></video>
+        <canvas id="camOverlay"></canvas>
+        <div id="capBanner"><span aria-hidden="true"></span>Point at the page — I snap automatically when it is steady</div>
+      </div>
+      <div class="scanBottom">
+        <div class="sbSide sbLeft"><span id="camCount"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><em>0 pages</em></span></div>
+        <div class="sbMid">
+          <button id="camUndo" class="scanRound" aria-label="Undo last page" disabled><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
+          <button id="camShot" aria-label="Capture page"></button>
+          <button id="camAuto" class="scanRound on" aria-label="Auto-capture on/off" title="Auto-capture"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+        </div>
+        <div class="sbSide sbRight"><button id="camDone" disabled><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Done · edit &amp; read</button></div>
+      </div>
+    </section>
+
+    <!-- ============ STEP 2 · REVIEW & EDIT ============ -->
+    <section id="revStep" hidden>
+      <div class="scanTop">
+        <button id="revBack" class="scanX" aria-label="Back to camera"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+        <div class="scanTitle"><b>Review scan</b><small id="revCount">0 pages</small></div>
+        <button id="revAddTop" class="scanAdd"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add page</button>
+      </div>
+      <div id="revBody">
+        <aside id="revThumbs">
+          <div class="thumbsKick">Pages</div>
+          <div id="thumbList"></div>
+          <button id="thumbAdd" aria-label="Add a page"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        </aside>
+        <div id="revStage">
+          <div id="revPreviewWrap">
+            <span class="reg regTL"></span><span class="reg regTR"></span><span class="reg regBL"></span><span class="reg regBR"></span>
+            <canvas id="revCanvas"></canvas>
+            <span id="revEnhChip">Enhance · sharp</span>
+          </div>
+          <div id="cropHint" hidden><span>Drag the corners to the page edges</span> <button id="cropDone">✓ Keep</button></div>
+        </div>
+        <aside id="revPanel">
+          <h3>Ready to read</h3>
+          <p id="revPanelDesc">Enhanced and straightened on your device. Hand them to the reader and start listening.</p>
+          <div class="scanCard">
+            <div class="scKick">Recognize text (OCR)</div>
+            <label class="scRow" for="ocrToggle"><span>So it can be read &amp; searched</span><input type="checkbox" id="ocrToggle" checked><span class="scSwitch" aria-hidden="true"></span></label>
+          </div>
+          <div class="scanCard scMuted"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Recognized entirely on your device.</div>
+          <div class="revActions">
+            <button id="revRead" class="scanPrimary"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Read aloud</button>
+            <div class="revActRow">
+              <button id="revSavePdf" class="scanGhost">Save PDF</button>
+              <button id="revAskAI" class="scanGhost">Ask AI</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <div id="revToolbar">
+        <button id="tbCrop" class="tbBtn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M2 6h14a2 2 0 0 1 2 2v14"/></svg><span>Crop</span></button>
+        <button id="tbRotate" class="tbBtn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>Rotate</span></button>
+        <div id="tbFilters" class="seg" role="group" aria-label="Page look">
+          <button type="button" data-f="original">Original</button>
+          <button type="button" data-f="enhance" class="on">Enhance</button>
+          <button type="button" data-f="bw">B&amp;W</button>
+        </div>
+        <button id="tbDelete" class="tbBtn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Delete</span></button>
+      </div>
+    </section>
   </div>
 </div>
 <div id="camFlash"></div>

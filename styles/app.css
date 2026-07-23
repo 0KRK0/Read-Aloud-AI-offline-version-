@@ -494,50 +494,149 @@
   #scanBtn{background:none; border:none; padding:0; color:var(--muted,#9aa1b5); font-size:13px; cursor:pointer;
     text-decoration:underline; text-underline-offset:3px; text-decoration-color:var(--line-strong); transition:color .15s}
   #scanBtn:hover{color:var(--accent,#6c8cff)}
-  /* In-app "Scan a paper" camera — styled to match the scan.html station.
-     Dark surfaces, orange square shutter, ghost square controls, orange chips. */
-  #camModal{position:fixed; inset:0; z-index:400; display:none; flex-direction:column; background:var(--bg)}
-  #camStage{flex:1; min-height:0; position:relative; display:flex; align-items:center; justify-content:center; background:#1a1613}
-  #camVideo{width:100%; height:100%; object-fit:cover; background:#1a1613}
+  /* ============================================================
+     In-Reader "Scan a paper" — immersive Capture (Image 1) →
+     Adobe-Scan-style Review & Edit workspace (Image 2). Rebuilt to the
+     approved redesign. Flat, ruled, one orange action per screen.
+     ============================================================ */
+  #camModal{position:fixed; inset:0; z-index:400; display:none; background:var(--bg)}
+  /* JS sets inline display:flex to open → rail + main sit side by side (row) */
+  /* persistent rail */
+  #scanRail{width:64px; flex:none; border-right:1px solid var(--line); background:var(--bg);
+    display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:8px}
+  #scanRail .scanMark{width:28px; height:28px; background:var(--accent); display:inline-flex;
+    align-items:center; justify-content:center; margin-bottom:8px}
+  #scanRail .scanMark span{width:9px; height:9px; background:var(--bg)}
+  #scanRail .scanRailIc{width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; color:var(--muted)}
+  #scanRail .scanRailIc.on{color:var(--text); background:var(--panel2); border-left:2px solid var(--accent)}
+  #scanRail .scanLock{margin-top:auto; color:var(--muted); display:inline-flex}
+  #scanMain{flex:1; min-width:0; display:flex; flex-direction:column}
+  #capStep, #revStep{flex:1; min-height:0; display:flex; flex-direction:column}
+  #capStep[hidden], #revStep[hidden]{display:none}
+  /* shared top bar */
+  .scanTop{height:52px; flex:none; display:flex; align-items:center; gap:14px; padding:0 18px; border-bottom:1px solid var(--line)}
+  .scanTop .scanX{width:34px; height:34px; flex:none; display:inline-flex; align-items:center; justify-content:center;
+    background:none; border:1px solid var(--line-strong); color:var(--muted); cursor:pointer; border-radius:0}
+  .scanTop .scanX:hover{border-color:var(--accent); color:var(--text)}
+  .scanTitle{display:flex; align-items:baseline; gap:10px; min-width:0}
+  .scanTitle b{font-family:var(--font-display); font-size:15px; font-weight:600; color:var(--text)}
+  .scanTitle small{color:var(--muted); font-size:12.5px}
+  .scanPriv{margin-left:auto; color:var(--muted); font-size:11.5px; display:inline-flex; align-items:center; gap:7px; white-space:nowrap}
+  .scanPriv svg{color:var(--accent)}
+  .scanAdd{margin-left:auto; display:inline-flex; align-items:center; gap:7px; background:none;
+    border:1px solid var(--line-strong); color:var(--text); font-family:inherit; font-size:12.5px; font-weight:600;
+    padding:7px 12px; cursor:pointer; border-radius:0}
+  .scanAdd:hover{border-color:var(--accent)}
+
+  /* ---- Capture stage ---- */
+  #camStage{flex:1; min-height:0; position:relative; display:flex; align-items:center; justify-content:center; background:#161310; overflow:hidden}
+  #camVideo{width:100%; height:100%; object-fit:cover; background:#161310}
   #camOverlay{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
-  #camAuto{width:auto!important; height:auto!important; border-radius:0!important;
-    background:none!important; border:1px solid var(--line-strong)!important; color:var(--muted)!important;
-    font-size:13px; font-weight:600; padding:11px 18px; opacity:1}
-  #camAuto.on{color:var(--on-accent)!important; background:var(--accent)!important; border-color:var(--accent)!important; box-shadow:none}
-  #revCanvas{max-width:100%; max-height:100%; cursor:crosshair; touch-action:none}
-  #revBar{display:flex; align-items:center; justify-content:center; gap:14px; padding:14px; background:var(--bg); flex-wrap:wrap; border-top:1px solid var(--line)}
-  #revBar button{border:1px solid var(--line-strong); cursor:pointer; color:var(--text); background:none; border-radius:0; padding:11px 16px; font-size:14px; transition:border-color .2s, background .2s}
-  #revBar button:hover{border-color:var(--accent)}
-  #revCancel{color:var(--muted)!important}
-  #revKeep{background:var(--accent)!important; color:var(--on-accent)!important; border:none!important; font-weight:600; padding:12px 24px!important}
-  #revFilters{display:flex; gap:0; border:1px solid var(--line-strong); border-radius:0; padding:0; background:none}
-  #revFilters button{background:none; border:none; border-left:1px solid var(--line); border-radius:0; padding:10px 16px; font-size:13px; color:var(--muted)}
-  #revFilters button:first-child{border-left:none}
-  #revFilters button.on{background:var(--accent); color:var(--on-accent)}
-  #camHint{position:absolute; top:18px; left:50%; transform:translateX(-50%); text-align:center;
-    color:var(--text); font-size:12.5px; background:var(--bg); border:1px solid var(--line-strong);
-    padding:8px 14px; opacity:.96; pointer-events:none; display:inline-flex; align-items:center; gap:9px}
-  #camHint::before{content:""; width:7px; height:7px; background:var(--accent); flex:none}
-  #camBar{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:16px; padding:16px 24px; background:var(--bg); border-top:1px solid var(--line)}
-  #camBar > #camCancel{justify-self:start}
-  #camBar > #camDone{justify-self:end}
-  #camBar button{border:1px solid var(--line-strong); border-radius:0; cursor:pointer; color:var(--muted); background:none; transition:border-color .2s, color .2s}
-  #camBar button:hover{border-color:var(--accent); color:var(--text)}
-  #camCancel,#camUndo,#camAuto{width:48px; height:48px; display:inline-flex; align-items:center; justify-content:center; font-size:0}
-  #camAuto{width:auto; height:48px}
-  #camBarMid{display:flex; align-items:center; gap:14px; justify-self:center}
-  /* round shutter — identical to the Scan Tool station's capture button */
-  #camShot{width:72px; height:72px; border-radius:50%!important; font-size:0;
-    background:none!important; border:4px solid var(--line-strong)!important; box-shadow:none;
+  #capBanner{position:absolute; top:18px; left:50%; transform:translateX(-50%); text-align:center;
+    color:var(--text); font-size:12.5px; background:rgba(17,17,16,.9); border:1px solid var(--line-strong);
+    padding:8px 14px; pointer-events:none; display:inline-flex; align-items:center; gap:9px; white-space:nowrap}
+  #capBanner span{width:7px; height:7px; background:var(--accent); flex:none}
+  /* capture bottom bar */
+  .scanBottom{flex:none; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:16px; padding:16px 24px; background:var(--bg); border-top:1px solid var(--line)}
+  .scanBottom .sbLeft{justify-self:start}
+  .scanBottom .sbRight{justify-self:end}
+  .scanBottom .sbMid{display:flex; align-items:center; gap:22px; justify-self:center}
+  #camCount{color:var(--muted); font-size:13px; display:inline-flex; align-items:center; gap:8px; font-variant-numeric:tabular-nums}
+  .scanRound{width:46px; height:46px; border-radius:50%!important; display:inline-flex; align-items:center; justify-content:center;
+    background:none; border:1px solid var(--line-strong); color:var(--muted); cursor:pointer; transition:border-color .2s, color .2s}
+  .scanRound:hover{border-color:var(--accent); color:var(--text)}
+  .scanRound.on{color:var(--accent); border-color:var(--accent)}
+  .scanRound:disabled{opacity:.4; cursor:default}
+  #camShot{width:72px; height:72px; border-radius:50%!important; font-size:0; cursor:pointer;
+    background:none; border:4px solid var(--line-strong); box-shadow:none;
     display:inline-flex; align-items:center; justify-content:center; position:relative}
   #camShot::after{content:""; width:52px; height:52px; border-radius:50%; background:var(--accent)}
-  #camShot:hover{border-color:var(--accent)!important}
-  #camDone{width:auto; height:48px; border-radius:0!important; padding:0 22px; font-size:14px; font-weight:600;
-    background:var(--accent)!important; color:var(--on-accent)!important; border:none!important;
-    display:inline-flex; align-items:center; gap:8px}
-  #camBar button:disabled{opacity:.4; cursor:default}
-  #camCount{color:var(--muted); font-size:13px; min-width:56px; text-align:center; font-variant-numeric:tabular-nums}
+  #camShot:hover{border-color:var(--accent)}
+  #camDone{display:inline-flex; align-items:center; gap:8px; height:46px; padding:0 20px; font-size:14px; font-weight:600;
+    font-family:inherit; background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer; border-radius:0}
+  #camDone:not(:disabled):hover{background:var(--accent); color:var(--on-accent)}
+  #camDone:disabled{opacity:.4; cursor:default; border-color:var(--line-strong); color:var(--muted)}
+
+  /* ---- Review & Edit workspace ---- */
+  #revBody{flex:1; min-height:0; display:flex}
+  #revThumbs{width:150px; flex:none; border-right:1px solid var(--line); padding:16px 12px; overflow-y:auto; display:flex; flex-direction:column; gap:10px}
+  #revThumbs .thumbsKick{font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+  #thumbList{display:flex; flex-direction:column; gap:10px}
+  #revThumbs .thumb{position:relative; width:100%; aspect-ratio:3/4; background:var(--panel); border:1px solid var(--line-strong);
+    padding:0; cursor:pointer; overflow:hidden; border-radius:0; display:block}
+  #revThumbs .thumb.on{border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent)}
+  #revThumbs .thumb img{width:100%; height:100%; object-fit:cover; display:block}
+  #revThumbs .thumb .thNum{position:absolute; top:0; left:0; z-index:1; min-width:18px; height:18px; padding:0 4px;
+    background:var(--accent); color:var(--on-accent); font-size:11px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; font-variant-numeric:tabular-nums}
+  #thumbAdd{width:100%; aspect-ratio:3/4; background:none; border:1px dashed var(--line-strong); color:var(--muted);
+    cursor:pointer; border-radius:0; display:inline-flex; align-items:center; justify-content:center}
+  #thumbAdd:hover{border-color:var(--accent); color:var(--accent)}
+  #revStage{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:26px; background:#161310; position:relative}
+  #revPreviewWrap{position:relative; display:inline-flex; max-width:100%; max-height:100%}
+  #revPreviewWrap .reg{position:absolute; width:14px; height:14px; z-index:2}
+  #revPreviewWrap .regTL{left:-7px; top:-7px; border-left:2px solid var(--accent); border-top:2px solid var(--accent)}
+  #revPreviewWrap .regTR{right:-7px; top:-7px; border-right:2px solid var(--accent); border-top:2px solid var(--accent)}
+  #revPreviewWrap .regBL{left:-7px; bottom:-7px; border-left:2px solid var(--accent); border-bottom:2px solid var(--accent)}
+  #revPreviewWrap .regBR{right:-7px; bottom:-7px; border-right:2px solid var(--accent); border-bottom:2px solid var(--accent)}
+  #revCanvas{max-width:100%; max-height:calc(100vh - 260px); display:block; background:#faf9f5; touch-action:none}
+  #revCanvas.cropping{cursor:crosshair}
+  #revEnhChip{position:absolute; right:10px; bottom:10px; z-index:2; background:var(--bg); border:1px solid var(--line-strong);
+    color:var(--muted); font-size:11.5px; padding:5px 9px}
+  #cropHint{display:inline-flex; align-items:center; gap:12px; color:var(--muted); font-size:12.5px}
+  #cropHint button{background:var(--accent); color:var(--on-accent); border:none; font-family:inherit; font-weight:600; font-size:12.5px; padding:7px 14px; cursor:pointer; border-radius:0}
+  /* right info panel */
+  #revPanel{width:300px; flex:none; border-left:1px solid var(--line); padding:22px 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto}
+  #revPanel h3{font-family:var(--font-display); font-size:19px; font-weight:600; color:var(--text)}
+  #revPanel #revPanelDesc{color:var(--muted); font-size:13px; line-height:1.55}
+  #revPanel .scanCard{border:1px solid var(--line); background:var(--panel); padding:13px 14px}
+  #revPanel .scanCard .scKick{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:8px}
+  #revPanel .scRow{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text); cursor:pointer}
+  #revPanel .scRow input{position:absolute; opacity:0; pointer-events:none}
+  #revPanel .scRow .scSwitch{margin-left:auto; flex:none; width:38px; height:22px; background:var(--line-strong); position:relative; transition:background .15s}
+  #revPanel .scRow .scSwitch::after{content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; background:var(--text); transition:transform .15s}
+  #revPanel .scRow input:checked ~ .scSwitch{background:var(--accent)}
+  #revPanel .scRow input:checked ~ .scSwitch::after{transform:translateX(16px); background:var(--on-accent)}
+  #revPanel .scRow input:focus-visible ~ .scSwitch{outline:2px solid var(--accent); outline-offset:2px}
+  #revPanel .scMuted{color:var(--muted); font-size:12px; display:flex; align-items:center; gap:8px}
+  #revPanel .scMuted svg{color:var(--accent); flex:none}
+  #revPanel .revActions{margin-top:auto; display:flex; flex-direction:column; gap:10px}
+  #revPanel .scanPrimary{display:inline-flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:13px;
+    background:var(--accent); color:var(--on-accent); border:none; font-family:inherit; font-size:14.5px; font-weight:700; cursor:pointer; border-radius:0}
+  #revPanel .scanPrimary:hover{filter:brightness(1.06)}
+  #revPanel .revActRow{display:flex; gap:10px}
+  #revPanel .scanGhost{flex:1; padding:11px; background:none; border:1px solid var(--line-strong); color:var(--text);
+    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; border-radius:0}
+  #revPanel .scanGhost:hover{border-color:var(--accent)}
+  #revPanel .scanGhost:disabled{opacity:.5; cursor:progress}
+  /* bottom editing toolbar — shared-border, one segment for the look */
+  #revToolbar{flex:none; display:flex; align-items:stretch; border-top:1px solid var(--line); background:var(--bg)}
+  #revToolbar .tbBtn{display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    min-width:88px; padding:12px 16px; background:none; border:none; border-right:1px solid var(--line);
+    color:var(--muted); font-family:inherit; font-size:11.5px; cursor:pointer; transition:color .15s, background .15s}
+  #revToolbar .tbBtn:hover{color:var(--text); background:var(--panel)}
+  #revToolbar #tbDelete{margin-left:auto; border-right:none; border-left:1px solid var(--line)}
+  #revToolbar #tbDelete:hover{color:var(--warn)}
+  #revToolbar .seg{display:inline-flex; align-self:center; margin:0 16px; border:1px solid var(--line-strong)}
+  #revToolbar .seg button{background:none; border:none; border-left:1px solid var(--line); color:var(--muted);
+    font-family:inherit; font-size:12.5px; padding:9px 15px; cursor:pointer}
+  #revToolbar .seg button:first-child{border-left:none}
+  #revToolbar .seg button.on{background:var(--accent); color:var(--on-accent); font-weight:600}
   #camFlash{position:fixed; inset:0; z-index:401; background:#fff; opacity:0; pointer-events:none; transition:opacity .18s}
+  /* ≤900px — stack the workspace: thumbnails become a horizontal strip, panel drops below */
+  @media (max-width:900px){
+    #scanRail{display:none}
+    .scanPriv{display:none}
+    #revBody{flex-direction:column; overflow-y:auto}
+    #revThumbs{width:auto; flex-direction:row; border-right:none; border-bottom:1px solid var(--line); overflow-x:auto; padding:12px}
+    #revThumbs .thumbsKick{display:none}
+    #thumbList{flex-direction:row}
+    #revThumbs .thumb, #thumbAdd{width:64px; aspect-ratio:3/4; flex:none}
+    #revStage{min-height:44vh; padding:16px}
+    #revCanvas{max-height:44vh}
+    #revPanel{width:auto; border-left:none; border-top:1px solid var(--line)}
+    #revToolbar{flex-wrap:wrap}
+    #revToolbar .seg{margin:6px 12px}
+  }
   #pdfBtn,#addPageBtn{background:transparent; border:1px solid var(--accent,#6c8cff); color:var(--accent,#6c8cff); border-radius:8px; padding:5px 10px; font-size:12.5px; cursor:pointer; white-space:nowrap}
   /* while recognising: playbar is visibly locked */
   #playbar.busy button, #playbar.busy select{opacity:.4; pointer-events:none}
